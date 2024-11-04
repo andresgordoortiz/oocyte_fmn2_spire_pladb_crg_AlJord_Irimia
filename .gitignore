@@ -25,6 +25,9 @@ results/**/*.png
 
 # Ignore container and config files specific to environment
 config/docker/*
+VASTDB/*
+data/*
+tests/data_tests/*
 
 # Ignore compiled files and environments
 __pycache__/
