@@ -5,5 +5,4 @@ docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share vast-tools ba
     --min_fold_av 2 \
     --min_cRPKM 2 \
     --norm \
-    --GO \
-    -sp Mm2 > summary_stats.txt"
+    --GO > summary_stats_expression.txt"
