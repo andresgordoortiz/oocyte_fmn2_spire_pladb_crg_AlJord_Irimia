@@ -10,6 +10,7 @@ data/raw/*
 *.csv
 *.tsv
 *.h5
+*.gz
 
 # Ignore large result files
 results/**/*.pdf
