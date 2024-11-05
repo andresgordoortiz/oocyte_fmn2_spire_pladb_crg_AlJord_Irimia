@@ -1,12 +1,19 @@
 #!/bin/bash
+# Set the species variable
 species="Mm2"
 
+# Define URLs for mouse and human VASTDB tar.gz files
 file_url_mouse="https://vastdb.crg.eu/libs/vastdb.mm2.23.06.20.tar.gz"
 file_url_human="https://vastdb.crg.eu/libs/vastdb.hsa.23.06.20.tar.gz"
+
+# Define the raw data file
 rawdata="INCLUSION_LEVELS_SpireData__mm10.tab"
+
+# Define the VASTDB directory
 vastdb_dir=$(pwd)/VASTDB
 mkdir -p "$vastdb_dir"
 
+# Determine the file URL and species directory based on the species variable
 if [ "$species" = "Mm2" ]; then
     file_url=$file_url_mouse
     file_name=$(basename $file_url_mouse)
@@ -20,6 +27,7 @@ else
     exit 1
 fi
 
+# Check if the species directory exists, if not, download and extract the tar.gz file
 if [ ! -d "$species_dir" ]; then
     wget -O "$vastdb_dir/$file_name" "$file_url"
     tar -xzf "$vastdb_dir/$file_name" -C "$vastdb_dir"
@@ -28,6 +36,7 @@ else
     echo "VASTDB for $species already exists, skipping download."
 fi
 
+# Run the Docker container with the appropriate volume mounts and command
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
            -v $(pwd)/VASTDB:/usr/local/vast-tools/VASTDB \
            vast-tools bash -c "cd /usr/local/vast-tools/share && vast-tools compare $rawdata \
