@@ -36,6 +36,9 @@ else
     echo "VASTDB for $species already exists, skipping download."
 fi
 
+# Create necessary directories if they do not exist
+mkdir -p $(pwd)/tests/data_tests/outdir
+
 # Run the Docker container with the appropriate volume mounts and command
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
            -v $(pwd)/VASTDB:/usr/local/vast-tools/VASTDB \
