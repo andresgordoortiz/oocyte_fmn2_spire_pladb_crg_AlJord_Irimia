@@ -47,6 +47,7 @@ docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
     --GO \
     -sp Mm2 > summary_stats.txt"
 
-mv tests/data_tests/*.txt tests/data_tests/*.pdf tests/data_tests/outdir/
+mv tests/data_tests/*.txt tests/data_tests/outdir/
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share vast-tools \
     vast-tools plot /usr/local/vast-tools/share/Diff*.tab
+mv tests/data_tests/*.pdf tests/data_tests/outdir/
