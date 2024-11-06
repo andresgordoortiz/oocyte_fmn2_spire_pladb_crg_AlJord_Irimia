@@ -7,7 +7,7 @@ file_url_mouse="https://vastdb.crg.eu/libs/vastdb.mm2.23.06.20.tar.gz"
 file_url_human="https://vastdb.crg.eu/libs/vastdb.hsa.23.06.20.tar.gz"
 
 # Define the raw data file
-rawdata="INCLUSION_LEVELS_SpireData__mm10.tab"
+rawdata="INCLUSION_LEVELS_Tutorial_mm10.tab"
 
 # Define the VASTDB directory
 vastdb_dir=$(pwd)/VASTDB
@@ -43,12 +43,13 @@ mkdir -p $(pwd)/tests/data_tests/outdir
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
            -v $(pwd)/VASTDB:/usr/local/vast-tools/VASTDB \
            vast-tools bash -c "cd /usr/local/vast-tools/share && vast-tools compare $rawdata \
-    -a Oocytes_FG_Spire12_Cont_a,Oocytes_FG_Spire12_Cont_b,Oocytes_FG_Spire12_Cont_c \
-    -b Oocytes_FG_Spire12_DKO_a,Oocytes_FG_Spire12_DKO_b,Oocytes_FG_Spire12_DKO_c \
+    -a CL_N2A_Srrm4_Cont_a,CL_N2A_Srrm4_Cont_b \
+    -b CL_N2A_Srrm4_KD_a,CL_N2A_Srrm4_KD_b \
     --min_dPSI 25 \
     --min_range 5 \
-    --GO \
-    -sp Mm2 > summary_stats.txt"
+    --GO --print_dPSI --print_sets \
+    -name_A Control -name_B Srrm4_KD \
+    -sp mm10 > summary_stats.txt"
 
 mv tests/data_tests/*.txt tests/data_tests/outdir/
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share vast-tools \
