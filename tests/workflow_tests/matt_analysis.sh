@@ -17,3 +17,5 @@ fi
 matt get_vast share/merged_tmp.tab COORD FullCO COMPLEX LENGTH -gtf share/mm10.gtf > Matt_input_Srrm4_ex.tab
 mv Matt_input_Srrm4_ex.tab share/Matt_input_Srrm4_ex.tab
 matt cmpr_exons share/Matt_input_Srrm4_ex.tab START END SCAFFOLD STRAND GENEID share/mm10.gtf share/mm10.fasta Mmus 150 GROUP[Srrm4_DOWN,CR,AS_NC,CS] Matt_Srrm4_KD -notrbts -colors:red,white,lightgray,darkgray
+echo -e 'TYPE\tNAME\tEXPR_FILE\tTHRESH\tBGMODEL\tREGEXP\tUGC\tTGC\tNA\tNA' > ugc_motif.tab
+matt rna_maps share/Matt_input_Srrm4_ex.tab UPSTRM_EX_BORDER START END DOSTRM_EX_BORDER SCAFFOLD STRAND GROUP 15 50 150 share/mm10.fasta ugc_motif.tab TYPE NAME EXPR_FILE THRESH BGMODEL REGEXP -d UGC_map_Matt_Srrm4_KD
