@@ -13,6 +13,10 @@ rawdata="INCLUSION_LEVELS_Tutorial_mm10.tab"
 vastdb_dir=$(pwd)/VASTDB
 mkdir -p "$vastdb_dir"
 
+# Define the groups for comparison
+group_a="Oocytes_FG_Spire12_Cont_a,Oocytes_FG_Spire12_Cont_b,Oocytes_FG_Spire12_Cont_c"
+group_b="Oocytes_FG_Spire12_DKO_a,Oocytes_FG_Spire12_DKO_b,Oocytes_FG_Spire12_DKO_c"
+
 # Determine the file URL and species directory based on the species variable
 if [ "$species" = "Mm2" ]; then
     file_url=$file_url_mouse
@@ -43,8 +47,8 @@ mkdir -p $(pwd)/tests/data_tests/outdir
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
            -v $(pwd)/VASTDB:/usr/local/vast-tools/VASTDB \
            vast-tools bash -c "cd /usr/local/vast-tools/share && vast-tools compare $rawdata \
-    -a CL_N2A_Srrm4_Cont_a,CL_N2A_Srrm4_Cont_b \
-    -b CL_N2A_Srrm4_KD_a,CL_N2A_Srrm4_KD_b \
+    -a $group_a \
+    -b $group_b \
     --min_dPSI 25 \
     --min_range 5 \
     --GO --print_dPSI --print_sets \
