@@ -7,7 +7,7 @@ file_url_mouse="https://vastdb.crg.eu/libs/vastdb.mm2.23.06.20.tar.gz"
 file_url_human="https://vastdb.crg.eu/libs/vastdb.hsa.23.06.20.tar.gz"
 
 # Define the raw data file
-rawdata="INCLUSION_LEVELS_Tutorial_mm10.tab"
+rawdata="INCLUSION_LEVELS_SpireData__mm10.tab"
 
 # Define the VASTDB directory
 vastdb_dir=$(pwd)/VASTDB
@@ -16,7 +16,8 @@ mkdir -p "$vastdb_dir"
 # Define the groups for comparison
 group_a="Oocytes_FG_Spire12_Cont_a,Oocytes_FG_Spire12_Cont_b,Oocytes_FG_Spire12_Cont_c"
 group_b="Oocytes_FG_Spire12_DKO_a,Oocytes_FG_Spire12_DKO_b,Oocytes_FG_Spire12_DKO_c"
-
+name_a="Control"
+name_b="Spire_DKO"
 # Determine the file URL and species directory based on the species variable
 if [ "$species" = "Mm2" ]; then
     file_url=$file_url_mouse
@@ -52,7 +53,7 @@ docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
     --min_dPSI 25 \
     --min_range 5 \
     --GO --print_dPSI --print_sets \
-    -name_A Control -name_B Srrm4_KD \
+    -name_A $name_a  -name_B $name_b \
     -sp mm10 > summary_stats.txt"
 
 mv tests/data_tests/*.txt tests/data_tests/outdir/
