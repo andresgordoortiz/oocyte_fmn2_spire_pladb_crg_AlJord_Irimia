@@ -10,5 +10,10 @@ rm *_tmp.tab
 if [ ! -f share/mm10.gtf ]; then
     wget -O - https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M10/gencode.vM10.annotation.gtf.gz | gunzip > share/mm10.gtf
 fi
+if [ ! -f share/mm10.fasta ]; then
+    wget -O - https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M10/gencode.vM10.transcripts.fa.gz | gunzip > share/mm10.fasta
+fi
+
 matt get_vast share/merged_tmp.tab COORD FullCO COMPLEX LENGTH -gtf share/mm10.gtf > Matt_input_Srrm4_ex.tab
 mv Matt_input_Srrm4_ex.tab share/Matt_input_Srrm4_ex.tab
+matt cmpr_exons share/Matt_input_Srrm4_ex.tab START END SCAFFOLD  STRAND GENEID share/mm10.gtf mm10.fasta Mmus 150 GROUP[Srrm4_DOWN,  CR,AS_NC,CS] Matt_Srrm4_KD -notrbts -colors:red,white,lightgray,darkgray
