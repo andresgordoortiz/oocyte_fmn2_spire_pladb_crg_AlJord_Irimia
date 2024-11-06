@@ -7,3 +7,8 @@ matt add_rows AS_NC_tmp.tab CS_tmp.tab
 matt add_rows AS_NC_tmp.tab low_tmp.tab
 cp AS_NC_tmp.tab share/merged_tmp.tab
 rm *_tmp.tab
+if [ ! -f share/mm10.gtf ]; then
+    wget -O - https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M10/gencode.vM10.annotation.gtf.gz | gunzip > share/mm10.gtf
+fi
+matt get_vast share/merged_tmp.tab COORD FullCO COMPLEX LENGTH -gtf share/mm10.gtf > Matt_input_Srrm4_ex.tab
+mv Matt_input_Srrm4_ex.tab share/Matt_input_Srrm4_ex.tab
