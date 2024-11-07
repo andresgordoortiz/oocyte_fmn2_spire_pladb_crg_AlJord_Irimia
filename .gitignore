@@ -8,7 +8,7 @@
 *.sam
 *.h5
 *.gz
-
+.nextflow/
 # Ignore large result files
 results/**/*.pdf
 results/**/*.png
