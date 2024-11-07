@@ -13,6 +13,11 @@ rawdata="INCLUSION_LEVELS_SpireData__mm10.tab"
 vastdb_dir=$(pwd)/VASTDB
 mkdir -p "$vastdb_dir"
 
+# Define the groups for comparison
+group_a="Oocytes_FG_Spire12_Cont_a,Oocytes_FG_Spire12_Cont_b,Oocytes_FG_Spire12_Cont_c"
+group_b="Oocytes_FG_Spire12_DKO_a,Oocytes_FG_Spire12_DKO_b,Oocytes_FG_Spire12_DKO_c"
+name_a="Control"
+name_b="Spire_DKO"
 # Determine the file URL and species directory based on the species variable
 if [ "$species" = "Mm2" ]; then
     file_url=$file_url_mouse
@@ -43,12 +48,13 @@ mkdir -p $(pwd)/tests/data_tests/outdir
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share \
            -v $(pwd)/VASTDB:/usr/local/vast-tools/VASTDB \
            vast-tools bash -c "cd /usr/local/vast-tools/share && vast-tools compare $rawdata \
-    -a Oocytes_FG_Spire12_Cont_a,Oocytes_FG_Spire12_Cont_b,Oocytes_FG_Spire12_Cont_c \
-    -b Oocytes_FG_Spire12_DKO_a,Oocytes_FG_Spire12_DKO_b,Oocytes_FG_Spire12_DKO_c \
+    -a $group_a \
+    -b $group_b \
     --min_dPSI 25 \
     --min_range 5 \
-    --GO \
-    -sp Mm2 > summary_stats.txt"
+    --GO --print_dPSI --print_sets \
+    -name_A $name_a  -name_B $name_b \
+    -sp mm10 > summary_stats.txt"
 
 mv tests/data_tests/*.txt tests/data_tests/outdir/
 docker run -v $(pwd)/tests/data_tests/:/usr/local/vast-tools/share vast-tools \
