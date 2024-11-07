@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
+
+# job name
+#SBATCH --job-name fetchngs
+
 #SBATCH --no-requeue
-#SBATCH --mem 15G
+#SBATCH --mem 10G
 #SBATCH -p genoa64
 #SBATCH --qos pipelines
+#SBATCH --cpus-per-task=4
 # where to put stdout / stderr
-#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/fetchngs.%j.out
-#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/fetchngs.%j.err
+#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%j.out
+#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%j.err
 
 # Configure bash
 set -e          # exit immediately on error
@@ -23,7 +28,8 @@ _term() {
 trap _term TERM
 
 # load Java module
-#%Module load Java
+module load Java
+module load Nextflow
 
 # limit the RAM that can be used by nextflow
 export NXF_JVM_ARGS="-Xms2g -Xmx5g"
@@ -33,7 +39,7 @@ export NXF_JVM_ARGS="-Xms2g -Xmx5g"
 # $ sbatch submit_nf.sh nextflow/rnatoy -with-singularity
 #
 # will use "nextflow/rnatoy -with-singularity" as arguments
-nextflow run -ansi-log false "$@" -c /users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/config/nextflow.config & pid=$!
+nextflow run -ansi-log false "$@" -c /users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/config/nextflow_fetchngs.config --max_cpus 4 & pid=$!
 
 # Wait for the pipeline to finish
 echo "Waiting for ${pid}"
