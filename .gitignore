@@ -1,5 +1,4 @@
 # Ignore raw data
-data/raw/*
 !data/raw/README.md  # Keep an empty README to explain where raw files go
 
 # Ignore any fastq.gz and large dataset files in processed data
@@ -20,12 +19,13 @@ results/**/*.png
 *.swp
 *.bak
 .DS_Store
+*.err
+*.out
 
 # Ignore container and config files specific to environment
 config/docker/*
 VASTDB/*
-data/*
-tests/data_tests/*
+
 
 # Ignore compiled files and environments
 __pycache__/
