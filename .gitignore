@@ -7,8 +7,6 @@ data/raw/*
 *.bam
 *.vcf
 *.sam
-*.csv
-*.tsv
 *.h5
 *.gz
 
