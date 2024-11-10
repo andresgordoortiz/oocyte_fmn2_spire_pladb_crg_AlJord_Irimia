@@ -54,5 +54,5 @@ echo [$(date +"%Y-%m-%d %H:%M:%S")] finished on $(hostname) after $((end_epoch-s
 #####################
 echo [$(date +"%Y-%m-%d %H:%M:%S")] submitting fastqc job
 if [ "$SLURM_ARRAY_TASK_ID" -eq "$(($(wc -l < "$1") - 1))" ]; then
-  sbatch --dependency=afterok:$SLURM_JOB_ID /users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/run_fastqc.sh
+  sbatch --dependency=afterok:$SLURM_JOB_ID ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/run_fastqc.sh
 fi
