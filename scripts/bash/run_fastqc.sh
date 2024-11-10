@@ -38,8 +38,7 @@ set -o pipefail
 ################
 # run fastqc   #
 ################
-cd ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/downloads
-singularity exec --bind ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/downloads docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 4 *.fastq.gz
+singularity exec --bind $PWD/downloads docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 4 $PWD/downloads/*.fastq.gz
 
 ################
 # run multiqc  #
