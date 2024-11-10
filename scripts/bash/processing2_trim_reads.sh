@@ -21,7 +21,8 @@
 
 # job name
 #SBATCH --job-name trim_reads
-
+# job array directive
+#SBATCH --array=0-3
 #################
 # start message #
 #################
@@ -39,11 +40,21 @@ set -o pipefail
 # run command #
 ###############
 
-singularity exec --bind $PWD/downloads \
-    docker://genomicpariscentre/trimgalore:0.6.10 \
-    trim_galore -t 4 $PWD/downloads/*.fastq.gz \
-    --fastqc -j 8 \
-    --fastqc_args "-t 8"
+# Loop through each fastq.gz file and run the singularity command
+for file in $PWD/downloads/*.fastq.gz; do
+    singularity exec --bind $PWD/downloads \
+        docker://genomicpariscentre/trimgalore:0.6.10 \
+        trim_galore "$file" \
+        --fastqc -j 8 -o $PWD/downloads/trimmed \
+        --fastqc_args "-t 8 --outdir $PWD/downloads/trimmed"
+done
+
+################
+# run multiqc  #
+################
+module load MultiQC/1.22.3-foss-2023b
+cd $PWD/downloads
+multiqc .
 
 ###############
 # end message #
