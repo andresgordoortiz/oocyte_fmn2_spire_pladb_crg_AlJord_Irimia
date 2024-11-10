@@ -12,7 +12,7 @@
 #SBATCH --time=60
 
 # queue
-#SBATCH --qos=short
+#SBATCH --qos=vshort
 
 # memory (MB)
 #SBATCH --mem=10G
@@ -43,7 +43,8 @@ singularity exec docker://biocontainers/fastqc:v0.11.9_cv8 fastqc *.fastq.gz
 ################
 # run multiqc  #
 ################
-singularity exec docker://biocontainers/multiqc:latest multiqc .
+module load multiqc
+multiqc .
 
 ###############
 # end message #
