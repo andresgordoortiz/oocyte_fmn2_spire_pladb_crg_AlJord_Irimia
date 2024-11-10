@@ -40,21 +40,18 @@ set -o pipefail
 # run command #
 ###############
 
-# Loop through each fastq.gz file and run the singularity command
-for file in $PWD/downloads/*.fastq.gz; do
-    singularity exec --bind $PWD/downloads \
-        docker://genomicpariscentre/trimgalore:0.6.10 \
-        trim_galore "$file" \
-        --fastqc -j 8 -o $PWD/downloads/trimmed \
-        --fastqc_args "-t 8 --outdir $PWD/downloads/trimmed"
-done
+# Define file list and select the file for the current array job
+files=($PWD/downloads/*.fastq.gz)
+file=${files[$SLURM_ARRAY_TASK_ID]}
 
-################
-# run multiqc  #
-################
-module load MultiQC/1.22.3-foss-2023b
-cd $PWD/downloads
-multiqc .
+# Run the trimming command for the selected file
+singularity exec --bind $PWD/downloads \
+    docker://genomicpariscentre/trimgalore:0.6.10 \
+    trim_galore "$file" \
+    --fastqc -j 8 -o $PWD/downloads/trimmed \
+    --fastqc_args "-t 8 --outdir $PWD/downloads/trimmed"
+
+
 
 ###############
 # end message #
