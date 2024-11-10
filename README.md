@@ -1,8 +1,8 @@
 # 24CRG_ADEL_MANU_OOCYTE_SPLICING
-**Author**: Andrés Gordo Ortiz  
-**Institution**: Centre for Genomic Regulation (CRG)  
-**Supervisors**: Manu Irimia, Adel Al Jord  
-**Project Type**: Master Thesis  
+**Author**: Andrés Gordo Ortiz
+**Institution**: Centre for Genomic Regulation (CRG)
+**Supervisors**: Manu Irimia, Adel Al Jord
+**Project Type**: Master Thesis
 
 ## Project Overview
 
@@ -20,9 +20,12 @@ This repo consists on the data exploration, processing and plotting for the Oocy
 - **tests/**: Scripts for testing data integrity and workflow components.
 - **.github/**: GitHub-specific workflows for continuous integration and issue templates.
 
+## Reproducibiity Information
+
+
 ## Installation and Setup
 
 1. Clone the repository:
    ```bash
-   git clone <repository_url>
-   cd project_root
+   git clone https://github.com/andresgordoortiz/24CRG_ADEL_MANU_OOCYTE_SPLICING.git
+   cd 24CRG_ADEL_MANU_OOCYTE_SPLICING
