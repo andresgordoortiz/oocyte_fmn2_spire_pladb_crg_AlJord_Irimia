@@ -9,19 +9,19 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=60
+#SBATCH --time=5
 
 # queue
-#SBATCH --qos=short
+#SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=5G
+#SBATCH --mem=1G
 
 # job name
 #SBATCH --job-name downloadfasta
 
 # job array directive
-#SBATCH --array=0-$(($(wc -l < "$1") - 1))
+#SBATCH --array=0-1
 
 #################
 # start message #
@@ -39,7 +39,9 @@ set -o pipefail
 ###############
 # run command #
 ###############
-wget $(sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" "$1")
+mkdir -p downloads
+cd downloads
+sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" "$1" | bash
 
 ###############
 # end message #
@@ -50,6 +52,7 @@ echo [$(date +"%Y-%m-%d %H:%M:%S")] finished on $(hostname) after $((end_epoch-s
 #####################
 # submit fastqc job #
 #####################
+echo [$(date +"%Y-%m-%d %H:%M:%S")] submitting fastqc job
 if [ "$SLURM_ARRAY_TASK_ID" -eq "$(($(wc -l < "$1") - 1))" ]; then
-  sbatch --dependency=afterok:$SLURM_JOB_ID run_fastqc.sh
+  sbatch --dependency=afterok:$SLURM_JOB_ID /users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/run_fastqc.sh
 fi
