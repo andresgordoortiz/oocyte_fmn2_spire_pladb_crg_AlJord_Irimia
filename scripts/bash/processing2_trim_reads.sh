@@ -23,6 +23,7 @@
 #SBATCH --job-name trim_reads
 # job array directive
 #SBATCH --array=0-3
+
 #################
 # start message #
 #################
