@@ -15,7 +15,7 @@
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=10G
+#SBATCH --mem=5G
 #SBATCH --cpus-per-task=4
 
 # job name
