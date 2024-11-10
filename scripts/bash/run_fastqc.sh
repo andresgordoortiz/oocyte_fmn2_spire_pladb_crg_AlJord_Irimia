@@ -16,6 +16,7 @@
 
 # memory (MB)
 #SBATCH --mem=10G
+#SBATCH --cpus-per-task=4
 
 # job name
 #SBATCH --job-name fastqc_multiqc
@@ -38,7 +39,7 @@ set -o pipefail
 # run fastqc   #
 ################
 cd ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/downloads
-singularity exec docker://biocontainers/fastqc:v0.11.9_cv8 fastqc *.fastq.gz
+singularity exec --bind /path/to/bind docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 4 *.fastq.gz
 
 ################
 # run multiqc  #
