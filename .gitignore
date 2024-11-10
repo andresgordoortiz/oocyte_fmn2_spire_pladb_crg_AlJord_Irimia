@@ -9,6 +9,7 @@
 *.h5
 *.gz
 .nextflow/
+*.txt
 *.html
 *.json
 # Ignore large result files
