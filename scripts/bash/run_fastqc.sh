@@ -39,12 +39,12 @@ set -o pipefail
 # run fastqc   #
 ################
 cd ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/downloads
-singularity exec --bind /path/to/bind docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 4 *.fastq.gz
+singularity exec --bind ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/downloads docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 4 *.fastq.gz
 
 ################
 # run multiqc  #
 ################
-module load multiqc
+module load MultiQC/1.22.3-foss-2023b
 multiqc .
 
 ###############
