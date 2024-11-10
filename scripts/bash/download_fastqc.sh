@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Run this using the following command:
-# sbatch scripts/bash/download_fastqc.sh ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/fmndko_PRJNA406820.sh
+# sbatch scripts/bash/download_fastqc.sh ~/scripts/bash/fmndko_PRJNA406820.sh
 ##################
 # slurm settings #
 ##################
 
 # where to put stdout / stderr
-#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
-#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
+#SBATCH --output=~/logs/%x.%A_%a.out
+#SBATCH --error=~/logs/%x.%A_%a.err
 
 # time limit in minutes
 #SBATCH --time=5
@@ -41,8 +41,8 @@ set -o pipefail
 ###############
 # run command #
 ###############
-mkdir -p downloads
-cd downloads
+mkdir -p $PWD/downloads
+cd $PWD/downloads
 sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" "$1" | bash
 
 ###############
@@ -56,5 +56,5 @@ echo [$(date +"%Y-%m-%d %H:%M:%S")] finished on $(hostname) after $((end_epoch-s
 #####################
 echo [$(date +"%Y-%m-%d %H:%M:%S")] submitting fastqc job
 if [ "$SLURM_ARRAY_TASK_ID" -eq "$(($(wc -l < "$1") - 1))" ]; then
-  sbatch --dependency=afterok:$SLURM_JOB_ID ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/run_fastqc.sh
+  sbatch --dependency=afterok:$SLURM_JOB_ID $PWD/scripts/bash/run_fastqc.sh
 fi
