@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Run this using the following command:
-# sbatch scripts/bash/download_fastqc.sh ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/fmndko_PRJNA406820.sh
+
 ##################
 # slurm settings #
 ##################
@@ -67,9 +66,3 @@ done
 end_epoch=`date +%s`
 echo [$(date +"%Y-%m-%d %H:%M:%S")] finished on $(hostname) after $((end_epoch-start_epoch)) seconds
 
-#####################
-# submit fastqc job #
-#####################
-echo [$(date +"%Y-%m-%d %H:%M:%S")] submitting fastqc job
-
-sbatch --dependency=afterok:$SLURM_JOB_ID $PWD/scripts/bash/run_fastqc.sh
