@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Run this using the following command:
+# sbatch scripts/bash/download_fastqc.sh ~/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/scripts/bash/fmndko_PRJNA406820.sh
 ##################
 # slurm settings #
 ##################
@@ -15,7 +17,7 @@
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=500
+#SBATCH --mem=4G
 
 # job name
 #SBATCH --job-name downloadfasta
