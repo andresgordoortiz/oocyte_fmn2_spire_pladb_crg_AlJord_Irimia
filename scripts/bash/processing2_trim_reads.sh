@@ -10,13 +10,13 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=30
+#SBATCH --time=10
 
 # queue
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=4G
+#SBATCH --mem=10G
 #SBATCH --cpus-per-task=8
 
 # job name
@@ -46,9 +46,9 @@ file=${files[$SLURM_ARRAY_TASK_ID]}
 
 # Run the trimming command for the selected file
 singularity exec --bind $PWD/downloads \
-    docker://genomicpariscentre/trimgalore:0.6.10 \
+    docker://dceoy/trim_galore:latest \
     trim_galore "$file" \
-    --fastqc -j 8 -o $PWD/downloads/trimmed \
+    --fastqc -j 8 -o $PWD/downloads/trimmed -q 10 \
     --fastqc_args "-t 8 --outdir $PWD/downloads/trimmed"
 
 
