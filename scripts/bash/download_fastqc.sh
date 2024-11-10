@@ -15,13 +15,13 @@
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=1G
+#SBATCH --mem=500
 
 # job name
 #SBATCH --job-name downloadfasta
 
 # job array directive
-#SBATCH --array=0-1
+#SBATCH --array=0-11
 
 #################
 # start message #
