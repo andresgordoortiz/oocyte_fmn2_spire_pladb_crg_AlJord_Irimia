@@ -47,7 +47,7 @@ singularity exec --bind $PWD/data/processed/fmn2dko/vast_out --bind /users/mirim
     vast-tools compare $PWD/data/processed/fmn2dko/vast_out/INCLUSION_LEVELS_FULL-mm10-4.tab \
     -a $group_a \
     -b $group_b \
-    --min_dPSI 25 \
+    --min_dPSI 15 \
     --min_range 5 \
     --GO --print_dPSI --print_sets \
     -name_A $name_a  -name_B $name_b \
