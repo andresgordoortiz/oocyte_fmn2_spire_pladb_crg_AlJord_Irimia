@@ -43,6 +43,7 @@ singularity exec --bind $PWD/downloads docker://biocontainers/fastqc:v0.11.9_cv8
 ################
 # run multiqc  #
 ################
+cd $PWD/downloads
 module load MultiQC/1.22.3-foss-2023b
 multiqc .
 
