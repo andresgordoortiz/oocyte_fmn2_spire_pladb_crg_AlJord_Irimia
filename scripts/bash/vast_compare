@@ -10,13 +10,13 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=10
+#SBATCH --time=1
 
 # queue
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=2G
+#SBATCH --mem=500
 
 # job name
 #SBATCH --job-name vast-compare
@@ -44,14 +44,14 @@ name_a="Control"
 name_b="Fmn2DKO"
 
 singularity exec --bind $PWD/data/processed/fmn2dko/vast_out --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
-    vast-tools compare INCLUSION_LEVELS_FULL-mm10-4.tab \
+    vast-tools compare $PWD/data/processed/fmn2dko/vast_out/INCLUSION_LEVELS_FULL-mm10-4.tab \
     -a $group_a \
     -b $group_b \
     --min_dPSI 25 \
     --min_range 5 \
     --GO --print_dPSI --print_sets \
     -name_A $name_a  -name_B $name_b \
-    -sp mm10 > summary_stats.txt
+    -sp mm10 > $PWD/data/processed/fmn2dko/vast_out/summary_stats.txt
 
 
 ###############
