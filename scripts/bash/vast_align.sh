@@ -10,7 +10,7 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=60
+#SBATCH --time=90
 
 # queue
 #SBATCH --qos=shorter
@@ -52,7 +52,7 @@ singularity exec --bind $PWD/data/processed/pladienolideb/vast_out --bind /users
     vast-tools align \
     "$file" \
     -sp mm10 \
-    -o $PWD/data/processed/pladienolidb/vast_out \
+    -o $PWD/data/processed/pladienolideb/vast_out \
     --expr \
     --IR_version 2 \
     -c 8 \
