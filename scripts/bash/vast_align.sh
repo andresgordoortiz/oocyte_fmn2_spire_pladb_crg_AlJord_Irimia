@@ -53,7 +53,6 @@ singularity exec --bind $PWD/data/processed/pladienolideb/vast_out --bind /users
     "$file" \
     -sp mm10 \
     -o $PWD/data/processed/pladienolideb/vast_out \
-    --expr \
     --IR_version 2 \
     -c 8 \
     -n "$basename"
