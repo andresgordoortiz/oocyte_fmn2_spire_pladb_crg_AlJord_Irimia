@@ -22,7 +22,7 @@
 # job name
 #SBATCH --job-name vast-align
 # job array directive
-#SBATCH --array=0-3
+#SBATCH --array=0-8
 
 #################
 # start message #
@@ -43,16 +43,16 @@ set -o pipefail
 ###############
 
 #Define file list and select the file for the current array job
-files=($PWD/data/processed/fmn2dko/*.fq.gz)
+files=($PWD/data/processed/pladienolideb/*.fq.gz)
 file=${files[$SLURM_ARRAY_TASK_ID]}
 
 basename=$(basename "$file" .fq.gz)
 
-singularity exec --bind $PWD/data/processed/fmn2dko/vast_out --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
+singularity exec --bind $PWD/data/processed/pladienolideb/vast_out --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
     vast-tools align \
     "$file" \
     -sp mm10 \
-    -o $PWD/data/processed/fmn2dko/vast_out \
+    -o $PWD/data/processed/pladienolidb/vast_out \
     --expr \
     --IR_version 2 \
     -c 8 \
