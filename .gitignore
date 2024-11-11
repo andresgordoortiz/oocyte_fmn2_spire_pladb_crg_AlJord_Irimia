@@ -12,6 +12,7 @@
 *.txt
 *.html
 *.json
+*vast_out/
 # Ignore large result files
 results/**/*.pdf
 results/**/*.png
