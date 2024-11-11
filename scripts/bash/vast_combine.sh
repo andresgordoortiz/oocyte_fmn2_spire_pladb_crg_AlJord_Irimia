@@ -10,7 +10,7 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=10
+#SBATCH --time=20
 
 # queue
 #SBATCH --qos=vshort
@@ -41,10 +41,10 @@ set -o pipefail
 ###############
 
 
-singularity exec --bind $PWD/data/processed/fmn2dko/vast_out/to_combine --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
+singularity exec --bind $PWD/data/processed/pladienolideb/vast_out/to_combine --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
     vast-tools combine \
     -sp mm10 \
-    -o $PWD/data/processed/fmn2dko/vast_out
+    -o $PWD/data/processed/pladienolideb/vast_out
 
 
 ###############
