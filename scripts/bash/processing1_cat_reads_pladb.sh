@@ -10,7 +10,7 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=60
+#SBATCH --time=30
 
 # queue
 #SBATCH --qos=vshort
@@ -40,7 +40,7 @@ set -o pipefail
 ###############
 # Define the input and output directories
 input_dir="$PWD/data/raw/pladienolideb"
-output_dir="$PWD/downloads"
+output_dir="$PWD/tmp"
 
 # Create the output directory if it doesn't exist
 mkdir -p "$output_dir"
