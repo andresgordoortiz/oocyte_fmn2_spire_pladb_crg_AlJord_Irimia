@@ -47,8 +47,8 @@ singularity exec --bind $PWD/data/processed/pladienolideb/vast_out --bind /users
     vast-tools compare $PWD/data/processed/pladienolideb/vast_out/INCLUSION_LEVELS_FULL-mm10-9.tab \
     -a $group_a \
     -b $group_b \
-    --min_dPSI 5 \
-    --min_range 5 \
+    --min_dPSI 0 \
+    --min_range 0 \
     --GO --print_dPSI --print_sets \
     -name_A $name_a  -name_B $name_b \
     -sp mm10 > $PWD/data/processed/pladienolideb/vast_out/summary_stats.txt
