@@ -54,7 +54,7 @@ singularity exec --bind $PWD/tmp \
 
 # Move the trimmed file with the new name format
 basename=$(basename "$file" .fastq.gz)
-mv "$PWD/tmp/trimmed/${basename}_merged_trimmed.fq.gz" $PWD/data/processed/pladienolideb/
+mv "$PWD/tmp/trimmed/${basename}_trimmed.fq.gz" $PWD/data/processed/pladienolideb/
 
 ###############
 # end message #
