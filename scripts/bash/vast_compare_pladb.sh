@@ -49,14 +49,14 @@ source ~/miniconda3/etc/profile.d/conda.sh
 conda activate vasttools
 
 cd $PWD/data/processed/pladienolideb/vast_out
-/users/mirimia/projects/vast-tools/vast-tools compare $PWD/data/processed/pladienolideb/vast_out/INCLUSION_LEVELS_FULL-mm10-9.tab \
+/users/mirimia/projects/vast-tools/vast-tools compare INCLUSION_LEVELS_FULL-mm10-9.tab \
     -a $group_a \
     -b $group_b \
     --min_dPSI 20 \
     --min_range 5 \
     --GO --print_dPSI --print_sets \
     -name_A $name_a  -name_B $name_b \
-    -sp mm10 > $PWD/data/processed/pladienolideb/vast_out/summary_stats_control_vs_pladb10mM.txt
+    -sp mm10 > summary_stats_control_vs_pladb10mM.txt
 
 conda deactivate
 
