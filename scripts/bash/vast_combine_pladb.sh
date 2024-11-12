@@ -47,8 +47,7 @@ conda activate vasttools
 
 /users/mirimia/projects/vast-tools/vast-tools combine \
     -sp mm10 \
-    -o $PWD/data/processed/pladienolideb/vast_out \
-
+    -o $PWD/data/processed/pladienolideb/vast_out
 
 conda deactivate
 
