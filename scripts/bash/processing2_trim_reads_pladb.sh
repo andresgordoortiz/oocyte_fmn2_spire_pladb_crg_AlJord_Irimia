@@ -40,7 +40,7 @@ set -o pipefail
 ###############
 # run command #
 ###############
-mkdir -p $PWD/tmp/trimmed
+mkdir -p $PWD/tmp/trimmed/fastqc
 # Define file list and select the file for the current array job
 files=($PWD/tmp/*.fastq.gz)
 file=${files[$SLURM_ARRAY_TASK_ID]}
@@ -50,9 +50,12 @@ singularity exec --bind $PWD/tmp \
     docker://dceoy/trim_galore:latest \
     trim_galore "$file" \
     --fastqc -j 8 -o $PWD/tmp/trimmed -q 20 \
-    --fastqc_args "-t 8 --outdir $PWD/tmp/trimmed"
+    --fastqc_args "-t 8 --outdir $PWD/tmp/trimmed/fastqc"
 
-mv $PWD/tmp/trimmed/*_trimmed.fq.gz $PWD/data/processed/pladienolideb
+# Move the trimmed file with the new name format
+basename=$(basename "$file" .fastq.gz)
+mv "$PWD/tmp/trimmed/${basename}_merged_trimmed.fq.gz" $PWD/data/processed/pladienolideb/
+
 ###############
 # end message #
 ###############
