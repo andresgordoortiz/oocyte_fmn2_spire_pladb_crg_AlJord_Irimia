@@ -6,8 +6,8 @@
 ##################
 
 # where to put stdout / stderr
-#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
-#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
+#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/tmp/%x.%A_%a.out
+#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/tmp/%x.%A_%a.err
 
 # time limit in minutes
 #SBATCH --time=10
@@ -40,20 +40,19 @@ set -o pipefail
 ###############
 # run command #
 ###############
-mkdir -p $PWD/downloads/trimmed
+mkdir -p $PWD/tmp/trimmed
 # Define file list and select the file for the current array job
-files=($PWD/downloads/*.fastq.gz)
+files=($PWD/tmp/*.fastq.gz)
 file=${files[$SLURM_ARRAY_TASK_ID]}
 
 # Run the trimming command for the selected file
-singularity exec --bind $PWD/downloads \
+singularity exec --bind $PWD/tmp \
     docker://dceoy/trim_galore:latest \
     trim_galore "$file" \
-    --fastqc -j 8 -o $PWD/downloads/trimmed -q 20 \
-    --fastqc_args "-t 8 --outdir $PWD/downloads/trimmed"
+    --fastqc -j 8 -o $PWD/tmp/trimmed -q 20 \
+    --fastqc_args "-t 8 --outdir $PWD/tmp/trimmed"
 
-
-
+mv $PWD/tmp/trimmed/*_trimmed.fq.gz $PWD/data/processed/pladienolideb
 ###############
 # end message #
 ###############
