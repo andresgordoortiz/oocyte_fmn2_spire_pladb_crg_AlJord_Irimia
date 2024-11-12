@@ -43,15 +43,23 @@ group_b="2022-044_S16_L001_R1_001_merged_trimmed,2022-045_S17_L001_R1_001_merged
 name_a="Control"
 name_b="PladB_treatment_10mM"
 
-singularity exec --bind $PWD/data/processed/pladienolideb/vast_out --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
-    vast-tools compare $PWD/data/processed/pladienolideb/vast_out/INCLUSION_LEVELS_FULL-mm10-9.tab \
+
+# Initialize conda
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate vasttools
+
+cd $PWD/data/processed/pladienolideb/vast_out
+/users/mirimia/projects/vast-tools/vast-tools compare $PWD/data/processed/pladienolideb/vast_out/INCLUSION_LEVELS_FULL-mm10-9.tab \
     -a $group_a \
     -b $group_b \
-    --min_dPSI 0 \
-    --min_range 0 \
+    --min_dPSI 20 \
+    --min_range 5 \
     --GO --print_dPSI --print_sets \
     -name_A $name_a  -name_B $name_b \
-    -sp mm10 > $PWD/data/processed/pladienolideb/vast_out/summary_stats.txt
+    -sp mm10 > $PWD/data/processed/pladienolideb/vast_out/summary_stats_control_vs_pladb10mM.txt
+
+conda deactivate
+
 
 
 ###############
