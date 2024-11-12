@@ -35,9 +35,9 @@ echo "Submitting fourth job: Generate multiQC report..."
 jid4=$(sbatch --dependency=afterok:$jid3 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
 echo "...fourth job ID is $jid4"
 
-# Fifth job - run vast combine (dependent on fourth job)
+# Fifth job - run vast combine (dependent on third job)
 echo "Submitting fifth job: Run vast combine..."
-jid5=$(sbatch --dependency=afterok:$jid4 $PWD/scripts/bash/vast_combine_pladb.sh | tr -cd '[:digit:].')
+jid5=$(sbatch --dependency=afterok:$jid3 $PWD/scripts/bash/vast_combine_pladb.sh | tr -cd '[:digit:].')
 echo "...fifth job ID is $jid5"
 
 # Sixth job - run vast compare (dependent on fifth job)
