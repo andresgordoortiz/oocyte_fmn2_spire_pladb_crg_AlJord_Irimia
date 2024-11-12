@@ -51,7 +51,7 @@ files=($(ls "$input_dir"/*.fastq.gz))
 # Iterate over the files in pairs
 for ((i=0; i<${#files[@]}; i+=2)); do
     # Define the output file name based on the first file in the pair
-    output_file="$output_dir/$(basename ${files[i]} .fastq.gz)_merged.fastq.gz"
+    output_file="$output_dir/$(basename ${files[i]} .fastq.gz | tr '-' '_')_merged.fastq.gz"
 
     # Concatenate the pair of files
     cat "${files[i]}" "${files[i+1]}" > "$output_file"
