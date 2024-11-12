@@ -7,6 +7,8 @@
 # 2. Trim reads
 # 3. Align reads
 # 4. Generate a multiQC report
+# 5. Run vast combine
+# 6. Run vast compare
 ##############################
 
 # SLURM output and error files
@@ -32,5 +34,15 @@ echo "...third job ID is $jid3"
 echo "Submitting fourth job: Generate multiQC report..."
 jid4=$(sbatch --dependency=afterok:$jid3 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
 echo "...fourth job ID is $jid4"
+
+# Fifth job - run vast combine (dependent on fourth job)
+echo "Submitting fifth job: Run vast combine..."
+jid5=$(sbatch --dependency=afterok:$jid4 $PWD/scripts/bash/vast_combine_pladb.sh | tr -cd '[:digit:].')
+echo "...fifth job ID is $jid5"
+
+# Sixth job - run vast compare (dependent on fifth job)
+echo "Submitting sixth job: Run vast compare..."
+jid6=$(sbatch --dependency=afterok:$jid5 $PWD/scripts/bash/vast_compare_pladb.sh | tr -cd '[:digit:].')
+echo "...sixth job ID is $jid6"
 
 echo "All jobs submitted!"
