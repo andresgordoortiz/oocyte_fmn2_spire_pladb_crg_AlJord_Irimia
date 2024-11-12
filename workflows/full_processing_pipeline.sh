@@ -1,19 +1,36 @@
 #!/usr/bin/bash
-# where to put stdout / stderr
+
+##############################
+# Full Processing Pipeline CRG Adel Manu Lab for Pladienolide B dataset
+# This script processes the Pladienolide B dataset (unpublished) by performing the following steps:
+# 1. Concatenate reads
+# 2. Trim reads
+# 3. Align reads
+# 4. Generate a multiQC report
+##############################
+
+# SLURM output and error files
 #SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
-# run a pipeline made up of a sequence of 2 separate jobs
 
-# first job - process fastqs to find kmers
-echo submitting first job...
+# First job - concatenate reads
+echo "Submitting first job: Concatenate reads..."
 jid1=$(sbatch $PWD/scripts/bash/processing1_cat_reads_pladb.sh | tr -cd '[:digit:].')
-echo ...first job id is $jid1
+echo "...first job ID is $jid1"
 
-# second job - collate partial answers from first job into
-echo submitting second job...
+# Second job - trim reads (dependent on first job)
+echo "Submitting second job: Trim reads..."
 jid2=$(sbatch --dependency=afterok:$jid1 $PWD/scripts/bash/processing2_trim_reads_pladb.sh | tr -cd '[:digit:].')
-echo ...second job id is $jid2
+echo "...second job ID is $jid2"
 
-echo submitting third job...
-jid3=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
-echo ...second job id is $jid3
+# Third job - align reads (dependent on second job)
+echo "Submitting third job: Align reads..."
+jid3=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/vast_align_pladb.sh | tr -cd '[:digit:].')
+echo "...third job ID is $jid3"
+
+# Fourth job - generate multiQC report (dependent on third job)
+echo "Submitting fourth job: Generate multiQC report..."
+jid4=$(sbatch --dependency=afterok:$jid3 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
+echo "...fourth job ID is $jid4"
+
+echo "All jobs submitted!"
