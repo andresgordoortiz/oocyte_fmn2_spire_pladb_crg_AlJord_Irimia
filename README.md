@@ -29,3 +29,5 @@ This repo consists on the data exploration, processing and plotting for the Oocy
    ```bash
    git clone https://github.com/andresgordoortiz/24CRG_ADEL_MANU_OOCYTE_SPLICING.git
    cd 24CRG_ADEL_MANU_OOCYTE_SPLICING
+
+**Important**: Some workflows require the conda environment from *config/env.yml* to be created and exist. make sure it is installed in the home directory (~/miniconda3/etc/profile.d/conda.sh).
