@@ -39,12 +39,19 @@ set -o pipefail
 ###############
 # run command #
 ###############
+cd $PWD/data/processed/pladienolideb/vast_out/to_combine
 
+# Initialize conda
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate vasttools
 
-singularity exec --bind $PWD/data/processed/pladienolideb/vast_out/to_combine --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
-    vast-tools combine \
+/users/mirimia/projects/vast-tools/vast-tools combine \
     -sp mm10 \
-    -o $PWD/data/processed/pladienolideb/vast_out
+    -o $PWD/data/processed/pladienolideb/vast_out \
+
+
+conda deactivate
+
 
 
 ###############
