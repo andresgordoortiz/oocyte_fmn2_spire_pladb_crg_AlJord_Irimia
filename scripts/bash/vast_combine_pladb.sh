@@ -39,6 +39,8 @@ set -o pipefail
 ###############
 # run command #
 ###############
+# Store current working directory
+current_dir=$PWD
 cd $PWD/data/processed/pladienolideb/vast_out/to_combine
 
 # Initialize conda
@@ -47,7 +49,7 @@ conda activate vasttools
 
 /users/mirimia/projects/vast-tools/vast-tools combine \
     -sp mm10 \
-    -o $PWD/data/processed/pladienolideb/vast_out
+    -o $current_dir/data/processed/pladienolideb/vast_out
 
 conda deactivate
 
