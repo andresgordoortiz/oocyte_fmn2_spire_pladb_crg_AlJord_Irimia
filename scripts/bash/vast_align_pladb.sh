@@ -49,14 +49,19 @@ file=${files[$SLURM_ARRAY_TASK_ID]}
 basename=$(basename "$file" .fq.gz)
 mkdir -p $PWD/data/processed/pladienolideb/vast_out
 
-singularity exec --bind $PWD/data/processed/pladienolideb/vast_out --bind /users/mirimia/projects/vast-tools/VASTDB/:/VASTDB docker://vastgroup/vast-tools:latest \
-    vast-tools align \
+# Initialize conda
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate vasttools
+
+/users/mirimia/projects/vast-tools/vast-tools align \
     "$file" \
     -sp mm10 \
     -o $PWD/data/processed/pladienolideb/vast_out \
     --IR_version 2 \
     -c 8 \
     -n "$basename"
+
+conda deactivate
 
 ###############
 # end message #
