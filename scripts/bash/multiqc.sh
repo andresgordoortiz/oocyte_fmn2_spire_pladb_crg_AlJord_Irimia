@@ -39,6 +39,7 @@ set -o pipefail
 # run multiqc  #
 ################
 cd $PWD/tmp
+cd -
 module load MultiQC/1.22.3-foss-2023b
 multiqc .
 mv multiqc_* $PWD/data/processed/pladienolideb
