@@ -18,6 +18,7 @@
 *fasta
 *fa
 *star_index/
+*.tab
 
 # Ignore large result files
 results/**/*.pdf
