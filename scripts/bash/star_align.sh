@@ -45,7 +45,7 @@ set -o pipefail
 mkdir -p star_align_out
 # Initialize conda
 singularity exec docker://mgibio/star:latest STAR --runThreadN 8 \
-     --genomeDir $PWD/ensemblgenome \
+     --genomeDir $PWD/star_index/Mus_musculus \
      --readFilesIn $PWD/data/processed/pladienolideb/2022_038_S10_L001_R1_001_merged_trimmed.fq.gz \
      --readFilesCommand zcat \
      --outFileNamePrefix $PWD/star_align_out \
