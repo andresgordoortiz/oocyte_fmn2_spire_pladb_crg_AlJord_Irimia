@@ -7,12 +7,18 @@
 *.vcf
 *.sam
 *.h5
-*.gz
+*.gz*
 .nextflow/
 *.txt
 *.html
 *.json
-*vast_out/
+*to_combine/
+*tmp/
+*gtf
+*fasta
+*fa
+*star_index/
+
 # Ignore large result files
 results/**/*.pdf
 results/**/*.png
