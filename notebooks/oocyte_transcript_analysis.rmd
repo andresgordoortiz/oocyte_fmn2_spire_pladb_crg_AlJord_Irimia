@@ -378,7 +378,7 @@ plot1 / plot2
 
 ### FMN2DKO
 
-```{r tao distri plots}
+```{r fmndko distri plots}
 # Create the first plot for exon inclusion levels
 bigPicturePlotExons <- bigPicturePlot(table = fmndko_exons$PSI)
 
@@ -571,7 +571,7 @@ set.seed(42) #Setting seed for downstream simulations of the beta distribution
 
 ### Calculations
 
-```{r pdiff calculation}
+```{r pdiff calculation exons}
 pladb_pdiff_exons <- prepareTableVolcano(
   psitable = pladb_exons$PSI,
   qualtable = pladb_exons$Qual,
@@ -632,7 +632,7 @@ fmndko_pdiff_exons <- prepareTableVolcano(
 
 ```
 
-```{r f-stat}
+```{r f-stat exons}
 pladb_fstat_exons <- prepareTableVolcanoFstat(
   psitable = pladb_exons$PSI,
   qualtable = pladb_exons$Qual,
@@ -694,7 +694,7 @@ fmndko_fstat_exons <- prepareTableVolcanoFstat(
 
 ```
 
-```{r FDR calculations}
+```{r FDR calculations exons}
 pladb_fdr_exons <- prepareTableVolcanoFDR(
   psitable = pladb_exons$PSI,
   qualtable = pladb_exons$Qual,
@@ -768,7 +768,7 @@ fmndko_fdr_exons <- prepareTableVolcanoFDR(
 
 #### PladB 10mM vs Control
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano exons 10mm control}
 plotVolcanoFDR(betasTable =filter(pladb_fdr_exons,!is.na(EVENT)),
                             labA = groupA_pladb,
                             labB = groupB_pladb,
@@ -786,7 +786,7 @@ theme(
 
 #### PladB 1mM vs Control
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano exons 1mm control}
 plotVolcanoFDR(betasTable =filter(pladb_1mm_control_fdr_exons,!is.na(EVENT)),
                             labA = groupA_pladb,
                             labB = groupC_pladb,
@@ -804,7 +804,7 @@ theme(
 
 #### PladB 10mM vs 1mM
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano exons 10mm 1mm}
 plotVolcanoFDR(betasTable =filter(pladb_1mm_10mm_fdr_exons,!is.na(EVENT)),
                             labA = groupC_pladb,
                             labB = groupB_pladb,
@@ -822,7 +822,7 @@ theme(
 
 #### FMN2DKO
 
-```{r fmndko fdr volcano}
+```{r fmndko fdr volcano exons}
 plotVolcanoFDR(betasTable =filter(fmndko_fdr_exons,!is.na(EVENT)),
                             labA = groupA_fmndko,
                             labB = groupB_fmndko,
@@ -842,7 +842,7 @@ theme(
 
 #### PladB 10mM vs control
 
-```{r pladb table making exons}
+```{r pladb table making exons 10mm control}
 pladb_pdiff_exons_tab <- pladb_pdiff_exons[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -880,7 +880,7 @@ pladb_exons_combination_tab <- filtered_exons_diff_tab %>%
   arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
 ```
 
-```{r pladb combination table exons}
+```{r pladb combination table exons 10mm control}
 # Render DataTable with enhancements
 datatable(
   pladb_exons_combination_tab,
@@ -938,7 +938,7 @@ write.csv(pladb_exons_combination_tab,
 
 #### PladB 1mM vs Control
 
-```{r pladb table making exons}
+```{r pladb table making exons 1mm control}
 pladb_pdiff_exons_tab <- pladb_1mm_control_pdiff_exons[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -979,7 +979,7 @@ pladb_1mm_control_exons_combination_tab <- filtered_exons_diff_tab %>%
 pladb_1mm_control_exons_combination_tab$appears_in_10mm_control <- pladb_1mm_control_exons_combination_tab$EVENT %in% pladb_exons_combination_tab$EVENT
 ```
 
-```{r pladb combination table exons}
+```{r pladb combination table exons 1mm control}
 # Render DataTable with enhancements
 datatable(
   pladb_1mm_control_exons_combination_tab,
@@ -1037,7 +1037,7 @@ write.csv(pladb_1mm_control_exons_combination_tab,
 
 #### PladB 10mM vs 1mM
 
-```{r pladb table making exons}
+```{r pladb table making exons 10mm 1mm}
 pladb_pdiff_exons_tab <- pladb_1mm_10mm_pdiff_exons[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -1078,7 +1078,7 @@ pladb_10mm_1mm_exons_combination_tab <- filtered_exons_diff_tab %>%
 pladb_10mm_1mm_exons_combination_tab$appears_in_10mm_control <- pladb_10mm_1mm_exons_combination_tab$EVENT %in% pladb_exons_combination_tab$EVENT
 ```
 
-```{r pladb combination table exons}
+```{r pladb combination table exons 10mm 1mm}
 # Render DataTable with enhancements
 datatable(
   pladb_10mm_1mm_exons_combination_tab,
@@ -1137,7 +1137,7 @@ write.csv(pladb_10mm_1mm_exons_combination_tab,
 
 #### FMN2DKO
 
-```{r fmndko table making}
+```{r fmndko table making exons}
 fmndko_pdiff_exons_tab <- fmndko_pdiff_exons[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -1175,7 +1175,7 @@ fmndko_exon_combination_tab <- filtered_exon_diff_tab %>%
   arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
 ```
 
-```{r fmndko combination table}
+```{r fmndko combination table exons}
 # Render DataTable with enhancements
 datatable(
   fmndko_exon_combination_tab,
@@ -1234,7 +1234,7 @@ write.csv(fmndko_exon_combination_tab,
 
 ### Calculations
 
-```{r pdiff calculation}
+```{r pdiff calculation introns}
 pladb_pdiff_introns <- prepareTableVolcano(
   psitable = pladb_introns$PSI,
   qualtable = pladb_introns$Qual,
@@ -1295,7 +1295,7 @@ fmndko_pdiff_introns <- prepareTableVolcano(
 
 ```
 
-```{r f-stat}
+```{r f-stat introns}
 pladb_fstat_introns <- prepareTableVolcanoFstat(
   psitable = pladb_introns$PSI,
   qualtable = pladb_introns$Qual,
@@ -1357,7 +1357,7 @@ fmndko_fstat_introns <- prepareTableVolcanoFstat(
 
 ```
 
-```{r FDR calculations}
+```{r FDR calculations introns}
 pladb_fdr_introns <- prepareTableVolcanoFDR(
   psitable = pladb_introns$PSI,
   qualtable = pladb_introns$Qual,
@@ -1431,7 +1431,7 @@ fmndko_fdr_introns <- prepareTableVolcanoFDR(
 
 #### PladB 10mM vs Control
 
-```{r pladb fdr volcano introns}
+```{r pladb fdr volcano introns 10mm control}
 plotVolcanoFDR(betasTable =filter(pladb_fdr_introns,!is.na(EVENT)),
                             labA = groupA_pladb,
                             labB = groupB_pladb,
@@ -1449,7 +1449,7 @@ theme(
 
 #### PladB 1mM vs Control
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano introns 1mm control}
 plotVolcanoFDR(betasTable =filter(pladb_1mm_control_fdr_introns,!is.na(EVENT)),
                             labA = groupA_pladb,
                             labB = groupC_pladb,
@@ -1467,7 +1467,7 @@ theme(
 
 #### PladB 10mM vs 1mM
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano introns 10mm 1mm}
 plotVolcanoFDR(betasTable =filter(pladb_1mm_10mm_fdr_introns,!is.na(EVENT)),
                             labA = groupC_pladb,
                             labB = groupB_pladb,
@@ -1505,7 +1505,7 @@ theme(
 
 #### PladB 10mM vs control
 
-```{r pladb table making introns}
+```{r pladb table making introns 10mm control}
 pladb_pdiff_introns_tab <- pladb_pdiff_introns[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -1543,7 +1543,7 @@ pladb_introns_combination_tab <- filtered_introns_diff_tab %>%
   arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
 ```
 
-```{r pladb combination table introns}
+```{r pladb combination table introns 10mm control}
 # Render DataTable with enhancements
 datatable(
   pladb_introns_combination_tab,
@@ -1601,7 +1601,7 @@ write.csv(pladb_introns_combination_tab,
 
 #### PladB 1mM vs Control
 
-```{r pladb table making introns}
+```{r pladb table making introns 1mm control}
 pladb_pdiff_introns_tab <- pladb_1mm_control_pdiff_introns[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -1642,7 +1642,7 @@ pladb_1mm_control_introns_combination_tab <- filtered_introns_diff_tab %>%
 pladb_1mm_control_introns_combination_tab$appears_in_10mm_control <- pladb_1mm_control_introns_combination_tab$EVENT %in% pladb_introns_combination_tab$EVENT
 ```
 
-```{r pladb combination table introns}
+```{r pladb combination table introns 1mm control}
 # Render DataTable with enhancements
 datatable(
   pladb_1mm_control_introns_combination_tab,
@@ -1700,7 +1700,7 @@ write.csv(pladb_1mm_control_introns_combination_tab,
 
 #### PladB 10mM vs 1mM
 
-```{r pladb table making introns}
+```{r pladb table making introns 10mm 1mm}
 pladb_pdiff_introns_tab <- pladb_1mm_10mm_pdiff_introns[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -1741,7 +1741,7 @@ pladb_10mm_1mm_introns_combination_tab <- filtered_introns_diff_tab %>%
 pladb_10mm_1mm_introns_combination_tab$appears_in_10mm_control <- pladb_10mm_1mm_introns_combination_tab$EVENT %in% pladb_introns_combination_tab$EVENT
 ```
 
-```{r pladb combination table introns}
+```{r pladb combination table introns 10mm 1mm}
 # Render DataTable with enhancements
 datatable(
   pladb_10mm_1mm_introns_combination_tab,
@@ -1898,7 +1898,7 @@ write.csv(fmndko_intron_combination_tab,
 
 ### Calculations
 
-```{r pdiff calculation}
+```{r pdiff calculation alt}
 pladb_pdiff_alt <- prepareTableVolcano(
   psitable = pladb_alt$PSI,
   qualtable = pladb_alt$Qual,
@@ -1959,7 +1959,7 @@ fmndko_pdiff_alt <- prepareTableVolcano(
 
 ```
 
-```{r f-stat}
+```{r f-stat alt}
 pladb_fstat_alt <- prepareTableVolcanoFstat(
   psitable = pladb_alt$PSI,
   qualtable = pladb_alt$Qual,
@@ -2021,7 +2021,7 @@ fmndko_fstat_alt <- prepareTableVolcanoFstat(
 
 ```
 
-```{r FDR calculations}
+```{r FDR calculations alt}
 pladb_fdr_alt <- prepareTableVolcanoFDR(
   psitable = pladb_alt$PSI,
   qualtable = pladb_alt$Qual,
@@ -2094,7 +2094,7 @@ fmndko_fdr_alt <- prepareTableVolcanoFDR(
 
 #### PladB 10mM vs Control
 
-```{r pladb fdr volcano alt}
+```{r pladb fdr volcano alt 10mm control}
 plotVolcanoFDR(betasTable =filter(pladb_fdr_alt,!is.na(EVENT)),
                             labA = groupA_pladb,
                             labB = groupB_pladb,
@@ -2112,7 +2112,7 @@ theme(
 
 #### PladB 1mM vs Control
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano alt 1mm control}
 plotVolcanoFDR(betasTable =filter(pladb_1mm_control_fdr_alt,!is.na(EVENT)),
                             labA = groupA_pladb,
                             labB = groupC_pladb,
@@ -2130,7 +2130,7 @@ theme(
 
 #### PladB 10mM vs 1mM
 
-```{r pladb fdr volcano}
+```{r pladb fdr volcano alt 10mm 1mm}
 plotVolcanoFDR(betasTable =filter(pladb_1mm_10mm_fdr_alt,!is.na(EVENT)),
                             labA = groupC_pladb,
                             labB = groupB_pladb,
@@ -2169,7 +2169,7 @@ theme(
 
 #### PladB 10mM vs control
 
-```{r pladb table making alt}
+```{r pladb table making alt 10mm control}
 pladb_pdiff_alt_tab <- pladb_pdiff_alt[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -2207,7 +2207,7 @@ pladb_alt_combination_tab <- filtered_alt_diff_tab %>%
   arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
 ```
 
-```{r pladb combination table alt}
+```{r pladb combination table alt 10mm control}
 # Render DataTable with enhancements
 datatable(
   pladb_alt_combination_tab,
@@ -2265,7 +2265,7 @@ write.csv(pladb_alt_combination_tab,
 
 #### PladB 1mM vs Control
 
-```{r pladb table making alt}
+```{r pladb table making alt 1mm control}
 pladb_pdiff_alt_tab <- pladb_1mm_control_pdiff_alt[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -2306,7 +2306,7 @@ pladb_1mm_control_alt_combination_tab <- filtered_alt_diff_tab %>%
 pladb_1mm_control_alt_combination_tab$appears_in_10mm_control <- pladb_1mm_control_alt_combination_tab$EVENT %in% pladb_alt_combination_tab$EVENT
 ```
 
-```{r pladb combination table alt}
+```{r pladb combination table alt 1mm control}
 # Render DataTable with enhancements
 datatable(
   pladb_1mm_control_alt_combination_tab,
@@ -2364,7 +2364,7 @@ write.csv(pladb_1mm_control_alt_combination_tab,
 
 #### PladB 10mM vs 1mM
 
-```{r pladb table making alt}
+```{r pladb table making alt 10mm 1mm}
 pladb_pdiff_alt_tab <- pladb_1mm_10mm_pdiff_alt[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
   filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
   arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
@@ -2404,7 +2404,7 @@ pladb_10mm_1mm_alt_combination_tab <- filtered_alt_diff_tab %>%
 pladb_10mm_1mm_alt_combination_tab$appears_in_10mm_control <- pladb_10mm_1mm_alt_combination_tab$EVENT %in% pladb_alt_combination_tab$EVENT
 ```
 
-```{r pladb combination table alt}
+```{r pladb combination table alt 10mm 1mm}
 # Render DataTable with enhancements
 datatable(
   pladb_10mm_1mm_alt_combination_tab,
