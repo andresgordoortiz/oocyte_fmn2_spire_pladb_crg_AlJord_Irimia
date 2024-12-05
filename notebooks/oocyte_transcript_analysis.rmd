@@ -3299,7 +3299,7 @@ go_plot_spire <- dotplot(
 ) +
   ggtitle("<b style='font-size:18px;'>GO Enrichment Analysis</b>") +
   labs(
-    title = "FMN2DKO Spliced Genes",
+    title = "Spire Spliced Genes",
     caption = paste0("Created by Andrés Gordo Ortiz on ", Sys.Date()),
     x = "Gene Ratio",
     y = "GO Terms"
@@ -3320,6 +3320,9 @@ go_plot_spire <- dotplot(
 
 
 go_plot_pladb/go_plot_fmndko/go_plot_spire
+
+enrichdata<-enrichr(unique(c(spire_exon_combination_tab$GENE, spire_intron_combination_tab$GENE, spire_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+plotEnrich(enrichdata[[1]])
 ```
 
 
