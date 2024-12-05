@@ -169,15 +169,6 @@ font="roboto"
 
 # Introduction to this Analysis
 
-## Objective
-
-The primary aim is to identify a list of splicing events that meet the following criteria:
-1. **Differential Splicing**: Events are differentially spliced during myoblast differentiation.
-2. **Spatial Relevance**: Events occur near or around nuclear speckles.
-This analysis is structured into two distinct parts, the first performed in the Bash Command     Line, and the second in R. This report shows the second part.
-
----
-
 ## Part 1: Upstream Analysis
 
 The upstream analysis is performed on the CRG cluster using the Bash command line. This phase involves:
@@ -275,8 +266,8 @@ DT::datatable(metadata_fmn2dko, options = list(pageLength = nrow(metadata_fmn2dk
 
 ```{r metadata tao}
 # Load metadata file containing sample information
-#metadata_tao <- read.csv(paste0(getwd(),"/metadata/tao_metadata.csv"), sep = ",")
-#DT::datatable(metadata_tao, options = list(pageLength = nrow(metadata_tao), scrollX = TRUE))
+metadata_spire<-data.frame(samples=c("Oocytes_FG_Spire12_Cont_a","Oocytes_FG_Spire12_Cont_b","Oocytes_FG_Spire12_Cont_c","Oocytes_FG_Spire12_DKO_a","Oocytes_FG_Spire12_DKO_b","Oocytes_FG_Spire12_DKO_c"), condition=rep(c("control", "spiredko"), each=3))
+DT::datatable(metadata_spire, options = list(pageLength = nrow(metadata_spire), scrollX = TRUE))
 ```
 
 
@@ -334,7 +325,7 @@ plot1 / plot2
 
 ### Spire
 
-```{r lyu distribution plot}
+```{r spire distribution plot}
 # Create the first plot for exon inclusion levels
 bigPicturePlotExons <- bigPicturePlot(table = spire_exons$PSI)
 
@@ -495,6 +486,157 @@ combined_plot <- plot_proportion / plot_absolute +
 
 # Display combined plot
 combined_plot
+```
+
+## PCA Plot { .tabset}
+
+### PladB
+
+```{r pca calculation}
+# Subset and scale data
+pca_pladb <- pladb_data[, c("EVENT",pladb_events$Samples)] %>%
+  na.omit()
+pca_spire <- spire_data[,  c("EVENT",spire_events$Samples)]
+pca_fmndko <- fmndko_data[,  c("EVENT",fmndko_events$Samples)]
+rownames(pca_pladb)<- pca_pladb$EVENT
+pca_pladb<-t(pca_pladb[,-1])
+
+
+pca_result_pladb <- prcomp(pca_pladb)  # Perform PCA
+
+# Prepare PCA results for plotting
+pca_data <- as.data.frame(pca_result_pladb$x)
+pca_data$Sample <- rownames(pca_data)
+pca_data$condition<-metadata_pladb$Description
+```
+
+```{r pca plotting}
+# Create PCA plot
+pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition), )) +
+  geom_point(size = 6) +
+  labs(
+    title = "<b style='font-size:18px;'>PCA of Samples (PSI Data)</b>",
+    x = paste("PC1 (", round(100 * summary(pca_result_pladb)$importance[2, 1], 1), "%)", sep = ""),
+    y = paste("PC2 (", round(100 * summary(pca_result_pladb)$importance[2, 2], 1), "%)", sep = ""),
+    caption = paste0("Created by AG on ", Sys.Date()), size=3
+  ) +
+  theme_minimal(base_family = "roboto") +
+  theme(
+    plot.title = element_markdown(),
+    plot.title.position = "plot",
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "right",
+    legend.title = element_blank(),
+    panel.background = element_rect(fill = "gray98"),
+    panel.grid = element_line(color = "gray90", size = 0.5),
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_colour_paletteer_d("MetBrewer::Hokusai3") +
+  coord_fixed()
+
+pca_plot
+
+```
+
+### SpireDKO
+
+```{r pca calculation spire}
+# Subset and scale data
+pca_spire <- spire_data[, c("EVENT",spire_events$Samples)] %>%
+  na.omit()
+
+rownames(pca_spire)<- pca_spire$EVENT
+pca_spire<-t(pca_spire[,-1])
+
+
+pca_result_spire <- prcomp(pca_spire)  # Perform PCA
+
+# Prepare PCA results for plotting
+pca_data <- as.data.frame(pca_result_spire$x)
+pca_data$Sample <- rownames(pca_data)
+pca_data$condition<-metadata_spire$condition
+```
+
+```{r pca plotting spire}
+# Create PCA plot
+pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition), )) +
+  geom_point(size = 6) +
+  labs(
+    title = "<b style='font-size:18px;'>PCA of Samples (PSI Data)</b>",
+    x = paste("PC1 (", round(100 * summary(pca_result_pladb)$importance[2, 1], 1), "%)", sep = ""),
+    y = paste("PC2 (", round(100 * summary(pca_result_pladb)$importance[2, 2], 1), "%)", sep = ""),
+    caption = paste0("Created by AG on ", Sys.Date()), size=3
+  ) +
+  theme_minimal(base_family = "roboto") +
+  theme(
+    plot.title = element_markdown(),
+    plot.title.position = "plot",
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "right",
+    legend.title = element_blank(),
+    panel.background = element_rect(fill = "gray98"),
+    panel.grid = element_line(color = "gray90", size = 0.5),
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_colour_paletteer_d("MetBrewer::Hokusai3") +
+  coord_fixed()
+
+pca_plot
+
+```
+
+
+### FMN2DKO
+
+```{r pca calculation fmndko}
+# Subset and scale data
+pca_fmndko <- fmndko_data[, c("EVENT",fmndko_events$Samples)] %>%
+  na.omit()
+
+rownames(pca_fmndko)<- pca_fmndko$EVENT
+pca_fmndko<-t(pca_fmndko[,-1])
+
+
+pca_result_fmndko <- prcomp(pca_fmndko)  # Perform PCA
+
+# Prepare PCA results for plotting
+pca_data <- as.data.frame(pca_result_fmndko$x)
+pca_data$Sample <- rownames(pca_data)
+pca_data$condition<-metadata_fmn2dko$condition
+```
+
+```{r pca plotting spire}
+# Create PCA plot
+pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition), )) +
+  geom_point(size = 6) +
+  labs(
+    title = "<b style='font-size:18px;'>PCA of Samples (PSI Data)</b>",
+    x = paste("PC1 (", round(100 * summary(pca_result_pladb)$importance[2, 1], 1), "%)", sep = ""),
+    y = paste("PC2 (", round(100 * summary(pca_result_pladb)$importance[2, 2], 1), "%)", sep = ""),
+    caption = paste0("Created by AG on ", Sys.Date()), size=3
+  ) +
+  theme_minimal(base_family = "roboto") +
+  theme(
+    plot.title = element_markdown(),
+    plot.title.position = "plot",
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "right",
+    legend.title = element_blank(),
+    panel.background = element_rect(fill = "gray98"),
+    panel.grid = element_line(color = "gray90", size = 0.5),
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_colour_paletteer_d("MetBrewer::Hokusai3") +
+  coord_fixed()
+
+pca_plot
+
 ```
 
 # Differential Splicing Calculation
