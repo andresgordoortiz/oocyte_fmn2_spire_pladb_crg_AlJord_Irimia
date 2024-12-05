@@ -11,8 +11,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
-ENV RENV_VERSION 0.17.3
+ENV RENV_VERSION=0.17.3
 ENV R_LIBS_USER=/renv/library
+
 
 # Copy renv.lock to the container
 WORKDIR /workspace
