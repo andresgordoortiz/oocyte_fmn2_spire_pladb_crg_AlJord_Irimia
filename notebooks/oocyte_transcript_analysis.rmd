@@ -147,6 +147,7 @@ install_load("dplyr")
 install_load("tidyverse")
 install_load("cowplot")
 install_load("DT")
+install_load("devtools")
 install_load("paletteer")
 install_load("ggupset")
 install_load("showtext")
@@ -3212,7 +3213,7 @@ write.csv(spire_alt_combination_tab,
 
 
 
-## Gene Ontology of Filtered Splicing Events
+## Gene Ontology of Filtered Splicing Events { .tabset}
 
 ```{r gene ontology, fig.width=10, fig.height=8}
 
@@ -3317,13 +3318,100 @@ go_plot_spire <- dotplot(
   scale_color_paletteer_c("viridis::viridis", name = "P-adjust") +  # Improve coloring for better accessibility
   scale_y_discrete(guide = guide_axis(n.dodge = 1))  # Handle overlapping labels
 
+```
 
+### PladB
 
-go_plot_pladb/go_plot_fmndko/go_plot_spire
+```{r go pladb,fig.width=10, fig.height=8}
+go_plot_pladb
+```
 
-enrichdata<-enrichr(unique(c(spire_exon_combination_tab$GENE, spire_intron_combination_tab$GENE, spire_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+### FMN2DKO
+```{r go fmndko,fig.width=10, fig.height=8}
+go_plot_fmndko
+```
+
+### Spire
+
+```{r go spire,fig.width=10, fig.height=8}
+go_plot_spire
+```
+
+## Enrichment Analysis with EnrichR
+
+### PladB { .tabset}
+
+```{r pladb enrichr}
+enrichdata<-enrichr(unique(c(pladb_exon_combination_tab$GENE, pladb_intron_combination_tab$GENE, pladb_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r pladb bioprocess}
 plotEnrich(enrichdata[[1]])
 ```
+
+#### GO Cellular Component
+
+```{r pladb cellcomponent}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r pladb molfunction}
+plotEnrich(enrichdata[[3]])
+```
+
+### FMN2DKO { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(fmndko_exon_combination_tab$GENE, fmndko_intron_combination_tab$GENE, fmndko_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r fmndko bioprocess}
+plotEnrich(enrichdata[[1]])
+```
+
+#### GO Cellular Component
+
+```{r fmndko cellcomponent}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction}
+plotEnrich(enrichdata[[3]])
+```
+
+### Spire { .tabset}
+
+```{r spire enrichr}
+enrichdata<-enrichr(unique(c(spire_exon_combination_tab$GENE, spire_intron_combination_tab$GENE, spire_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r spire bioprocess}
+plotEnrich(enrichdata[[1]])
+```
+
+#### GO Cellular Component
+
+```{r spire cellcomponent}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r spire molfunction}
+plotEnrich(enrichdata[[3]])
+```
+
+
 
 
 
