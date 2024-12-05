@@ -148,12 +148,12 @@ install_load("tidyverse")
 install_load("cowplot")
 install_load("DT")
 install_load("paletteer")
-install_load("paletteer")
 install_load("ggupset")
 install_load("showtext")
 install_load("ggtext")
 install_load("readxl")
 install_load("biomaRt")
+install_load("enrichr")
 library("patchwork")
 library("org.Mm.eg.db")
 install_load("org.Hs.eg.db")
@@ -643,6 +643,8 @@ pca_plot
 
 ```{r aux_featuregroup}
 # Extract unique groups and sample IDs
+# pladb
+
 groupingVariable <- "Description"
 metadata_pladb<-metadata_pladb[seq(1, nrow(metadata_pladb), by = 2),]
 
@@ -654,10 +656,16 @@ samples_pladb <- paste0(
   "_merged_trimmed"
 )
 
+# fmn2dko
+
 metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged_trimmed","SRR6026685_SRR6026686_SRR6026687_merged_trimmed","SRR6026688_SRR6026689_SRR6026690_merged_trimmed","SRR6026691_SRR6026692_SRR6026693_merged_trimmed"),condition=c("control","control","fmndko","fmndko"))
 groups_fmndko <- unique(metadata_fmn2dko[, "condition"])
 samples_fmndko <- metadata_fmn2dko$samples
 
+# spiredko
+
+groups_spire <- unique(metadata_spire[, "condition"])
+samples_spire <- metadata_spire$samples
 
 
 random_colors=c("#D8D97AFF", "#95C36EFF", "#74C8C3FF", "#5A97C1FF", "#295384FF", "#0A2E57FF")
@@ -672,7 +680,7 @@ groupList_pladb <- lapply(1:length(groups_pladb), function(i) {
 })
 names(groupList_pladb) <- groups_pladb
 
-# Create group list with metadata for Tao, Christopher, and Lyu
+# Create group list with metadata
 groupList_fmndko <- lapply(1:length(groups_fmndko), function(i) {
   list(
     name = groups_fmndko[i],
@@ -682,6 +690,16 @@ groupList_fmndko <- lapply(1:length(groups_fmndko), function(i) {
 })
 names(groupList_fmndko) <- groups_fmndko
 
+# Create group list with metadata
+groupList_spire <- lapply(1:length(groups_spire), function(i) {
+  list(
+    name = groups_spire[i],
+    samples = samples_spire[metadata_spire[, "condition"] == groups_spire[i]],
+    color = random_colors[i]
+  )
+})
+names(groupList_spire) <- groups_spire
+
 ```
 
 ```{r groups_auxiliary}
@@ -689,8 +707,12 @@ names(groupList_fmndko) <- groups_fmndko
 groupA_pladb    <- "ControlFmn2+-"
 groupC_pladb    <- "Fmn2+-_+1mMPlatB"
 groupB_pladb <- "Fmn2+-_+10mMPlatB"
+
 groupA_fmndko<-"control"
 groupB_fmndko<-"fmndko"
+
+groupA_spire<-"control"
+groupB_spire<-"spiredko"
 
 # Define samples inside each group
 samplesA_pladb    <- groupList_pladb[[groupA_pladb]]$samples
@@ -704,6 +726,11 @@ samplesA_fmndko <- groupList_fmndko[[groupA_fmndko]]$samples
 samplesB_fmndko <- groupList_fmndko[[groupB_fmndko]]$samples
 colsGroupA_fmndko <- convertCols(fmndko_exons$PSI, samplesA_fmndko)
 colsGroupB_fmndko <- convertCols(fmndko_exons$PSI, samplesB_fmndko)
+
+samplesA_spire <- groupList_spire[[groupA_spire]]$samples
+samplesB_spire <- groupList_spire[[groupB_spire]]$samples
+colsGroupA_spire <- convertCols(spire_exons$PSI, samplesA_spire)
+colsGroupB_spire <- convertCols(spire_exons$PSI, samplesB_spire)
 
 
 set.seed(42) #Setting seed for downstream simulations of the beta distribution
@@ -756,7 +783,7 @@ pladb_1mm_10mm_pdiff_exons <- prepareTableVolcano(
   seed=TRUE, 
   CoverageWeight = FALSE)
 
-# Prepare table for Tao
+# Prepare table for fmn2dko
 fmndko_pdiff_exons <- prepareTableVolcano(
   psitable = fmndko_exons$PSI,
   qualtable = fmndko_exons$Qual,
@@ -771,6 +798,23 @@ fmndko_pdiff_exons <- prepareTableVolcano(
   seed = TRUE, 
   CoverageWeight = FALSE
 )
+
+# Prepare table for spire
+spire_pdiff_exons <- prepareTableVolcano(
+  psitable = spire_exons$PSI,
+  qualtable = spire_exons$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
 
 ```
 
@@ -834,6 +878,22 @@ fmndko_fstat_exons <- prepareTableVolcanoFstat(
 )
 
 
+# Prepare table for spire
+spire_fstat_exons <- prepareTableVolcanoFstat(
+  psitable = spire_exons$PSI,
+  qualtable = spire_exons$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
 ```
 
 ```{r FDR calculations exons}
@@ -893,6 +953,23 @@ fmndko_fdr_exons <- prepareTableVolcanoFDR(
   colsB = colsGroupB_fmndko,
   labA = groupA_fmndko,
   labB = groupB_fmndko,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100,
+  nsim = 100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
+# Prepare table for spire
+spire_fdr_exons <- prepareTableVolcanoFDR(
+  psitable = spire_exons$PSI,
+  qualtable = spire_exons$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
@@ -968,6 +1045,23 @@ theme(
 plotVolcanoFDR(betasTable =filter(fmndko_fdr_exons,!is.na(EVENT)),
                             labA = groupA_fmndko,
                             labB = groupB_fmndko,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C") +
+theme(
+  plot.title = element_text(size = 10),  # Title font size
+  axis.title = element_text(size = 10),  # Axis title font size
+  axis.text = element_text(size = 10),   # Axis text font size
+  legend.text = element_text(size = 10), # Legend text font size
+  legend.title = element_text(size = 10) # Legend title font size
+)
+```
+
+#### Spire2
+
+```{r spire fdr volcano exons}
+plotVolcanoFDR(betasTable =filter(spire_fdr_exons,!is.na(EVENT)),
+                            labA = groupA_spire,
+                            labB = groupB_spire,
                             basalColor = "#89C0AE",
                             interestColor = "#E69A9C") +
 theme(
@@ -1371,6 +1465,101 @@ write.csv(fmndko_exon_combination_tab,
           row.names = FALSE)
 ```
 
+#### Spire2
+
+```{r spire table making exons}
+spire_pdiff_exons_tab <- spire_pdiff_exons[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
+  filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
+  arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
+rownames(spire_pdiff_exons_tab) <- 1:nrow(spire_pdiff_exons_tab)
+
+spire_fstat_exons_tab <- spire_fstat_exons[, c("GENE","EVENT","COORD","Fstat","deltapsi")] %>%
+  filter(!is.na(EVENT)) %>%  # Remove rows where EVENT is NA
+  arrange(desc(Fstat), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
+rownames(spire_fstat_exons_tab) <- 1:nrow(spire_fstat_exons_tab)
+
+spire_fdr_exons_tab <- spire_fdr_exons[, c("GENE","EVENT","COORD","FDR","deltapsi")] %>%
+  filter(!is.na(EVENT), FDR<=0.05) %>%  # Remove rows where EVENT is NA
+  arrange((FDR), desc(abs(deltapsi)))
+rownames(spire_fdr_exons_tab) <- 1:nrow(spire_fdr_exons_tab)
+
+# Find common EVENTs across all tables
+common_events <- Reduce(intersect, list(spire_pdiff_exons_tab$EVENT, spire_fstat_exons_tab$EVENT, spire_fdr_exons_tab$EVENT))
+
+# Filter each table to include only rows with common EVENTs
+filtered_exon_diff_tab <- spire_pdiff_exons_tab %>% filter(EVENT %in% common_events)
+filtered_exon_fstat_tab <- spire_fstat_exons_tab %>% filter(EVENT %in% common_events)
+filtered_exon_fdr_tab <- spire_fdr_exons_tab %>% filter(EVENT %in% common_events)
+
+
+# Select only unique columns from each table
+filtered_exon_diff_tab <- filtered_exon_diff_tab %>% select(GENE,EVENT,COORD, deltapsi,Pdiff) # Extra column is Pdiff
+filtered_exon_fstat_tab <- filtered_exon_fstat_tab %>% select(EVENT, Fstat) # Extra column is Fstat
+filtered_exon_fdr_tab <- filtered_exon_fdr_tab %>% select(EVENT, FDR) # Extra column is FDR
+
+# Merge the data frames by EVENT
+spire_exon_combination_tab <- filtered_exon_diff_tab %>%
+  inner_join(filtered_exon_fstat_tab, by = "EVENT") %>%
+  inner_join(filtered_exon_fdr_tab, by = "EVENT") %>%
+  distinct() %>%
+  arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
+```
+
+```{r spire combination table exons}
+# Render DataTable with enhancements
+datatable(
+  spire_exon_combination_tab,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+    columnDefs = list(
+      list(targets = "_all", className = "dt-center"),    # Center-align all columns
+      list(
+        targets = 3,  # Highlight significant Pdiff
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && parseFloat(data) > 0.99) {
+               return '<span style=\"color: green; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      ),
+      list(
+        targets = 4,  # Highlight large deltapsi values
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && Math.abs(parseFloat(data)) > 0.5) {
+               return '<span style=\"color: red; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      )
+    )
+  ),
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+) %>%
+  formatStyle(
+    columns = "Pdiff",
+    color = styleInterval(0.99, c("black", "green")),
+    fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
+  ) %>%
+  formatStyle(
+  columns = "deltapsi",
+  color = styleInterval(c(-0.5, 0.5), c("black", "red", "black")),  # Three colors for two intervals
+  fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
+)
+
+write.csv(spire_exon_combination_tab, 
+          file = file.path(output_dir, paste0("spire_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          row.names = FALSE)
+```
+
+
 
 ## Intron Lists
 
@@ -1435,6 +1624,23 @@ fmndko_pdiff_introns <- prepareTableVolcano(
   CoverageWeight = FALSE
 )
 
+# Prepare table for spire
+spire_pdiff_introns <- prepareTableVolcano(
+  psitable = spire_introns$PSI,
+  qualtable = spire_introns$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
+
 ```
 
 ```{r f-stat introns}
@@ -1495,6 +1701,24 @@ fmndko_fstat_introns <- prepareTableVolcanoFstat(
   seed = TRUE, 
   CoverageWeight = FALSE
 )
+
+# Prepare table for spire
+spire_fstat_introns <- prepareTableVolcanoFstat(
+  psitable = spire_introns$PSI,
+  qualtable = spire_introns$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
+
 
 
 ```
@@ -1563,6 +1787,24 @@ fmndko_fdr_introns <- prepareTableVolcanoFDR(
   seed = TRUE, 
   CoverageWeight = FALSE
 )
+
+# Prepare table for spire
+spire_fdr_introns <- prepareTableVolcanoFDR(
+  psitable = spire_introns$PSI,
+  qualtable = spire_introns$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100,
+  nsim = 100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
 
 ```
 
@@ -1642,6 +1884,23 @@ theme(
 )
 ```
 
+
+#### Spire2
+
+```{r spire fdr volcano introns}
+plotVolcanoFDR(betasTable =filter(spire_fdr_introns,!is.na(EVENT)),
+                            labA = groupA_spire,
+                            labB = groupB_spire,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C") +
+theme(
+  plot.title = element_text(size = 10),  # Title font size
+  axis.title = element_text(size = 10),  # Axis title font size
+  axis.text = element_text(size = 10),   # Axis text font size
+  legend.text = element_text(size = 10), # Legend text font size
+  legend.title = element_text(size = 10) # Legend title font size
+)
+```
 
 ### Individual Combination Tables { .tabset}
 
@@ -2034,6 +2293,99 @@ write.csv(fmndko_intron_combination_tab,
           row.names = FALSE)
 ```
 
+#### Spire2
+
+```{r spire table making introns}
+spire_pdiff_introns_tab <- spire_pdiff_introns[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
+  filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
+  arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
+rownames(spire_pdiff_introns_tab) <- 1:nrow(spire_pdiff_introns_tab)
+
+spire_fstat_introns_tab <- spire_fstat_introns[, c("GENE","EVENT","COORD","Fstat","deltapsi")] %>%
+  filter(!is.na(EVENT)) %>%  # Remove rows where EVENT is NA
+  arrange(desc(Fstat), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
+rownames(spire_fstat_introns_tab) <- 1:nrow(spire_fstat_introns_tab)
+
+spire_fdr_introns_tab <- spire_fdr_introns[, c("GENE","EVENT","COORD","FDR","deltapsi")] %>%
+  filter(!is.na(EVENT), FDR<=0.05) %>%  # Remove rows where EVENT is NA
+  arrange((FDR), desc(abs(deltapsi)))
+rownames(spire_fdr_introns_tab) <- 1:nrow(spire_fdr_introns_tab)
+
+# Find common EVENTs across all tables
+common_events <- Reduce(intersect, list(spire_pdiff_introns_tab$EVENT, spire_fstat_introns_tab$EVENT, spire_fdr_introns_tab$EVENT))
+
+# Filter each table to include only rows with common EVENTs
+filtered_intron_diff_tab <- spire_pdiff_introns_tab %>% filter(EVENT %in% common_events)
+filtered_intron_fstat_tab <- spire_fstat_introns_tab %>% filter(EVENT %in% common_events)
+filtered_intron_fdr_tab <- spire_fdr_introns_tab %>% filter(EVENT %in% common_events)
+
+
+# Select only unique columns from each table
+filtered_intron_diff_tab <- filtered_intron_diff_tab %>% select(GENE,EVENT,COORD, deltapsi,Pdiff) # Extra column is Pdiff
+filtered_intron_fstat_tab <- filtered_intron_fstat_tab %>% select(EVENT, Fstat) # Extra column is Fstat
+filtered_intron_fdr_tab <- filtered_intron_fdr_tab %>% select(EVENT, FDR) # Extra column is FDR
+
+# Merge the data frames by EVENT
+spire_intron_combination_tab <- filtered_intron_diff_tab %>%
+  inner_join(filtered_intron_fstat_tab, by = "EVENT") %>%
+  inner_join(filtered_intron_fdr_tab, by = "EVENT") %>%
+  distinct() %>%
+  arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
+```
+
+```{r spire combination table introns}
+# Render DataTable with enhancements
+datatable(
+  spire_intron_combination_tab,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+    columnDefs = list(
+      list(targets = "_all", className = "dt-center"),    # Center-align all columns
+      list(
+        targets = 3,  # Highlight significant Pdiff
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && parseFloat(data) > 0.99) {
+               return '<span style=\"color: green; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      ),
+      list(
+        targets = 4,  # Highlight large deltapsi values
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && Math.abs(parseFloat(data)) > 0.5) {
+               return '<span style=\"color: red; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      )
+    )
+  ),
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+) %>%
+  formatStyle(
+    columns = "Pdiff",
+    color = styleInterval(0.99, c("black", "green")),
+    fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
+  ) %>%
+  formatStyle(
+  columns = "deltapsi",
+  color = styleInterval(c(-0.5, 0.5), c("black", "red", "black")),  # Three colors for two intervals
+  fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
+)
+
+write.csv(spire_intron_combination_tab, 
+          file = file.path(output_dir, paste0("spire_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          row.names = FALSE)
+```
 
 
 ## Alternative Splicing List
@@ -2099,6 +2451,23 @@ fmndko_pdiff_alt <- prepareTableVolcano(
   CoverageWeight = FALSE
 )
 
+# Prepare table for spire
+spire_pdiff_alt <- prepareTableVolcano(
+  psitable = spire_alt$PSI,
+  qualtable = spire_alt$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
+
 ```
 
 ```{r f-stat alt}
@@ -2160,6 +2529,22 @@ fmndko_fstat_alt <- prepareTableVolcanoFstat(
   CoverageWeight = FALSE
 )
 
+
+# Prepare table for spire
+spire_fstat_alt <- prepareTableVolcanoFstat(
+  psitable = spire_alt$PSI,
+  qualtable = spire_alt$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
 
 ```
 
@@ -2227,6 +2612,24 @@ fmndko_fdr_alt <- prepareTableVolcanoFDR(
   seed = TRUE, 
   CoverageWeight = FALSE
 )
+
+# Prepare table for spire
+spire_fdr_alt <- prepareTableVolcanoFDR(
+  psitable = spire_alt$PSI,
+  qualtable = spire_alt$Qual,
+  npoints = 500,
+  colsA = colsGroupA_spire,
+  colsB = colsGroupB_spire,
+  labA = groupA_spire,
+  labB = groupB_spire,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100,
+  nsim = 100, 
+  seed = TRUE, 
+  CoverageWeight = FALSE
+)
+
 
 ```
 
@@ -2306,6 +2709,23 @@ theme(
 )
 ```
 
+
+#### Spire2
+
+```{r spire fdr volcano alt}
+plotVolcanoFDR(betasTable =filter(spire_fdr_alt,!is.na(EVENT)),
+                            labA = groupA_spire,
+                            labB = groupB_spire,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C") +
+theme(
+  plot.title = element_text(size = 10),  # Title font size
+  axis.title = element_text(size = 10),  # Axis title font size
+  axis.text = element_text(size = 10),   # Axis text font size
+  legend.text = element_text(size = 10), # Legend text font size
+  legend.title = element_text(size = 10) # Legend title font size
+)
+```
 
 ### Individual Combination Tables { .tabset}
 
@@ -2696,6 +3116,99 @@ write.csv(fmndko_alt_combination_tab,
           row.names = FALSE)
 ```
 
+#### Spire2
+
+```{r spire table making alt}
+spire_pdiff_alt_tab <- spire_pdiff_alt[, c("GENE", "EVENT", "COORD", "Pdiff", "deltapsi")] %>%
+  filter(!is.na(EVENT), Pdiff >= 0.95) %>%  # Remove rows where EVENT is NA and Pdiff >= 0.95
+  arrange(desc(Pdiff), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
+rownames(spire_pdiff_alt_tab) <- 1:nrow(spire_pdiff_alt_tab)
+
+spire_fstat_alt_tab <- spire_fstat_alt[, c("GENE","EVENT","COORD","Fstat","deltapsi")] %>%
+  filter(!is.na(EVENT)) %>%  # Remove rows where EVENT is NA
+  arrange(desc(Fstat), desc(abs(deltapsi)))  # Sort by Pdiff and abs(deltapsi)
+rownames(spire_fstat_alt_tab) <- 1:nrow(spire_fstat_alt_tab)
+
+spire_fdr_alt_tab <- spire_fdr_alt[, c("GENE","EVENT","COORD","FDR","deltapsi")] %>%
+  filter(!is.na(EVENT), FDR<=0.05) %>%  # Remove rows where EVENT is NA
+  arrange((FDR), desc(abs(deltapsi)))
+rownames(spire_fdr_alt_tab) <- 1:nrow(spire_fdr_alt_tab)
+
+# Find common EVENTs across all tables
+common_events <- Reduce(intersect, list(spire_pdiff_alt_tab$EVENT, spire_fstat_alt_tab$EVENT, spire_fdr_alt_tab$EVENT))
+
+# Filter each table to include only rows with common EVENTs
+filtered_alt_diff_tab <- spire_pdiff_alt_tab %>% filter(EVENT %in% common_events)
+filtered_alt_fstat_tab <- spire_fstat_alt_tab %>% filter(EVENT %in% common_events)
+filtered_alt_fdr_tab <- spire_fdr_alt_tab %>% filter(EVENT %in% common_events)
+
+
+# Select only unique columns from each table
+filtered_alt_diff_tab <- filtered_alt_diff_tab %>% select(GENE,EVENT,COORD, deltapsi,Pdiff) # Extra column is Pdiff
+filtered_alt_fstat_tab <- filtered_alt_fstat_tab %>% select(EVENT, Fstat) # Extra column is Fstat
+filtered_alt_fdr_tab <- filtered_alt_fdr_tab %>% select(EVENT, FDR) # Extra column is FDR
+
+# Merge the data frames by EVENT
+spire_alt_combination_tab <- filtered_alt_diff_tab %>%
+  inner_join(filtered_alt_fstat_tab, by = "EVENT") %>%
+  inner_join(filtered_alt_fdr_tab, by = "EVENT") %>%
+  distinct() %>%
+  arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
+```
+
+```{r spire combination table alt}
+# Render DataTable with enhancements
+datatable(
+  spire_alt_combination_tab,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+    columnDefs = list(
+      list(targets = "_all", className = "dt-center"),    # Center-align all columns
+      list(
+        targets = 3,  # Highlight significant Pdiff
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && parseFloat(data) > 0.99) {
+               return '<span style=\"color: green; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      ),
+      list(
+        targets = 4,  # Highlight large deltapsi values
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && Math.abs(parseFloat(data)) > 0.5) {
+               return '<span style=\"color: red; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      )
+    )
+  ),
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+) %>%
+  formatStyle(
+    columns = "Pdiff",
+    color = styleInterval(0.99, c("black", "green")),
+    fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
+  ) %>%
+  formatStyle(
+  columns = "deltapsi",
+  color = styleInterval(c(-0.5, 0.5), c("black", "red", "black")),  # Three colors for two intervals
+  fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
+)
+
+write.csv(spire_alt_combination_tab, 
+          file = file.path(output_dir, paste0("spire_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          row.names = FALSE)
+```
 
 
 
@@ -2770,7 +3283,43 @@ go_plot_fmndko <- dotplot(
   scale_color_paletteer_c("viridis::viridis", name = "P-adjust") +  # Improve coloring for better accessibility
   scale_y_discrete(guide = guide_axis(n.dodge = 1))  # Handle overlapping labels
 
-go_plot_pladb/go_plot_fmndko
+# Spire
+gene_entrez_spire <- bitr(unique(c(spire_exon_combination_tab$GENE, spire_intron_combination_tab$GENE, spire_alt_combination_tab$GENE)), fromType = "ALIAS", toType = "ENTREZID", OrgDb = org.Mm.eg.db)
+gene_entrez_go_spire <- enrichGO(gene = gene_entrez_spire$ENTREZID,
+                      OrgDb = org.Mm.eg.db,
+                      ont = "ALL",
+                      pAdjustMethod = "BH",
+                      pvalueCutoff = 0.05,
+                      qvalueCutoff = 0.05)
+
+# Polished GO dot plot
+go_plot_spire <- dotplot(
+  gene_entrez_go_spire, 
+  showCategory = 20
+) +
+  ggtitle("<b style='font-size:18px;'>GO Enrichment Analysis</b>") +
+  labs(
+    title = "FMN2DKO Spliced Genes",
+    caption = paste0("Created by Andrés Gordo Ortiz on ", Sys.Date()),
+    x = "Gene Ratio",
+    y = "GO Terms"
+  ) +
+  theme_minimal(base_family = "sans") +
+  theme(
+    plot.title = element_markdown(hjust = 0.5),  # Center and style title
+    axis.text.y = element_text(size = 13, color = "black"),  # Clear, professional y-axis labels
+    axis.text.x = element_text(size = 12, color = "black"),  # Readable x-axis labels
+    axis.title = element_text(size = 15),  # Title size enhancement
+    panel.grid.major = element_line(color = "gray90"),  # Subtle gridlines
+    panel.background = element_rect(fill = "white"),  # Clean background
+    plot.caption = element_text(size = 10, hjust = 1, color = "gray50")  # Subtitle for the caption
+  ) +
+  scale_color_paletteer_c("viridis::viridis", name = "P-adjust") +  # Improve coloring for better accessibility
+  scale_y_discrete(guide = guide_axis(n.dodge = 1))  # Handle overlapping labels
+
+
+
+go_plot_pladb/go_plot_fmndko/go_plot_spire
 ```
 
 
