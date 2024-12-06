@@ -408,24 +408,6 @@
       ],
       "Hash": "4ac8e423216b8b70cb9653d1b3f71eb9"
     },
-    "ReactomePA": {
-      "Package": "ReactomePA",
-      "Version": "1.46.0",
-      "Source": "Bioconductor",
-      "Requirements": [
-        "AnnotationDbi",
-        "DOSE",
-        "R",
-        "enrichplot",
-        "ggplot2",
-        "ggraph",
-        "graphite",
-        "gson",
-        "igraph",
-        "reactome.db"
-      ],
-      "Hash": "10f01bec6261174f8a3903338ef619ec"
-    },
     "S4Vectors": {
       "Package": "S4Vectors",
       "Version": "0.40.2",
@@ -1251,39 +1233,6 @@
       ],
       "Hash": "5899f1eaa825580172bb56c08266f37c"
     },
-    "graph": {
-      "Package": "graph",
-      "Version": "1.80.0",
-      "Source": "Bioconductor",
-      "Requirements": [
-        "BiocGenerics",
-        "R",
-        "methods",
-        "stats",
-        "stats4",
-        "utils"
-      ],
-      "Hash": "af02a936ce577656083213cdd8f5584d"
-    },
-    "graphite": {
-      "Package": "graphite",
-      "Version": "1.48.0",
-      "Source": "Bioconductor",
-      "Requirements": [
-        "AnnotationDbi",
-        "R",
-        "graph",
-        "graphics",
-        "httr",
-        "methods",
-        "purrr",
-        "rappdirs",
-        "rlang",
-        "stats",
-        "utils"
-      ],
-      "Hash": "3a996a9fee695c929328a5682230644f"
-    },
     "graphlayouts": {
       "Package": "graphlayouts",
       "Version": "1.2.1",
@@ -1901,17 +1850,6 @@
         "R"
       ],
       "Hash": "5e3c5dc0b071b21fa128676560dbe94d"
-    },
-    "reactome.db": {
-      "Package": "reactome.db",
-      "Version": "1.86.2",
-      "Source": "Bioconductor",
-      "Requirements": [
-        "AnnotationDbi",
-        "R",
-        "methods"
-      ],
-      "Hash": "b01099a46b1d52ebe7ce013ac7ea6ef4"
     },
     "renv": {
       "Package": "renv",
