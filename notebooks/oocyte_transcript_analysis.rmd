@@ -131,36 +131,30 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 
-# Function to install and load packages dynamically.
-install_load <- function(pkg) {
-  if (!require(pkg, character.only = TRUE)) {
-    install.packages(pkg, dependencies = TRUE)
-    library(pkg, character.only = TRUE)
-  }
-}
 
 # Load required libraries
-install_load("betAS")
-install_load("ggplot2")
-install_load("plotly")
-install_load("dplyr")
-install_load("tidyverse")
-install_load("cowplot")
-install_load("DT")
-install_load("devtools")
-install_load("paletteer")
-install_load("ggupset")
-install_load("showtext")
-install_load("ggtext")
-install_load("readxl")
-install_load("biomaRt")
-install_load("enrichR")
+library("betAS")
+library("ggplot2")
+library("plotly")
+library("dplyr")
+library("tidyverse")
+library("cowplot")
+library("DT")
+library("devtools")
+library("paletteer")
+library("ggupset")
+library("showtext")
+library("ggtext")
+library("readxl")
+library("biomaRt")
+library("enrichR")
 library("patchwork")
 library("org.Mm.eg.db")
-install_load("org.Hs.eg.db")
+library("org.Hs.eg.db")
 library("enrichplot")
 library("DOSE")
 library("clusterProfiler")
+
 # Register Google fonts
 showtext_auto()
 font_add_google("Roboto", "roboto")
