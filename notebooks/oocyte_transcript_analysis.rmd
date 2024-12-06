@@ -161,7 +161,6 @@ install_load("org.Hs.eg.db")
 library("enrichplot")
 library("DOSE")
 library("clusterProfiler")
-library("ReactomePA")
 # Register Google fonts
 showtext_auto()
 font_add_google("Roboto", "roboto")
