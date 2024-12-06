@@ -131,21 +131,14 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 
-# Function to install and load packages dynamically.
-install_load <- function(pkg) {
-  if (!require(pkg, character.only = TRUE)) {
-    install.packages(pkg, dependencies = TRUE)
-    library(pkg, character.only = TRUE)
-  }
-}
 
-# Load required libraries
 # Load required libraries
 library("betAS")
 library("ggplot2")
 library("plotly")
 library("dplyr")
-install_load("tidyverse")
+library("tidyverse")
+library("devtools")
 library("cowplot")
 library("DT")
 library("paletteer")
