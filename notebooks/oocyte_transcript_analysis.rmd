@@ -609,7 +609,7 @@ pca_data$Sample <- rownames(pca_data)
 pca_data$condition<-metadata_fmn2dko$condition
 ```
 
-```{r pca plotting spire}
+```{r pca plotting fmndko}
 # Create PCA plot
 pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition), )) +
   geom_point(size = 6) +
