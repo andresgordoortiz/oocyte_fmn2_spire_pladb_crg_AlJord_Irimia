@@ -8,6 +8,17 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     pandoc \
     git \
+    libxml2 \
+    libxt6 \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libpcre3-dev \
+    libicu-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libxml2-dev \
+    libglpk-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,7 +28,8 @@ ENV R_LIBS_USER=/renv/library
 
 # Copy renv.lock and other files to the container
 WORKDIR /workspace
-COPY . /workspace
+COPY renv.lock /workspace/renv.lock
+COPY renv /workspace/renv
 
 # Install renv
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
