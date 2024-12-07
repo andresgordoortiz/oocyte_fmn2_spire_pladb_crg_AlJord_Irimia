@@ -43,5 +43,8 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
 # Restore R packages from renv.lock with retry logic
 RUN R -e "tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
 
+# Update the Dockerfile to enforce the correct library paths by adding this line to the R profile
+RUN echo '.libPaths(c("/renv/library", .libPaths()))' >> /usr/local/lib/R/etc/Rprofile.site
+
 # Default command to allow specifying the RMarkdown file at runtime
 ENTRYPOINT ["Rscript", "-e", "rmarkdown::render(commandArgs(trailingOnly = TRUE)[1], output_format = 'html_document')"]
