@@ -19,7 +19,6 @@ editor_options:
   markdown: 
     wrap: 72
 
-# NOTE: Set the Knit Directory to the Project Directory for proper file paths. Use the gear icon next to the Knit button in RStudio.
 
 header-includes:
   - '<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">'
