@@ -244,7 +244,7 @@ spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 3)
 
 ```{r metadata pladb}
 # Load metadata file containing sample information
-metadata_pladb <- read.csv(paste0(getwd(),"/metadata_pladb.csv"), sep = "\t")
+metadata_pladb <- read.csv(paste0(getwd(),"/metadata/metadata_pladb.csv"), sep = "\t")
 DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), scrollX = TRUE))
 ```
 
@@ -252,7 +252,7 @@ DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), 
 
 ```{r metadata fmn2dko}
 # Load metadata file containing sample information
-metadata_fmn2dko <- read.table(paste0(getwd(),"/PRJNA406820_fmn2dko_metadata.tsv"), sep = "\t", header = T)
+metadata_fmn2dko <- read.table(paste0(getwd(),"/metadata/PRJNA406820_fmn2dko_metadata.tsv"), sep = "\t", header = T)
 DT::datatable(metadata_fmn2dko, options = list(pageLength = nrow(metadata_fmn2dko), scrollX = TRUE))
 ```
 
