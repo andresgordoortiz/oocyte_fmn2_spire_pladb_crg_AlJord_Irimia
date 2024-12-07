@@ -35,10 +35,10 @@ set -e
 set -u
 set -o pipefail
 
-# Run RMarkdown
-singularity run --bind "$(pwd)/notebooks:/shared" \
+# Set working directory to /workspace inside container
+singularity run --bind "$(pwd)/notebooks:/shared", "$(pwd)/workspace:/workspace" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.1 \
-  /shared/oocyte_transcript_analysis.rmd
+  Rscript -e "setwd('/workspace'); rmarkdown::render('/shared/oocyte_transcript_analysis.rmd')"
 ###############
 # end message #
 ###############
