@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y \
     libglpk-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+    
+# Create the workspace folder
+RUN mkdir /workspace
 
 # Set environment variables
 ENV RENV_VERSION=0.17.3
