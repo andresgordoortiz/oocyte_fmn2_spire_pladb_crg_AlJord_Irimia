@@ -35,6 +35,8 @@ set -e
 set -u
 set -o pipefail
 
+mkdir -p $PWD/workspace
+
 # Set working directory to /workspace inside container
 singularity run --bind "$(pwd)/notebooks:/shared", "$(pwd)/workspace:/workspace" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.1 \
