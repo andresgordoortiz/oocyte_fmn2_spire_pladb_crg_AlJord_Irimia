@@ -6,8 +6,8 @@
 ##################
 
 # where to put stdout / stderr
-#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_MYOBLAST_SPLICING/logs/%x.%A_%a.out
-#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_MYOBLAST_SPLICING/logs/%x.%A_%a.err
+#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
+#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
 #SBATCH --time=3
@@ -22,7 +22,7 @@
 #SBATCH --job-name downloadfasta
 
 # job array directive
-#SBATCH --array=0-23
+#SBATCH --array=0-5
 
 #################
 # start message #
@@ -37,12 +37,19 @@ set -e
 set -u
 set -o pipefail
 
+# Trap errors and print a message
+trap 'echo [$(date +"%Y-%m-%d %H:%M:%S")] "An error occurred. Exiting..."' ERR
+
+
 ###############
 # run command #
 ###############
-mkdir -p $PWD/downloads
-cd $PWD/downloads
-sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" "$1" | bash
+mkdir -p $PWD/data/raw/christopher_physioreports
+
+cd $PWD/data/raw/christopher_physioreports
+
+echo "Running command from file:"
+sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" christopher_fastqfiles.sh | bash
 
 ###############
 # end message #
