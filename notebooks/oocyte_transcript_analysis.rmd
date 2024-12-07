@@ -244,6 +244,7 @@ spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 3)
 ```{r metadata pladb}
 # Load metadata file containing sample information
 metadata_pladb <- read.csv(paste0(getwd(),"/metadata/metadata_pladb.csv"), sep = "\t")
+metadata_pladb<-metadata_pladb[seq(1, nrow(metadata_pladb), by = 2),]
 DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), scrollX = TRUE))
 ```
 
@@ -639,7 +640,7 @@ pca_plot
 # pladb
 
 groupingVariable <- "Description"
-metadata_pladb<-metadata_pladb[seq(1, nrow(metadata_pladb), by = 2),]
+
 
 groups_pladb <- unique(metadata_pladb[, groupingVariable])
 samples_pladb <- metadata_pladb$fastq_files
