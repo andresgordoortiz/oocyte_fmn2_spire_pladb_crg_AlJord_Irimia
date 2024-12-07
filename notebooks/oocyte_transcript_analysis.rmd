@@ -19,7 +19,6 @@ editor_options:
   markdown: 
     wrap: 72
 
-# NOTE: Set the Knit Directory to the Project Directory for proper file paths. Use the gear icon next to the Knit button in RStudio.
 
 header-includes:
   - '<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">'
@@ -131,36 +130,30 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 
-# Function to install and load packages dynamically.
-install_load <- function(pkg) {
-  if (!require(pkg, character.only = TRUE)) {
-    install.packages(pkg, dependencies = TRUE)
-    library(pkg, character.only = TRUE)
-  }
-}
 
 # Load required libraries
-install_load("betAS")
-install_load("ggplot2")
-install_load("plotly")
-install_load("dplyr")
-install_load("tidyverse")
-install_load("cowplot")
-install_load("DT")
-install_load("paletteer")
-install_load("ggupset")
-install_load("showtext")
-install_load("ggtext")
-install_load("readxl")
-install_load("biomaRt")
-install_load("enrichR")
+library("betAS")
+library("ggplot2")
+library("plotly")
+library("dplyr")
+library("tidyverse")
+library("devtools")
+library("cowplot")
+library("DT")
+library("paletteer")
+library("ggupset")
+library("showtext")
+library("ggtext")
+library("readxl")
+library("biomaRt")
+library("enrichR")
 library("patchwork")
 library("org.Mm.eg.db")
-install_load("org.Hs.eg.db")
+library("org.Hs.eg.db")
 library("enrichplot")
 library("DOSE")
 library("clusterProfiler")
-library("ReactomePA")
+
 # Register Google fonts
 showtext_auto()
 font_add_google("Roboto", "roboto")
@@ -250,7 +243,8 @@ spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 3)
 
 ```{r metadata pladb}
 # Load metadata file containing sample information
-metadata_pladb <- read.csv(paste0(getwd(),"/metadata_pladb.csv"), sep = "\t")
+metadata_pladb <- read.csv(paste0(getwd(),"/metadata/metadata_pladb.csv"), sep = "\t")
+metadata_pladb<-metadata_pladb[seq(1, nrow(metadata_pladb), by = 2),]
 DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), scrollX = TRUE))
 ```
 
@@ -258,7 +252,7 @@ DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), 
 
 ```{r metadata fmn2dko}
 # Load metadata file containing sample information
-metadata_fmn2dko <- read.table(paste0(getwd(),"/PRJNA406820_fmn2dko_metadata.tsv"), sep = "\t", header = T)
+metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged_trimmed","SRR6026685_SRR6026686_SRR6026687_merged_trimmed","SRR6026688_SRR6026689_SRR6026690_merged_trimmed","SRR6026691_SRR6026692_SRR6026693_merged_trimmed"),condition=c("control","control","fmndko","fmndko"))
 DT::datatable(metadata_fmn2dko, options = list(pageLength = nrow(metadata_fmn2dko), scrollX = TRUE))
 ```
 
@@ -609,7 +603,7 @@ pca_data$Sample <- rownames(pca_data)
 pca_data$condition<-metadata_fmn2dko$condition
 ```
 
-```{r pca plotting spire}
+```{r pca plotting fmndko}
 # Create PCA plot
 pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition), )) +
   geom_point(size = 6) +
@@ -646,7 +640,7 @@ pca_plot
 # pladb
 
 groupingVariable <- "Description"
-metadata_pladb<-metadata_pladb[seq(1, nrow(metadata_pladb), by = 2),]
+
 
 groups_pladb <- unique(metadata_pladb[, groupingVariable])
 samples_pladb <- metadata_pladb$fastq_files
@@ -3212,7 +3206,7 @@ write.csv(spire_alt_combination_tab,
 
 
 
-## Gene Ontology of Filtered Splicing Events
+## Gene Ontology of Filtered Splicing Events { .tabset}
 
 ```{r gene ontology, fig.width=10, fig.height=8}
 
@@ -3299,7 +3293,7 @@ go_plot_spire <- dotplot(
 ) +
   ggtitle("<b style='font-size:18px;'>GO Enrichment Analysis</b>") +
   labs(
-    title = "FMN2DKO Spliced Genes",
+    title = "Spire Spliced Genes",
     caption = paste0("Created by Andrés Gordo Ortiz on ", Sys.Date()),
     x = "Gene Ratio",
     y = "GO Terms"
@@ -3317,10 +3311,100 @@ go_plot_spire <- dotplot(
   scale_color_paletteer_c("viridis::viridis", name = "P-adjust") +  # Improve coloring for better accessibility
   scale_y_discrete(guide = guide_axis(n.dodge = 1))  # Handle overlapping labels
 
-
-
-go_plot_pladb/go_plot_fmndko/go_plot_spire
 ```
+
+### PladB
+
+```{r go pladb,fig.width=10, fig.height=8}
+go_plot_pladb
+```
+
+### FMN2DKO
+```{r go fmndko,fig.width=10, fig.height=8}
+go_plot_fmndko
+```
+
+### Spire
+
+```{r go spire,fig.width=10, fig.height=8}
+go_plot_spire
+```
+
+## Enrichment Analysis with EnrichR
+
+### PladB { .tabset}
+
+```{r pladb enrichr}
+enrichdata<-enrichr(unique(c(pladb_exon_combination_tab$GENE, pladb_intron_combination_tab$GENE, pladb_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r pladb bioprocess}
+plotEnrich(enrichdata[[1]])
+```
+
+#### GO Cellular Component
+
+```{r pladb cellcomponent}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r pladb molfunction}
+plotEnrich(enrichdata[[3]])
+```
+
+### FMN2DKO { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(fmndko_exon_combination_tab$GENE, fmndko_intron_combination_tab$GENE, fmndko_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r fmndko bioprocess}
+plotEnrich(enrichdata[[1]])
+```
+
+#### GO Cellular Component
+
+```{r fmndko cellcomponent}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction}
+plotEnrich(enrichdata[[3]])
+```
+
+### Spire { .tabset}
+
+```{r spire enrichr}
+enrichdata<-enrichr(unique(c(spire_exon_combination_tab$GENE, spire_intron_combination_tab$GENE, spire_alt_combination_tab$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r spire bioprocess}
+plotEnrich(enrichdata[[1]])
+```
+
+#### GO Cellular Component
+
+```{r spire cellcomponent}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r spire molfunction}
+plotEnrich(enrichdata[[3]])
+```
+
+
 
 
 
