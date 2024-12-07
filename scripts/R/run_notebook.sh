@@ -37,10 +37,10 @@ set -o pipefail
 
 mkdir -p $PWD/workspace
 
-# Set working directory to /workspace inside container
-singularity run --bind "$(pwd)/notebooks:/shared", "$(pwd)/workspace:/workspace" \
+singularity run --bind "$(pwd)/notebooks:/shared" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.1 \
-  Rscript -e "setwd('/workspace'); rmarkdown::render('/shared/oocyte_transcript_analysis.rmd')"
+  Rscript -e "setwd('/workspace'); renv::activate('/workspace'); rmarkdown::render('/shared/oocyte_transcript_analysis.rmd')"
+  
 ###############
 # end message #
 ###############
