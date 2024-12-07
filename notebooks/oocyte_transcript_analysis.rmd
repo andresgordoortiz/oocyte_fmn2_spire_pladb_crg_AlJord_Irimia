@@ -252,7 +252,7 @@ DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), 
 
 ```{r metadata fmn2dko}
 # Load metadata file containing sample information
-metadata_fmn2dko <- read.table(paste0(getwd(),"/metadata/PRJNA406820_fmn2dko_metadata.tsv"), sep = "\t", header = T)
+metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged_trimmed","SRR6026685_SRR6026686_SRR6026687_merged_trimmed","SRR6026688_SRR6026689_SRR6026690_merged_trimmed","SRR6026691_SRR6026692_SRR6026693_merged_trimmed"),condition=c("control","control","fmndko","fmndko"))
 DT::datatable(metadata_fmn2dko, options = list(pageLength = nrow(metadata_fmn2dko), scrollX = TRUE))
 ```
 
