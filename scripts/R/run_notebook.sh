@@ -2,7 +2,7 @@
 
 
 ##################
-# slurm settings #
+# slurm setting #
 ##################
 
 # SLURM output and error files
