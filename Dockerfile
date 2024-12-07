@@ -1,6 +1,10 @@
 # Use a base R image
 FROM rocker/r-ver:4.3.1
 
+# Set build argument for the GitHub Personal Access Token
+ARG GITHUB_PAT
+ENV GITHUB_PAT=${GITHUB_PAT}
+
 # Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
@@ -35,8 +39,11 @@ WORKDIR /workspace
 # Install renv
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
-# Restore R packages from renv.lock with retry logic
-RUN R -e "tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
+# Restore the R environment using renv
+RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
+
+# Clean up sensitive environment variables
+RUN unset GITHUB_PAT
 
 # Default command to allow specifying the RMarkdown file at runtime
 ENTRYPOINT ["Rscript", "-e", ".libPaths('/workspace/renv/library'); rmarkdown::render(commandArgs(trailingOnly = TRUE)[1], output_format = 'html_document')"]
