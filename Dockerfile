@@ -1,5 +1,5 @@
 # Use a base R image
-FROM rocker/r-ver:4.3.1
+FROM marianaferreira/betas:latest
 
 # Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \
@@ -33,7 +33,7 @@ RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
 
 # Restore the R environment using renv
-RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
+RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
 
 # Inspect if the renv folder is created after restore
 RUN ls -l /renv
