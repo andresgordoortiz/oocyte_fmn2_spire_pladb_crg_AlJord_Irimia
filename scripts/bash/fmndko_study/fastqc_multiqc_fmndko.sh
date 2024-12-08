@@ -47,9 +47,7 @@ singularity exec --bind $PWD/data/processed/fmndko docker://biocontainers/fastqc
 ################
 # run multiqc  #
 ################
-singularity exec --bind $PWD/data/processed/fmndko/fastqc:/fastqc docker://multiqc/multiqc:latest multiqc /fastqc
-
-mv $PWD/data/processed/fmndko/fastqc/multiqc_* $PWD/data/processed/fmndko
+singularity exec --bind $PWD/data/processed/fmndko:/fmndko docker://multiqc/multiqc:latest /bin/bash -c "cd /fmndko && multiqc ."
 
 ###############
 # end message #
