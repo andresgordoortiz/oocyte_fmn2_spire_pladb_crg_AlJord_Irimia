@@ -43,18 +43,18 @@ set -o pipefail
 ###############
 
 #Define file list and select the file for the current array job
-files=($PWD/data/processed/pladb/trimmed/*.fq.gz)
+files=($PWD/data/processed/fmndko/*.fastq.gz)
 file=${files[$SLURM_ARRAY_TASK_ID]}
 
-basename=$(basename "$file" .fq.gz)
-mkdir -p $PWD/data/processed/pladb/vast_out
+basename=$(basename "$file" .fastq.gz)
+mkdir -p $PWD/data/processed/fmndko/vast_out
 
 
 singularity_image="docker://andresgordoortiz/vast-tools:latest"
 VASTDB_PATH=$1
 # Run vast-tools align using Singularity
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
-    --bind $PWD/data/processed/pladb/vast_out:/vast_out \
+    --bind $PWD/data/processed/fmndko/vast_out:/vast_out \
     $singularity_image vast-tools align \
     "$file" \
     -sp mm10 \
