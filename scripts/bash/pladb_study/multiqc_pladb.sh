@@ -38,7 +38,7 @@ set -o pipefail
 ################
 # run multiqc  #
 ################
-singularity exec --bind $PWD/data/processed/pladb/fastqc docker://multiqc/multiqc:latest multiqc .
+singularity exec --bind $PWD/data/processed/pladb/fastqc:/fastqc docker://multiqc/multiqc:latest multiqc /fastqc
 mv $PWD/data/processed/pladb/fastqc/multiqc_* $PWD/data/processed/pladb
 ###############
 # end message #
