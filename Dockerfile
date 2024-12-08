@@ -33,9 +33,10 @@ RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
 
 # Restore the R environment using renv
-RUN R -e "renv::restore()"
+RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
 
 # Inspect if the renv folder is created after restore
 RUN ls -l /renv
+
 
 # By not setting an ENTRYPOINT, this Docker container is now ready to run any R script or RMarkdown file downstream.
