@@ -38,7 +38,9 @@ COPY renv.lock /workspace/renv.lock
 WORKDIR /workspace
 
 # Install renv
-RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('renv','devtools'), repos='https://cloud.r-project.org')"
+
+RUN R -e "devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.1")"
 
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
