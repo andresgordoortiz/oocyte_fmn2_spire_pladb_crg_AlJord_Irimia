@@ -38,7 +38,7 @@ echo "...third job ID is $jid3"
 
 # Fourth job - generate multiQC report (dependent on third job)
 echo "Submitting fourth job: Generate multiQC report..."
-jid4=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
+jid4=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/pladb_study/multiqc_pladb.sh | tr -cd '[:digit:].')
 echo "...fourth job ID is $jid4"
 
 # Fifth job - run vast combine (dependent on third job)
