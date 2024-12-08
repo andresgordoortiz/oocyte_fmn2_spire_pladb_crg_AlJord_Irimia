@@ -25,31 +25,27 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create the workspace folder
-RUN mkdir /workspace
-
 # Set environment variables
 ENV RENV_VERSION=0.17.3
-ENV R_LIBS_USER=/workspace/renv/library
+ENV R_LIBS_USER=/renv/library
 
 # Copy renv.lock and other files to the container
-COPY renv.lock /workspace/renv.lock
-WORKDIR /workspace
+COPY renv.lock /renv.lock
 
 # Install renv
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
 # Pre-clone the betAS repository
-RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /workspace/renv/sources/betAS
+RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /renv/sources/betAS
 
 # Set the local GitHub repository as a source in .Renviron
-RUN echo 'RENV_CONFIG_PATHS_SOURCES = /workspace/renv/sources' >> /workspace/.Renviron
+RUN echo 'RENV_CONFIG_PATHS_SOURCES = /renv/sources' >> /.Renviron
 
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
 
 # Inspect if the renv folder is created after restore
-RUN ls -l /workspace/renv
+RUN ls -l /renv
 
 # Clean up sensitive environment variables
 RUN unset GITHUB_PAT
