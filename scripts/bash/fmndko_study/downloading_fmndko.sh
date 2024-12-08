@@ -42,18 +42,10 @@ trap 'echo [$(date +"%Y-%m-%d %H:%M:%S")] "An error occurred. Exiting..."' ERR
 ###############
 # run command #
 ###############
-SAMPLES_FILE=$1
-PROJECT_NAME=$2
-echo "Project name is set to $PROJECT_NAME"
-
-mkdir -p $PWD/data/raw/$PROJECT_NAME
-
-echo "Changing directory to $PWD/data/raw/$PROJECT_NAME"
-CURRENT_DIR=$PWD
-cd $PWD/data/raw/$PROJECT_NAME
+cd $PWD/data/raw/fmndko
 
 echo "Running command from file:"
-sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" $CURRENT_DIR/$SAMPLES_FILE | bash
+sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" fmndko_PRJNA406820.sh| bash
 
 ###############
 # end message #
