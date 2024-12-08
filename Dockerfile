@@ -37,9 +37,6 @@ RUN R -e "install.packages(c('renv','devtools'), repos='https://cloud.r-project.
 
 RUN R -e "devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.1")"
 
-# Pre-clone the betAS repository
-RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /renv/sources/betAS
-
 # Set the local GitHub repository as a source in .Renviron
 RUN echo 'RENV_CONFIG_PATHS_SOURCES = /renv/sources' >> /.Renviron
 
