@@ -21,11 +21,10 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libjpeg-dev \
     libpng-dev \
-    libxml2-dev \
     libglpk-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-    
+
 # Create the workspace folder
 RUN mkdir /workspace
 
@@ -39,6 +38,15 @@ WORKDIR /workspace
 
 # Install renv
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
+
+# Pre-clone GitHub repositories listed in renv.lock
+RUN Rscript -e "
+lockfile <- renv::lockfile('/workspace/renv.lock');
+github_repos <- lockfile$Packages |> purrr::keep(~ .x$Source == 'GitHub') |> purrr::map_chr('RemoteUrl');
+for (repo in github_repos) {
+  repo_name <- basename(repo);
+  system(sprintf('git clone %s /workspace/renv/sources/%s', repo, repo_name));
+}"
 
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
