@@ -29,28 +29,23 @@ jid1=$(sbatch $PWD/scripts/bash/fmndko_study/downloading_fmndko.sh | tr -cd '[:d
 echo "...first job ID is $jid1"
 
 # Second job - concatenate reads
-echo "Submitting first job: Concatenate reads..."
-jid2=$(sbatch $PWD/scripts/bash/pladb_study/processing1_cat_reads_pladb.sh | tr -cd '[:digit:].')
+echo "Submitting second job: Concatenate reads..."
+jid2=$(sbatch $PWD/scripts/bash/fmndko_study/processing1_cat_reads_fmndko.sh | tr -cd '[:digit:].')
 echo "...first job ID is $jid2"
 
-# Second job - trim reads (dependent on first job)
+# Third job - fastQC (dependent on second job)
 echo "Submitting second job: Trim reads..."
-jid3=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/pladb_study/processing2_trim_reads_pladb.sh | tr -cd '[:digit:].')
+jid3=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/fmndko_study/fastqc_multiqc_fmndko.sh | tr -cd '[:digit:].')
 echo "...second job ID is $jid3"
 
-# Third job - align reads (dependent on second job)
+# Fourth job - align reads (dependent on second job)
 echo "Submitting third job: Align reads..."
-jid4=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/pladb_study/vast_align_pladb.sh $VASTDB_PATH | tr -cd '[:digit:].')
+jid4=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/fmndko_study/vast_align_fmndko.sh $VASTDB_PATH | tr -cd '[:digit:].')
 echo "...third job ID is $jid4"
 
-# Fourth job - generate multiQC report (dependent on third job)
-echo "Submitting fourth job: Generate multiQC report..."
-jid5=$(sbatch --dependency=afterok:$jid3 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
-echo "...fourth job ID is $jid5"
-
-# Fifth job - run vast combine (dependent on third job)
+# Fifth job - run vast combine (dependent on fourth job)
 echo "Submitting fifth job: Run vast combine..."
-jid6=$(sbatch --dependency=afterok:$jid4 $PWD/scripts/bash/pladb_study/vast_combine_pladb.sh $VASTDB_PATH | tr -cd '[:digit:].')
-echo "...fifth job ID is $jid6"
+jid5=$(sbatch --dependency=afterok:$jid4 $PWD/scripts/bash/fmndko_study/vast_combine_fmndko.sh $VASTDB_PATH | tr -cd '[:digit:].')
+echo "...fifth job ID is $jid5"
 
 echo "All jobs submitted!"
