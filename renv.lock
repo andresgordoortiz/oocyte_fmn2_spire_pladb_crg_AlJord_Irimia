@@ -570,13 +570,14 @@
     },
     "betAS": {
       "Package": "betAS",
-      "Version": "0.99.1",
+      "Version": "1.2.1",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "betAS",
       "RemoteUsername": "DiseaseTranscriptomicsLab",
-      "RemoteSha": "d7d6c5addb64b61ec06cd9097557f0570a26db1f",
+      "RemoteRef": "v1.2.1",
+      "RemoteSha": "7b05326a69bdde605a49754188d206c1b5ce223d",
       "Requirements": [
         "DT",
         "R",
@@ -595,7 +596,7 @@
         "thematic",
         "utils"
       ],
-      "Hash": "069a9b02b70d31ba357072c22a403718"
+      "Hash": "6bc0710d980cfec2f0945b61de38a9d5"
     },
     "biomaRt": {
       "Package": "biomaRt",
