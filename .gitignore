@@ -19,7 +19,7 @@
 *fa
 *star_index/
 *.tab
-data/*
+
 # Ignore large result files
 results/**/*.pdf
 results/**/*.png

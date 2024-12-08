@@ -14,6 +14,11 @@
 #SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
+if [ -z "$1" ]; then
+    echo "Error: No VASTDB_PATH provided."
+    echo "Usage: $0 /path/to/vastdb"
+    exit 1
+fi
 
 VASTDB_PATH=$1
 # First job - concatenate reads
@@ -33,7 +38,7 @@ echo "...third job ID is $jid3"
 
 # Fourth job - generate multiQC report (dependent on third job)
 echo "Submitting fourth job: Generate multiQC report..."
-jid4=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/multiqc.sh | tr -cd '[:digit:].')
+jid4=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/pladb_study/multiqc_pladb.sh | tr -cd '[:digit:].')
 echo "...fourth job ID is $jid4"
 
 # Fifth job - run vast combine (dependent on third job)

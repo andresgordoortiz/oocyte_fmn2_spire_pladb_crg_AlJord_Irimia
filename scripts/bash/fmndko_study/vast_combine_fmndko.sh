@@ -10,19 +10,17 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=3
+#SBATCH --time=20
 
 # queue
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=2G
+#SBATCH --mem=5G
 
 # job name
-#SBATCH --job-name downloadfasta
+#SBATCH --job-name vast-combine
 
-# job array directive
-#SBATCH --array=0-5
 
 #################
 # start message #
@@ -37,19 +35,20 @@ set -e
 set -u
 set -o pipefail
 
-# Trap errors and print a message
-trap 'echo [$(date +"%Y-%m-%d %H:%M:%S")] "An error occurred. Exiting..."' ERR
-
 
 ###############
 # run command #
 ###############
-mkdir -p $PWD/data/raw/christopher_physioreports
 
-cd $PWD/data/raw/christopher_physioreports
+VASTDB_PATH=$1
 
-echo "Running command from file:"
-sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" christopher_fastqfiles.sh | bash
+# Define Singularity image path
+singularity_image="docker://andresgordoortiz/vast-tools:latest"
+
+# Run vast-tools align using Singularity
+singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
+    --bind $PWD/data/processed/fmndko:/fmndko \
+    $singularity_image bash -c "vast-tools combine /fmndko/vast_out/to_combine -sp mm10 -o /fmndko/vast_out"
 
 ###############
 # end message #

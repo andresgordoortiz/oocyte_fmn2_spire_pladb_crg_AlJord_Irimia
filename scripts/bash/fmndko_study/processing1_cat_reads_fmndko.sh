@@ -16,10 +16,10 @@
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=5G
+#SBATCH --mem=4G
 
 # job name
-#SBATCH --job-name vast-combine
+#SBATCH --job-name cat_reads
 
 
 #################
@@ -35,28 +35,33 @@ set -e
 set -u
 set -o pipefail
 
-
 ###############
 # run command #
 ###############
-# Store current working directory
-current_dir=$PWD
-cd $PWD/data/processed/pladienolideb/vast_out/to_combine
+# Define the input and output directories
+mkdir -p $PWD/data/processed/fmndko
 
-# Initialize conda
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate vasttools
+input_dir="$PWD/data/raw/fmndko"
+output_dir="$PWD/data/processed/fmndko"
 
-/users/mirimia/projects/vast-tools/vast-tools combine \
-    -sp mm10 \
-    -o $current_dir/data/processed/pladienolideb/vast_out
-conda deactivate
+# List all fastq.gz files in the input directory
+files=($(ls "$input_dir"/*.fastq.gz))
 
-cd $current_dir
-mv $PWD/data/processed/pladienolideb/vast_out/INCLUSION_LEVELS_FULL-mm10-6.tab $PWD/data/processed/pladienolideb/vast_out/pladienolideb_INCLUSION_LEVELS_FULL-mm10.tab
+# Iterate over the files in triples
+for ((i=0; i<${#files[@]}; i+=3)); do
+  # Define the output file name based on the first file in the triple
+  output_file="$output_dir/$(basename ${files[i]} .fastq.gz)_$(basename ${files[i+1]} .fastq.gz)_$(basename ${files[i+2]} .fastq.gz)_merged.fastq.gz"
+
+  # Concatenate the triple of files
+  cat "${files[i]}" "${files[i+1]}" "${files[i+2]}" > "$output_file"
+
+  # Print a message indicating the files have been merged
+  echo "Merged ${files[i]}, ${files[i+1]}, and ${files[i+2]} into $output_file"
+done
 
 ###############
 # end message #
 ###############
 end_epoch=`date +%s`
 echo [$(date +"%Y-%m-%d %H:%M:%S")] finished on $(hostname) after $((end_epoch-start_epoch)) seconds
+

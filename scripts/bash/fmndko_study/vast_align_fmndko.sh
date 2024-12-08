@@ -6,8 +6,8 @@
 ##################
 
 # where to put stdout / stderr
-#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
-#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
+#SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/tmp/%x.%A_%a.out
+#SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/tmp/%x.%A_%a.err
 
 # time limit in minutes
 #SBATCH --time=90
@@ -22,7 +22,7 @@
 # job name
 #SBATCH --job-name vast-align
 # job array directive
-#SBATCH --array=0-8
+#SBATCH --array=0-3
 
 #################
 # start message #
@@ -43,18 +43,18 @@ set -o pipefail
 ###############
 
 #Define file list and select the file for the current array job
-files=($PWD/data/processed/pladb/trimmed/*.fq.gz)
+files=($PWD/data/processed/fmndko/*.fastq.gz)
 file=${files[$SLURM_ARRAY_TASK_ID]}
 
-basename=$(basename "$file" .fq.gz)
-mkdir -p $PWD/data/processed/pladb/vast_out
+basename=$(basename "$file" .fastq.gz)
+mkdir -p $PWD/data/processed/fmndko/vast_out
 
 
 singularity_image="docker://andresgordoortiz/vast-tools:latest"
 VASTDB_PATH=$1
 # Run vast-tools align using Singularity
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
-    --bind $PWD/data/processed/pladb/vast_out:/vast_out \
+    --bind $PWD/data/processed/fmndko/vast_out:/vast_out \
     $singularity_image vast-tools align \
     "$file" \
     -sp mm10 \

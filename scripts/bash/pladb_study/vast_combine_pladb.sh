@@ -41,19 +41,14 @@ set -o pipefail
 ###############
 
 VASTDB_PATH=$1
-# Store current working directory
-current_dir=$PWD
-cd $PWD/data/processed/pladb/vast_out/to_combine
-
 
 # Define Singularity image path
 singularity_image="docker://andresgordoortiz/vast-tools:latest"
 
 # Run vast-tools align using Singularity
-singularity exec $singularity_image vast-tools combine \
-    --bind $VASTDB_PATH:/VASTDB \
-    -sp mm10 \
-    -o $current_dir/data/processed/pladb/vast_out
+singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
+    --bind $PWD/data/processed/pladb:/pladb \
+    $singularity_image bash -c "vast-tools combine /pladb/vast_out/to_combine -sp mm10 -o /pladb/vast_out"
 
 ###############
 # end message #

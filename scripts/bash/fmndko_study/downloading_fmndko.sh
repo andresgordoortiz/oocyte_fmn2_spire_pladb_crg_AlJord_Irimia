@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 ##################
 # slurm settings #
 ##################
@@ -10,19 +9,18 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=180
+#SBATCH --time=3
 
 # queue
-#SBATCH --qos=shorter
+#SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=10G
-#SBATCH --cpus-per-task=8
+#SBATCH --mem=5G
 
 # job name
-#SBATCH --job-name vast-align
-# job array directive
-#SBATCH --array=0-17
+#SBATCH --job-name downloadfasta
+
+#SBATCH --array=0-11
 
 #################
 # start message #
@@ -37,30 +35,17 @@ set -e
 set -u
 set -o pipefail
 
+# Trap errors and print a message
+trap 'echo [$(date +"%Y-%m-%d %H:%M:%S")] "An error occurred. Exiting..."' ERR
+
 
 ###############
 # run command #
 ###############
+cd $PWD/data/raw/fmndko
 
-# Define file list and select the file for the current array job
-files=($PWD/data/raw/pladienolideb/*.fastq.gz)
-file1=${files[$SLURM_ARRAY_TASK_ID]}
-
-basename=$(basename "$file1" .fastq.gz)
-mkdir -p $PWD/data/processed/pladienolideb/vast_out
-
-# Initialize conda
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate vasttools
-/users/mirimia/projects/vast-tools/vast-tools align \
-    "$file1" \
-    -sp mm10 \
-    -o $PWD/data/processed/pladienolideb/vast_out \
-    --IR_version 2 \
-    -c 8 \
-    -n "$basename"
-
-conda deactivate
+echo "Running command from file:"
+sed "$((SLURM_ARRAY_TASK_ID + 1))q;d" fmndko_PRJNA406820.sh| bash
 
 ###############
 # end message #
