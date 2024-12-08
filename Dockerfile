@@ -1,5 +1,5 @@
 # Use a base R image
-FROM marianaferreira/betas:latest
+FROM rocker/r-ver:4.3.1
 
 # Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \
@@ -26,8 +26,9 @@ ENV RENV_VERSION=0.17.3
 ENV R_LIBS_USER=/renv/library
 
 # Copy renv.lock and other files to the container
-COPY renv.lock /renv.lock
 
+COPY renv.lock /renv.lock
+WORKDIR /
 # Install renv
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
