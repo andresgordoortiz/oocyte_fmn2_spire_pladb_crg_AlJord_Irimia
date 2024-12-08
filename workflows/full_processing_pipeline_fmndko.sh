@@ -30,7 +30,7 @@ echo "...first job ID is $jid1"
 
 # Second job - concatenate reads
 echo "Submitting second job: Concatenate reads..."
-jid2=$(sbatch $PWD/scripts/bash/fmndko_study/processing1_cat_reads_fmndko.sh | tr -cd '[:digit:].')
+jid2=$(sbatch --dependency=afterok:$jid1 $PWD/scripts/bash/fmndko_study/processing1_cat_reads_fmndko.sh | tr -cd '[:digit:].')
 echo "...first job ID is $jid2"
 
 # Third job - fastQC (dependent on second job)
