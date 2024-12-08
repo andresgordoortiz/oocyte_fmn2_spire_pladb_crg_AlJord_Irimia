@@ -1,10 +1,6 @@
 # Use a base R image
 FROM rocker/r-ver:4.3.1
 
-# Set build argument for the GitHub Personal Access Token
-ARG GITHUB_PAT
-ENV GITHUB_PAT=${GITHUB_PAT}
-
 # Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
@@ -30,8 +26,9 @@ ENV RENV_VERSION=0.17.3
 ENV R_LIBS_USER=/renv/library
 
 # Copy renv.lock and other files to the container
-COPY renv.lock /renv.lock
 
+COPY renv.lock /renv.lock
+WORKDIR /
 # Install renv
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
@@ -42,7 +39,5 @@ RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::rest
 # Inspect if the renv folder is created after restore
 RUN ls -l /renv
 
-# Clean up sensitive environment variables
-RUN unset GITHUB_PAT
 
 # By not setting an ENTRYPOINT, this Docker container is now ready to run any R script or RMarkdown file downstream.
