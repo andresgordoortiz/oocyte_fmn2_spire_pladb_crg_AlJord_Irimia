@@ -33,7 +33,9 @@ ENV R_LIBS_USER=/renv/library
 COPY renv.lock /renv.lock
 
 # Install renv
-RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('renv','devtools'), repos='https://cloud.r-project.org')"
+
+RUN R -e "devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.1")"
 
 # Pre-clone the betAS repository
 RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /renv/sources/betAS
