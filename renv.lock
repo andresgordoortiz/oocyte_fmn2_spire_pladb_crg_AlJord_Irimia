@@ -73,7 +73,7 @@
     "BiocFileCache": {
       "Package": "BiocFileCache",
       "Version": "2.10.2",
-      "Source": "Repository",
+      "Source": "Bioconductor",
       "Repository": "Bioconductor 3.18",
       "Requirements": [
         "DBI",
@@ -576,7 +576,6 @@
       "RemoteHost": "api.github.com",
       "RemoteRepo": "betAS",
       "RemoteUsername": "DiseaseTranscriptomicsLab",
-      "RemoteRef": "HEAD",
       "RemoteSha": "d7d6c5addb64b61ec06cd9097557f0570a26db1f",
       "Requirements": [
         "DT",
@@ -1144,7 +1143,7 @@
       "Package": "enrichR",
       "Version": "3.2",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.posit.co/cran/2024-09-30",
       "Requirements": [
         "R",
         "WriteXLS",
