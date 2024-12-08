@@ -36,17 +36,21 @@ ENV R_LIBS_USER=/workspace/renv/library
 COPY renv.lock /workspace/renv.lock
 WORKDIR /workspace
 
-# Install renv
-RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
+# Install renv and jsonlite
+RUN R -e "install.packages(c('renv', 'jsonlite'), repos='https://cloud.r-project.org')"
 
 # Pre-clone GitHub repositories listed in renv.lock
 RUN Rscript -e "
-lockfile <- renv::lockfile('/workspace/renv.lock');
-github_repos <- lockfile$Packages |> purrr::keep(~ .x$Source == 'GitHub') |> purrr::map_chr('RemoteUrl');
-for (repo in github_repos) {
+library(jsonlite);
+lockfile <- fromJSON('renv.lock');
+github_packages <- lockfile$Packages[sapply(lockfile$Packages, function(pkg) pkg$Source == 'GitHub')];
+github_urls <- sapply(github_packages, function(pkg) pkg$RemoteUrl);
+dir.create('/workspace/renv/sources', recursive = TRUE);
+for (repo in github_urls) {
   repo_name <- basename(repo);
   system(sprintf('git clone %s /workspace/renv/sources/%s', repo, repo_name));
-}"
+}
+"
 
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
