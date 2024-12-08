@@ -21,11 +21,10 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libjpeg-dev \
     libpng-dev \
-    libxml2-dev \
     libglpk-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-    
+
 # Create the workspace folder
 RUN mkdir /workspace
 
@@ -41,6 +40,9 @@ WORKDIR /workspace
 RUN R -e "install.packages(c('renv','devtools'), repos='https://cloud.r-project.org')"
 
 RUN R -e "devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.1")"
+
+# Pre-clone the betAS repository
+RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /workspace/renv/sources/betAS
 
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
