@@ -1,10 +1,6 @@
 # Use a base R image
 FROM rocker/r-ver:4.3.1
 
-# Accept build argument for TOKEN_PAT
-ARG TOKEN_PAT
-ENV GITHUB_PAT=${TOKEN_PAT}
-
 # Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
@@ -38,7 +34,7 @@ RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
 
 # Restore the R environment using renv
-RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
+RUN R -e "tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
 # Inspect if the renv folder is created after restore
 RUN ls -l /renv
 
