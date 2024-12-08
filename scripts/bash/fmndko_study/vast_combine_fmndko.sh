@@ -47,8 +47,8 @@ singularity_image="docker://andresgordoortiz/vast-tools:latest"
 
 # Run vast-tools align using Singularity
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
-    --bind $PWD/data/processed/fmndko/vast_out:/vast_out \
-    $singularity_image bash -c "cd /vast_out/to_combine && vast-tools combine -sp mm10"
+    --bind $PWD/data/processed/fmndko:/fmndko \
+    $singularity_image bash -c "vast-tools combine /fmndko/vast_out/to_combine -sp mm10 -o /fmndko/vast_out"
 
 ###############
 # end message #
