@@ -16,7 +16,7 @@
 
 # memory (MB)
 #SBATCH --mem=5G
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 
 # job name
 #SBATCH --job-name fastqc_multiqc
@@ -42,7 +42,7 @@ set -o pipefail
 
 
 mkdir -p $PWD/data/processed/fmndko/fastqc
-singularity exec --bind $PWD/data/processed/fmndko docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 4 -o $PWD/data/processed/fmndko/fastqc $PWD/data/processed/fmndko/*.{fastq.gz,fq.gz}
+singularity exec --bind $PWD/data/processed/fmndko docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 8 -o $PWD/data/processed/fmndko/fastqc $PWD/data/processed/fmndko/*.{fastq.gz,fq.gz}
 
 ################
 # run multiqc  #
