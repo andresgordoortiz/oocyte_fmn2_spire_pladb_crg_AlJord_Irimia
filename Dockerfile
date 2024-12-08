@@ -36,20 +36,11 @@ ENV R_LIBS_USER=/workspace/renv/library
 COPY renv.lock /workspace/renv.lock
 WORKDIR /workspace
 
-# Install renv and jsonlite
-RUN R -e "install.packages(c('renv', 'jsonlite'), repos='https://cloud.r-project.org')"
+# Install renv
+RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
-# Pre-clone GitHub repositories listed in renv.lock
-RUN Rscript -e " \
-  library(jsonlite); \
-  lockfile <- fromJSON('renv.lock'); \
-  github_packages <- lockfile[['Packages']][sapply(lockfile[['Packages']], function(pkg) pkg[['Source']] == 'GitHub')]; \
-  github_urls <- sapply(github_packages, function(pkg) pkg[['RemoteUrl']]); \
-  dir.create('/workspace/renv/sources', recursive = TRUE); \
-  for (repo in github_urls) { \
-    repo_name <- basename(repo); \
-    system(sprintf('git clone %s /workspace/renv/sources/%s', repo, repo_name)); \
-  }"
+# Pre-clone the betAS repository
+RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /workspace/renv/sources/betAS
 
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
