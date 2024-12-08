@@ -8,10 +8,9 @@
 # 3. Align reads
 # 4. Generate a multiQC report
 # 5. Run vast combine
-# 6. Run vast compare
 ##############################
 
-# SLURM output and error files
+# SLURM output and error files: (Change accordingly if you want to save them in a different directory)
 #SBATCH --output=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.out
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
