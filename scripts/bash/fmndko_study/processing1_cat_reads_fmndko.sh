@@ -39,24 +39,24 @@ set -o pipefail
 # run command #
 ###############
 # Define the input and output directories
-mkdir -p $PWD/data/processed/fmndko_study
+mkdir -p $PWD/data/processed/fmndko
 
 input_dir="$PWD/data/raw/fmndko"
-output_dir="$PWD/data/processed/fmndko_study"
+output_dir="$PWD/data/processed/fmndko"
 
 # List all fastq.gz files in the input directory
 files=($(ls "$input_dir"/*.fastq.gz))
 
-# Iterate over the files in pairs
-for ((i=0; i<${#files[@]}; i+=2)); do
-    # Define the output file name based on the first file in the pair
-    output_file="$output_dir/$(basename ${files[i]} .fastq.gz | tr '-' '_')_merged.fastq.gz"
+# Iterate over the files in triples
+for ((i=0; i<${#files[@]}; i+=3)); do
+  # Define the output file name based on the first file in the triple
+  output_file="$output_dir/$(basename ${files[i]} .fastq.gz)_$(basename ${files[i+1]} .fastq.gz)_$(basename ${files[i+2]} .fastq.gz)_merged.fastq.gz"
 
-    # Concatenate the pair of files
-    cat "${files[i]}" "${files[i+1]}" > "$output_file"
+  # Concatenate the triple of files
+  cat "${files[i]}" "${files[i+1]}" "${files[i+2]}" > "$output_file"
 
-    # Print a message indicating the files have been merged
-    echo "Merged ${files[i]} and ${files[i+1]} into $output_file"
+  # Print a message indicating the files have been merged
+  echo "Merged ${files[i]}, ${files[i+1]}, and ${files[i+2]} into $output_file"
 done
 
 ###############
