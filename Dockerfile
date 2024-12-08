@@ -42,6 +42,9 @@ RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 # Pre-clone the betAS repository
 RUN git clone --branch v1.2.1 https://github.com/DiseaseTranscriptomicsLab/betAS.git /workspace/renv/sources/betAS
 
+# Set the renv source directory to check local sources
+RUN R -e "renv::settings$sources('/workspace/renv/sources')"
+
 # Restore the R environment using renv
 RUN R -e "Sys.setenv(GITHUB_PAT = Sys.getenv('GITHUB_PAT')); tryCatch(renv::restore(), error = function(e) { Sys.sleep(10); renv::restore() })"
 
