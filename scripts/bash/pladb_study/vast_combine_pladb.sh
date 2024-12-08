@@ -39,21 +39,21 @@ set -o pipefail
 ###############
 # run command #
 ###############
+
+VASTDB_PATH=$1
 # Store current working directory
 current_dir=$PWD
-cd $PWD/data/processed/pladienolideb/vast_out/to_combine
+cd $PWD/data/processed/pladb/vast_out/to_combine
 
-# Initialize conda
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate vasttools
 
-/users/mirimia/projects/vast-tools/vast-tools combine \
+# Define Singularity image path
+singularity_image="docker://andresgordoortiz/vast-tools:latest"
+
+# Run vast-tools align using Singularity
+singularity exec $singularity_image vast-tools combine \
+    --bind $VASTDB_PATH:/VASTDB \
     -sp mm10 \
-    -o $current_dir/data/processed/pladienolideb/vast_out
-
-conda deactivate
-
-
+    -o $current_dir/data/processed/pladb/vast_out
 
 ###############
 # end message #

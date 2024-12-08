@@ -39,13 +39,13 @@ set -o pipefail
 # run command #
 ###############
 # Define the input and output directories
-mkdir -p $PWD/data/process/pladb
+mkdir -p $PWD/data/processed/pladb
 
 input_dir="$PWD/data/raw/pladb"
-output_dir="$PWD/data/process/pladb"
+output_dir="$PWD/data/processed/pladb"
 
 # List all fastq.gz files in the input directory
-files=($(ls "$input_dir"/*.{fastq,fq}.gz))
+files=($(ls "$input_dir"/*.fastq.gz))
 
 # Iterate over the files in pairs
 for ((i=0; i<${#files[@]}; i+=2)); do
