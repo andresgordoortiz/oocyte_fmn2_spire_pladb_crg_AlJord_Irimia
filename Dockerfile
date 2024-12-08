@@ -33,7 +33,7 @@ ENV R_LIBS_USER=/renv/library
 COPY renv.lock /renv.lock
 
 # Install renv
-RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
+RUN R -e "install.packages(c('renv','devtools'))"
 
 
 # Restore the R environment using renv
