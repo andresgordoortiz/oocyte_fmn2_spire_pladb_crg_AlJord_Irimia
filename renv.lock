@@ -2251,7 +2251,7 @@
     "org.Hs.eg.db": {
       "Package": "org.Hs.eg.db",
       "Version": "3.18.0",
-      "Source": "Repository",
+      "Source": "Bioconductor",
       "Requirements": [
         "AnnotationDbi",
         "R",
