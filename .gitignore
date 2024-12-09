@@ -19,7 +19,7 @@
 *fa
 *star_index/
 *.tab
-
+/notebooks/oocyte_transcript_analysis_files/*
 # Ignore large result files
 results/**/*.pdf
 results/**/*.png
