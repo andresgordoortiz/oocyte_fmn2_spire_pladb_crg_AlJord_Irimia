@@ -3329,19 +3329,19 @@ enrichdata<-enrichr(unique(c(pladb_exon_combination_tab$GENE, pladb_intron_combi
 
 #### GO Biological Process
 
-```{r pladb bioprocess}
+```{r pladb bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 ```
 
 #### GO Cellular Component
 
-```{r pladb cellcomponent}
+```{r pladb cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 ```
 
 #### GO Molecular Function
 
-```{r pladb molfunction}
+```{r pladb molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 ```
 
@@ -3353,19 +3353,19 @@ enrichdata<-enrichr(unique(c(fmndko_exon_combination_tab$GENE, fmndko_intron_com
 
 #### GO Biological Process
 
-```{r fmndko bioprocess}
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 ```
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent}
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 ```
 
 #### GO Molecular Function
 
-```{r fmndko molfunction}
+```{r fmndko molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 ```
 
@@ -3377,24 +3377,21 @@ enrichdata<-enrichr(unique(c(spire_exon_combination_tab$GENE, spire_intron_combi
 
 #### GO Biological Process
 
-```{r spire bioprocess}
+```{r spire bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 ```
 
 #### GO Cellular Component
 
-```{r spire cellcomponent}
+```{r spire cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 ```
 
 #### GO Molecular Function
 
-```{r spire molfunction}
+```{r spire molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 ```
-
-
-
 
 
 # System Settings
