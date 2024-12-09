@@ -25,8 +25,8 @@ This repository consists on the data exploration, processing and plotting for th
 
 1. PladB and FMN2-/- technical replicates were first merged using *cat*.
 2. All samples *fastq.gz* files were quality checked using fastQC and MultiQC [[1]](#1)
-3. Reads were then **mapped** to the latest [mm10 build](https://vastdb.crg.eu/libs/vastdb.mm2.23.06.20.tar.gz) of the mouse genome using the Bowtie2 implementation of **Vast Tools**, which also allows for curated identification and quantification of splicing events. See [Vast-tools](https://github.com/vastgroup/vast-tools) for indications on how to manually download the builds.
-4. Inclusion Tables from each study were then transferred to RStudio for downstream processing. Simulations through the **Beta distribution** and statistical significance (*p-value <= 0.05*) for each splicing event were calculated using the [betAS](https://github.com/DiseaseTranscriptomicsLab/betAS/) package.
+3. Reads were then **mapped** to the latest [mm10 build](https://vastdb.crg.eu/libs/vastdb.mm2.23.06.20.tar.gz) of the mouse genome using the Bowtie2 implementation of **Vast Tools**, which also allows for curated identification and quantification of splicing events. See [Vast-tools](https://github.com/vastgroup/vast-tools) for indications on how to manually download the builds [[2]](#2).
+4. Inclusion Tables from each study were then transferred to RStudio for downstream processing. Simulations through the **Beta distribution** and statistical significance (*p-value <= 0.05*) for each splicing event were calculated using the [betAS](https://github.com/DiseaseTranscriptomicsLab/betAS/) package [[3]](#3).
 
 ## Installation and Setup
 In order to run this repo without forking and modifying it, you will need access to a HPC Cluster which uses *SLURM* as the work manager and any Linux-based distribution as OS, although *AlmaLinux* was used in our case.
@@ -50,10 +50,18 @@ In order to run this repo without forking and modifying it, you will need access
    ```bash
    sbatch scripts/R/run_notebook.sh
 
-**Important**: Some workflows require the conda environment from *config/env.yml* to be created and exist. make sure it is installed in the home directory (~/miniconda3/etc/profile.d/conda.sh).
+## Docker Containers used
+1. Rmarkdown Processing: [andresgordoortiz/splicing_analysis_r_crg:v1.2](https://hub.docker.com/layers/andresgordoortiz/splicing_analysis_r_crg/v1.2/images/sha256-67fd933eb88fbb9e3fe099c18eef9926bcaf916f92ff0f1fd5f9e876f78fd726?context=repo)
+2. Vast-Tools Alternative Splicing Analysis: [andresgordoortiz/vast-tools:latest](https://hub.docker.com/layers/andresgordoortiz/vast-tools/latest/images/sha256-e760bb36d7383ad9d9447035d09d1b282f52e8d44acf6a14ffc23ffcc3d7d383?context=repo)
 
 ## References
 <a id="1">[1]</a>
-Dijkstra, E. W. (1968).
-Go to statement considered harmful.
-Communications of the ACM, 11(3), 147-148.
+Philip Ewels, Måns Magnusson, Sverker Lundin, Max Käller, MultiQC: summarize analysis results for multiple tools and samples in a single report, Bioinformatics, Volume 32, Issue 19, October 2016, Pages 3047–3048, https://doi.org/10.1093/bioinformatics/btw354
+
+<a id="2">[2]</a>
+Gohr, A., Mantica, F., Hermoso-Pulido, A., Tapial, J., Márquez, Y., Irimia, M. (2022). Computational Analysis of Alternative Splicing Using VAST-TOOLS and the VastDB Framework. In: Scheiffele, P., Mauger, O. (eds) Alternative Splicing. Methods in Molecular Biology, vol 2537. Humana, New York, NY. https://doi.org/10.1007/978-1-0716-2521-7_7
+
+<a id="3">[3]</a>
+Ascensão-Ferreira, M., Martins-Silva, R., Saraiva-Agostinho, N. & Barbosa-Morais, N. L. betAS: intuitive analysis and visualization of differential alternative splicing using beta distributions. RNA 30, 337 (2024).
+
+
