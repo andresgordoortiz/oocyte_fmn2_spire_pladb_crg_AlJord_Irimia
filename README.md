@@ -17,7 +17,6 @@ This repository consists on the data exploration, processing and plotting for th
 - **notebooks/**: Exploratory and analysis notebooks for VSCode and RStudio.
 - **scripts/**: Custom scripts for data processing in Bash and downstream analysis in R.
 - **workflows/**: Complete Pipelines to process the data from zero (no data in local) up to the finl Inclusion tables with all events. We recommend using *SLURM* for batch processing, otherwise the pipelines and scripts will have to be tweaked in order to work in your own implementation of work management.
-- **results/**: Output data, tables, and figures (only summaries and essential plots stored here).
 - **docs/**: Documentation files, including installation instructions and workflow details.
 - **.github/**: GitHub-specific workflows for continuous integration and issue templates.
 
