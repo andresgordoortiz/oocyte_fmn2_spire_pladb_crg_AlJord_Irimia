@@ -90,3 +90,4 @@ After it has finished, run the R Report (it will take an hour or so)
 sbatch scripts/R/run_notebook.sh
 ```
 
+>Signed: Andrés Gordo Ortiz
