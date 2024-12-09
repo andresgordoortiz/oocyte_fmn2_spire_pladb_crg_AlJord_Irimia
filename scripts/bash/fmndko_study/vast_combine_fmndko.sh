@@ -50,6 +50,7 @@ singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
     --bind $PWD/data/processed/fmndko:/fmndko \
     $singularity_image bash -c "vast-tools combine /fmndko/vast_out/to_combine -sp mm10 -o /fmndko/vast_out"
 
+mv $PWD/data/processed/fmndko/vast_out/INCLUSION_LEVELS_FULL* $PWD/notebooks/inclusion_tables/fmndko_INCLUSION_LEVELS_FULL-mm10.tab
 ###############
 # end message #
 ###############
