@@ -1159,10 +1159,8 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 write.csv(pladb_exon_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -1258,10 +1256,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_1mm_control_exon_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_1mm_control_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_1mm_control_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -1357,10 +1354,8 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 write.csv(pladb_10mm_1mm_exon_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_10mm_1mm_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_10mm_1mm_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -1455,7 +1450,7 @@ datatable(
 )
 
 write.csv(fmndko_exon_combination_tab, 
-          file = file.path(output_dir, paste0("fmndko_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("fmndko_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -1549,7 +1544,7 @@ datatable(
 )
 
 write.csv(spire_exon_combination_tab, 
-          file = file.path(output_dir, paste0("spire_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("spire_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -1987,10 +1982,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_intron_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -2086,10 +2080,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_1mm_control_intron_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_1mm_control_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_1mm_control_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -2185,10 +2178,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_10mm_1mm_introns_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_10mm_1mm_introns_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_10mm_1mm_introns_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -2283,7 +2275,7 @@ datatable(
 )
 
 write.csv(fmndko_intron_combination_tab, 
-          file = file.path(output_dir, paste0("fmndko_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("fmndko_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -2377,7 +2369,7 @@ datatable(
 )
 
 write.csv(spire_intron_combination_tab, 
-          file = file.path(output_dir, paste0("spire_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("spire_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -2812,10 +2804,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_alt_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -2911,10 +2902,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_1mm_control_alt_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_1mm_control_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_1mm_control_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -3009,10 +2999,9 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-output_dir <- file.path(getwd(), "results", "tables")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
 write.csv(pladb_10mm_1mm_alt_combination_tab, 
-          file = file.path(output_dir, paste0("pladb_10mm_1mm_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("pladb_10mm_1mm_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -3106,7 +3095,7 @@ datatable(
 )
 
 write.csv(fmndko_alt_combination_tab, 
-          file = file.path(output_dir, paste0("fmndko_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("fmndko_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
@@ -3200,7 +3189,7 @@ datatable(
 )
 
 write.csv(spire_alt_combination_tab, 
-          file = file.path(output_dir, paste0("spire_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv")),
+          file = paste0("spire_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
