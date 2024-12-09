@@ -50,7 +50,7 @@ basename=$(basename "$file" .fastq.gz)
 mkdir -p $PWD/data/processed/fmndko/vast_out
 
 
-singularity_image="docker://vastgroup/vast-tools:latest"
+singularity_image="docker://andresgordoortiz/vast-tools:latest"
 VASTDB_PATH=$1
 # Run vast-tools align using Singularity
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
