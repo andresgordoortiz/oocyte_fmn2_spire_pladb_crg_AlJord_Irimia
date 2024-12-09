@@ -42,6 +42,7 @@ trap 'echo [$(date +"%Y-%m-%d %H:%M:%S")] "An error occurred. Exiting..."' ERR
 ###############
 # run command #
 ###############
+mkdir -p $PWD/data/raw/fmndko
 cd $PWD/data/raw/fmndko
 
 echo "Running command from file:"
