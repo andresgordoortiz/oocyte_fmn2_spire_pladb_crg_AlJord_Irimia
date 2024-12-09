@@ -24,6 +24,8 @@
 results/**/*.pdf
 results/**/*.png
 /downloads
+/notebooks/results/*
+data/processed/*
 
 # Ignore temporary files and logs
 *.log
