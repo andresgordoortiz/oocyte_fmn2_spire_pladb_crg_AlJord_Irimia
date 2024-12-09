@@ -2119,20 +2119,20 @@ filtered_introns_fstat_tab <- filtered_introns_fstat_tab %>% select(EVENT, Fstat
 filtered_introns_fdr_tab <- filtered_introns_fdr_tab %>% select(EVENT, FDR) # Extra column is FDR
 
 # Merge the data frames by EVENT
-pladb_10mm_1mm_introns_combination_tab <- filtered_introns_diff_tab %>%
+pladb_10mm_1mm_intron_combination_tab <- filtered_introns_diff_tab %>%
   inner_join(filtered_introns_fstat_tab, by = "EVENT") %>%
   inner_join(filtered_introns_fdr_tab, by = "EVENT") %>%
   distinct() %>%
   arrange(desc(abs(deltapsi)), desc(Fstat),desc(FDR), desc(Pdiff))
 
 # Find if events appear in the control to 10mM pairwise comparison
-pladb_10mm_1mm_intron_combination_tab$appears_in_10mm_control <- pladb_10mm_1mm_introns_combination_tab$EVENT %in% pladb_intron_combination_tab$EVENT
+pladb_10mm_1mm_intron_combination_tab$appears_in_10mm_control <- pladb_10mm_1mm_intron_combination_tab$EVENT %in% pladb_intron_combination_tab$EVENT
 ```
 
 ```{r pladb combination table introns 10mm 1mm}
 # Render DataTable with enhancements
 datatable(
-  pladb_10mm_1mm_introns_combination_tab,
+  pladb_10mm_1mm_intron_combination_tab,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2179,8 +2179,8 @@ datatable(
 )
 
 
-write.csv(pladb_10mm_1mm_introns_combination_tab, 
-          file = paste0("pladb_10mm_1mm_introns_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
+write.csv(pladb_10mm_1mm_intron_combination_tab, 
+          file = paste0("pladb_10mm_1mm_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
 ```
 
