@@ -13,7 +13,7 @@
 #SBATCH --time=90
 
 # queue
-#SBATCH --qos=short
+#SBATCH --qos=shorter
 
 # memory (MB)
 #SBATCH --mem=5G
