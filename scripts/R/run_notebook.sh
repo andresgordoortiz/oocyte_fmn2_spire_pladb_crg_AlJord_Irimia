@@ -36,9 +36,9 @@ set -u
 set -o pipefail
 
 # Set the working directory inside the container to /workspace
-singularity run --bind "$(pwd)/notebooks:/" \
+singularity run --bind "$(pwd)/notebooks:/shared" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.2 \
-  Rscript -e "setwd('/'); renv::activate('/renv'); rmarkdown::render('/oocyte_transcript_analysis.rmd')"
+  bash -c "cd /; Rscript -e \"rmarkdown::render('/shared/oocyte_transcript_analysis.rmd')\""
 
 ###############
 # end message #
