@@ -11,9 +11,9 @@
 
 # time limit in minutes
 #SBATCH --time=90
-
 # queue
 #SBATCH --qos=shorter
+#SBATCH --requeue
 
 # memory (MB)
 #SBATCH --mem=10G

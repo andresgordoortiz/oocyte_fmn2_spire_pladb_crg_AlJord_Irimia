@@ -14,6 +14,7 @@
 
 # queue
 #SBATCH --qos=shorter
+#SBATCH --requeue
 
 # memory (MB)
 #SBATCH --mem=10G
