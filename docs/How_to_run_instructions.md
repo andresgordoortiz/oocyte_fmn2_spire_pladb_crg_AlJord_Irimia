@@ -6,7 +6,7 @@ This notebook is designed for the **Al Jord** team at the **Centre for Genomic R
 
 ## Accessing the HPC Cluster
 
-To access the HPC Cluster, you may require assistance from **Emyr James**, the head of Scientific IT as of 2024-2025. Follow these steps to set up your access:
+To access the HPC Cluster, you may require assistance from **Emyr James**, the head of Scientific IT as of 2024-2025. COntact him first to grant you access to the cluster and then follow these steps to set you up:
 
 1. **(Optional for external access)** Install [Forticlient VPN](https://www.fortinet.com/lat/support/product-downloads):
    - Select *Add New Connection* and choose *SSL-VPN*.
