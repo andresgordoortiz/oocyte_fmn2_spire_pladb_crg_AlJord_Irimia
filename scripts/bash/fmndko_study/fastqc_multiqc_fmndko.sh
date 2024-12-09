@@ -42,12 +42,17 @@ set -o pipefail
 
 
 mkdir -p $PWD/data/processed/fmndko/fastqc
-singularity exec --bind $PWD/data/processed/fmndko docker://biocontainers/fastqc:v0.11.9_cv8 fastqc -t 8 -o $PWD/data/processed/fmndko/fastqc $PWD/data/processed/fmndko/*.{fastq.gz,fq.gz}
+singularity exec --bind $PWD/data/processed/fmndko \
+    docker://biocontainers/fastqc:v0.11.9_cv8 \
+    fastqc -t 8 -o $PWD/data/processed/fmndko/fastqc \
+    $PWD/data/processed/fmndko/*.{fastq.gz,fq.gz}
 
 ################
 # run multiqc  #
 ################
-singularity exec --bind $PWD/data/processed/fmndko:/fmndko docker://multiqc/multiqc:latest /bin/bash -c "cd /fmndko && multiqc . -n fmndko_multiqc_report.html"
+singularity exec --bind $PWD/data/processed/fmndko:/fmndko \
+    docker://multiqc/multiqc:latest \
+    /bin/bash -c "cd /fmndko && multiqc . -n fmndko_multiqc_report.html"
 
 ###############
 # end message #
