@@ -10,10 +10,10 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=50
+#SBATCH --time=90
 
 # queue
-#SBATCH --qos=vshort
+#SBATCH --qos=short
 
 # memory (MB)
 #SBATCH --mem=5G
@@ -49,6 +49,8 @@ singularity_image="docker://andresgordoortiz/vast-tools:latest"
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
     --bind $PWD/data/processed/pladb:/pladb \
     $singularity_image bash -c "vast-tools combine /pladb/vast_out/to_combine -sp mm10 -o /pladb/vast_out"
+
+mv $PWD/data/processed/pladb/vast_out/INCLUSION_LEVELS_FULL* $PWD/notebooks/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab
 
 ###############
 # end message #
