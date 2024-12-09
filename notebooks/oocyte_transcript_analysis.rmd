@@ -647,7 +647,7 @@ samples_pladb <- metadata_pladb$fastq_files
 samples_pladb <- paste0(
   "X",
   sub("\\.fastq\\.gz$", "", samples_pladb),
-  "_merged_trimmed"
+  "_merged"
 )
 
 # fmn2dko
