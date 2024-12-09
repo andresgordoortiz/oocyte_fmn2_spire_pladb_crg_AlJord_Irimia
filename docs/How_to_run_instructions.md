@@ -1,5 +1,5 @@
 # Instructions on How to Run this code
-This notebook is meant to be used by the **Al Jord** team at the **Centre for Genomic Regulation**. Everything in this repository runs in a *Virtual Machine* (either Docker or Singularity), which means that it should run the same regardless of when or where it is downloaded, as long as the the workind directory is the root of this repository.
+This notebook is meant to be used by the **Al Jord** team at the **Centre for Genomic Regulation**. Everything in this repository runs in a *Virtual Machine* (either Docker or Singularity), which means that it should run the same regardless of when or where it is downloaded, as long as the the working directory is the root of this repository.
 
 ## Get Access to the HPC Cluster
 As of 2024-2025, Emyr James is the head of Scientific IT, and he should be able to help you out regarding setting up your cluster access. Basically, you will need:
