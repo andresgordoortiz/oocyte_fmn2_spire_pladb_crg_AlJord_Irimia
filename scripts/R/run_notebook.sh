@@ -40,7 +40,8 @@ singularity run --bind "$(pwd)/notebooks:/shared" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.2 \
   bash -c "cd /; Rscript -e \"rmarkdown::render('/shared/oocyte_transcript_analysis.rmd')\""
 
-###############
+mkdir -p $PWD/results/tables
+mv $PWD/notebooks/*.csv $PWD/results/tables
 # end message #
 ###############
 end_epoch=`date +%s`
