@@ -19,7 +19,7 @@
 #SBATCH --mem=200
 
 # job name
-#SBATCH --job-name multiqc
+#SBATCH --job-name fastqc_multiqc
 
 
 #################
@@ -34,6 +34,12 @@ echo [$(date +"%Y-%m-%d %H:%M:%S")] starting on $(hostname)
 set -e
 set -u
 set -o pipefail
+
+mkdir -p $PWD/data/processed/pladb/fastqc
+singularity exec --bind $PWD/data/processed/pladb \
+    docker://biocontainers/fastqc:v0.11.9_cv8 \
+    fastqc -t 8 -o $PWD/data/processed/pladb/fastqc \
+    $PWD/data/processed/pladb/*.{fastq.gz,fq.gz}
 
 ################
 # run multiqc  #
