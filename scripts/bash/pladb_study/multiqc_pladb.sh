@@ -44,7 +44,9 @@ singularity exec --bind $PWD/data/processed/pladb \
 ################
 # run multiqc  #
 ################
-singularity exec --bind $PWD/data/processed/pladb:/pladb docker://multiqc/multiqc:latest /bin/bash -c "cd /pladb && multiqc ."
+singularity exec --bind $PWD/data/processed/pladb:/pladb \
+    docker://multiqc/multiqc:latest \
+    /bin/bash -c "cd /pladb && multiqc . -n pladb_multiqc_report.html"
 
 ###############
 # end message #
