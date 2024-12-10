@@ -17,7 +17,7 @@
 
 # memory (MB)
 #SBATCH --mem=2G
-
+#SBATCH --cpus-per-task=8
 # job name
 #SBATCH --job-name fastqc_multiqc
 
