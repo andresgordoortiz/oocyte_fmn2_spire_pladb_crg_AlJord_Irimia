@@ -16,7 +16,7 @@
 #SBATCH --qos=vshort
 
 # memory (MB)
-#SBATCH --mem=200
+#SBATCH --mem=2G
 
 # job name
 #SBATCH --job-name fastqc_multiqc
