@@ -10,7 +10,7 @@
 #SBATCH --error=/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/logs/%x.%A_%a.err
 
 # time limit in minutes
-#SBATCH --time=1
+#SBATCH --time=50
 
 # queue
 #SBATCH --qos=vshort
@@ -39,7 +39,7 @@ mkdir -p $PWD/data/processed/pladb/fastqc
 singularity exec --bind $PWD/data/processed/pladb \
     docker://biocontainers/fastqc:v0.11.9_cv8 \
     fastqc -t 8 -o $PWD/data/processed/pladb/fastqc \
-    $PWD/data/processed/pladb/*.{fastq.gz,fq.gz}
+    $PWD/data/processed/pladb/*.fastq.gz
 
 ################
 # run multiqc  #
