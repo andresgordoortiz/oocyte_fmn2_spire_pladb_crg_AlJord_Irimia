@@ -1,47 +1,60 @@
-# Ignore raw data
+# ---------------------------
+# Specific Files to Keep
+# ---------------------------
 !data/raw/README.md  # Keep an empty README to explain where raw files go
 
-# Ignore any fastq.gz and large dataset files in processed data
+# ---------------------------
+# Data Files
+# ---------------------------
+# Raw and processed data
 *.fastq.gz
 *.bam
 *.vcf
 *.sam
 *.h5
 *.gz*
-.nextflow/
-*.txt
-*.html
-*.json
+*.tab
+data/processed/*
+/downloads
+
+# File groups and specific data folders
 *to_combine/
 *tmp/
 *gtf
 *fasta
 *fa
 *star_index/
-*.tab
-/notebooks/oocyte_transcript_analysis_files/*
-# Ignore large result files
+
+# ---------------------------
+# Results and Analysis
+# ---------------------------
+# Result files
 results/**/*.pdf
 results/**/*.png
-/downloads
 /results/*
-data/processed/*
 
-# Ignore temporary files and logs
+# Notebooks and temporary outputs
+/notebooks/oocyte_transcript_analysis_files/*
+*combination_table*
+# ---------------------------
+# Temporary and Log Files
+# ---------------------------
 *.log
-*.tmp
+*tmp*
 *.swp
 *.bak
 .DS_Store
 *.err
 *.out
 
-# Ignore container and config files specific to environment
+# ---------------------------
+# Environment and Config Files
+# ---------------------------
+# Container and environment configs
 config/docker/*
 VASTDB/*
 
-
-# Ignore compiled files and environments
+# Compiled files and environments
 __pycache__/
 *.Rhistory
 *.Rproj.user
