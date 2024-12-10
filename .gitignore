@@ -24,6 +24,7 @@ data/processed/*
 *fasta
 *fa
 *star_index/
+*multiqc_data/
 
 # ---------------------------
 # Results and Analysis
