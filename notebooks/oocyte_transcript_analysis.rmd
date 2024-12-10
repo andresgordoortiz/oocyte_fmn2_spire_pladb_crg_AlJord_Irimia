@@ -252,7 +252,7 @@ DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), 
 
 ```{r metadata fmn2dko}
 # Load metadata file containing sample information
-metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged_trimmed","SRR6026685_SRR6026686_SRR6026687_merged_trimmed","SRR6026688_SRR6026689_SRR6026690_merged_trimmed","SRR6026691_SRR6026692_SRR6026693_merged_trimmed"),condition=c("control","control","fmndko","fmndko"))
+metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged","SRR6026685_SRR6026686_SRR6026687_merged","SRR6026688_SRR6026689_SRR6026690_merged","SRR6026691_SRR6026692_SRR6026693_merged"),condition=c("control","control","fmndko","fmndko"))
 DT::datatable(metadata_fmn2dko, options = list(pageLength = nrow(metadata_fmn2dko), scrollX = TRUE))
 ```
 
@@ -652,7 +652,7 @@ samples_pladb <- paste0(
 
 # fmn2dko
 
-metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged_trimmed","SRR6026685_SRR6026686_SRR6026687_merged_trimmed","SRR6026688_SRR6026689_SRR6026690_merged_trimmed","SRR6026691_SRR6026692_SRR6026693_merged_trimmed"),condition=c("control","control","fmndko","fmndko"))
+metadata_fmn2dko<-data.frame(samples=c("SRR6026682_SRR6026683_SRR6026684_merged","SRR6026685_SRR6026686_SRR6026687_merged","SRR6026688_SRR6026689_SRR6026690_merged","SRR6026691_SRR6026692_SRR6026693_merged"),condition=c("control","control","fmndko","fmndko"))
 groups_fmndko <- unique(metadata_fmn2dko[, "condition"])
 samples_fmndko <- metadata_fmn2dko$samples
 
