@@ -153,7 +153,10 @@ library("org.Hs.eg.db")
 library("enrichplot")
 library("DOSE")
 library("clusterProfiler")
-
+library("ComplexHeatmap")
+library("enrichR")
+library("colorRamp2")
+library("dendextend")
 # Register Google fonts
 showtext_auto()
 font_add_google("Roboto", "roboto")
@@ -3193,6 +3196,117 @@ write.csv(spire_alt_combination_tab,
           row.names = FALSE)
 ```
 
+## PSI Distribution Plots { .tabset}
+
+### PladB
+
+```{r splicing distribution plot, fig.width=10}
+
+# List of dataframes with metadata
+dfs <- list(
+  list(df = pladb_pdiff_exons, group = "Exons", study = "PladB_10mM_vs_Control"),
+  list(df = pladb_1mm_control_pdiff_exons, group = "Exons", study = "PladB_1mM_vs_Control"),
+  list(df = pladb_1mm_10mm_pdiff_exons, group = "Exons", study = "PladB_10mM_vs_1mm"),
+  list(df = pladb_pdiff_introns, group = "Introns", study = "PladB_10mM_vs_Control"),
+  list(df = pladb_1mm_control_pdiff_introns, group = "Introns", study = "PladB_1mM_vs_Control"),
+  list(df = pladb_1mm_10mm_pdiff_introns, group = "Introns", study = "PladB_10mM_vs_1mm"),
+   list(df = pladb_pdiff_alt, group = "Alt5/Alt3", study = "PladB_10mM_vs_Control"),
+  list(df = pladb_1mm_control_pdiff_alt, group = "Alt5/Alt3", study = "PladB_1mM_vs_Control"),
+  list(df = pladb_1mm_10mm_pdiff_alt, group = "Alt5/Alt3", study = "PladB_10mM_vs_1mm")
+)
+
+# Add metadata columns to each dataframe beforehand
+dfs_with_metadata <- lapply(dfs, function(x) {
+  x$df %>%
+    mutate(Group = x$group, Study = x$study)
+})
+
+# Combine all dataframes into one using bind_rows() for faster merging
+final_df <- bind_rows(dfs_with_metadata) %>%
+  select(EVENT, Group, Study, deltapsi) %>%
+  filter(abs(deltapsi)>=0.15) %>%
+  na.omit()# Adjust this line if other columns should be prioritized
+
+
+plot_psi_distribution <- ggplot(final_df, aes(x = deltapsi, fill = ifelse(deltapsi < 0, "Skipped", "Included"))) +
+  geom_histogram( bins = 100, position = "identity") +
+  labs(
+    title = "PSI Distribution in PladB treated samples",
+    x = "ΔPSI",
+    y = "Density",
+    fill = "|ΔPSI| >= 0.15",
+    caption = paste0("Created by AG on ", Sys.Date())
+  ) +
+  theme_minimal(base_family = font) +
+  theme(
+    legend.position = "right",
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.text.x = element_text(size = 15),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray80", size = 0.5),
+    panel.grid.minor = element_line(color = "gray95", size = 0.3),
+    strip.text = element_text(size = 14, face = "bold"),
+    panel.spacing = unit(1.5, "lines")  # Increase the distance between facets
+  ) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~Group*Study)
+
+plot_psi_distribution
+```
+
+### FMN2DKO and SPIRE
+
+```{r splicing distribution plot spire and fmndko, fig.width=10}
+
+# List of dataframes with metadata
+dfs <- list(
+  list(df = spire_pdiff_exons, group = "Exons", study = "Spire"),
+  list(df = spire_pdiff_introns, group = "Introns", study = "Spire"),
+  list(df = spire_pdiff_alt, group = "Alt5/Alt3", study = "Spire"),
+  list(df = fmndko_pdiff_exons, group = "Exons", study = "FMN2DKO"),
+  list(df = fmndko_pdiff_introns, group = "Introns", study = "FMN2DKO"),
+  list(df = fmndko_pdiff_alt, group = "Alt5/Alt3", study = "FMN2DKO")
+)
+
+# Add metadata columns to each dataframe beforehand
+dfs_with_metadata <- lapply(dfs, function(x) {
+  x$df %>%
+    mutate(Group = x$group, Study = x$study)
+})
+
+# Combine all dataframes into one using bind_rows() for faster merging
+final_df <- bind_rows(dfs_with_metadata) %>%
+  select(EVENT, Group, Study, deltapsi) %>%
+  filter(abs(deltapsi)>=0.15) %>%
+  na.omit()# Adjust this line if other columns should be prioritized
+
+
+plot_psi_distribution <- ggplot(final_df, aes(x = deltapsi, fill = ifelse(deltapsi < 0, "Skipped", "Included"))) +
+  geom_histogram( bins = 100, position = "identity") +
+  labs(
+    title = "PSI Distribution",
+    x = "ΔPSI (DKO - WT)",
+    y = "Density",
+    fill = "|ΔPSI| >= 0.15",
+    caption = paste0("Created by AG on ", Sys.Date())
+  ) +
+  theme_minimal(base_family = font) +
+  theme(
+    legend.position = "right",
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.text.x = element_text(size = 15),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(color = "gray80", size = 0.5),
+    panel.grid.minor = element_line(color = "gray95", size = 0.3),
+    strip.text = element_text(size = 14, face = "bold"),
+    panel.spacing = unit(1.5, "lines")  # Increase the distance between facets
+  ) +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~Study*Group)
+
+plot_psi_distribution
+```
+
 ## Enrichment Analysis with EnrichR
 
 ### PladB { .tabset}
@@ -3267,6 +3381,143 @@ plotEnrich(enrichdata[[2]])
 plotEnrich(enrichdata[[3]])
 ```
 
+
+# Splicing Dynamics Heatmap PladB
+
+```{r heatmap prep, results='hide', fig.show='hide'}
+# Extract all events
+pladb_all <- filterEvents(
+  pladb_events,
+  types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
+  N = 3
+)
+
+# Convert PSI values to a matrix and set row names
+pladb_matrix <- pladb_all$PSI[, 7:15] %>%
+  as.matrix()
+rownames(pladb_matrix) <- pladb_all$PSI$EVENT
+
+# Filter rows based on the final event lists and with abs(deltapsi)>=0.1
+filtered_events <- unique(c(
+  pladb_exon_combination_tab[abs(pladb_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_1mm_control_exon_combination_tab[abs(pladb_1mm_control_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_10mm_1mm_exon_combination_tab[abs(pladb_10mm_1mm_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_intron_combination_tab[abs(pladb_intron_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_1mm_control_intron_combination_tab[abs(pladb_1mm_control_intron_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_10mm_1mm_intron_combination_tab[abs(pladb_10mm_1mm_intron_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_alt_combination_tab[abs(pladb_alt_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_1mm_control_alt_combination_tab[abs(pladb_1mm_control_alt_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_10mm_1mm_alt_combination_tab[abs(pladb_10mm_1mm_alt_combination_tab$deltapsi)>=0.1, "EVENT"]))
+pladb_matrix <- pladb_matrix[rownames(pladb_matrix) %in% filtered_events, ]
+
+# Arrange columns based on metadata
+colnames(pladb_matrix)<-metadata_pladb$fastq_files
+# Create a dendrogram for the columns
+col_dend <- hclust(dist(t(pladb_matrix))) %>%
+  as.dendrogram() %>%
+  color_branches(k = 3) # Color branches with 3 clusters
+
+# Check if row names contain "EX"
+contains_EX <- grepl("EX", rownames(pladb_matrix))
+
+# Define an improved color gradient for the heatmap
+col_fun <- colorRamp2(
+  c(0, 50, 100),
+  c("purple", "white", "orange")
+)
+
+number_splices<-4
+
+# Assign colors based on the condition
+ht<-Heatmap(pladb_matrix, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns  = col_dend,
+column_title = "PladB Samples in different concentrations",
+     , row_names_gp = gpar(fontsize = 10),
+  column_names_rot = 45,
+column_labels = metadata_pladb$Description,
+  column_dend_reorder=c(1,2,3,4,5,6,7,8,9),
+  row_km = number_splices,
+  row_dend_reorder = T,
+rect_gp = gpar(col = "white", lwd = 0.3),  column_names_gp = gpar(fontsize = 8)  )
+
+ht = draw(ht); clustered_events<-row_order(ht)
+
+reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_1mm_control_exon_combination_tab[abs(pladb_1mm_control_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_10mm_1mm_exon_combination_tab[abs(pladb_10mm_1mm_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_intron_combination_tab[abs(pladb_intron_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_1mm_control_intron_combination_tab[abs(pladb_1mm_control_intron_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_10mm_1mm_intron_combination_tab[abs(pladb_10mm_1mm_intron_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_alt_combination_tab[abs(pladb_alt_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_1mm_control_alt_combination_tab[abs(pladb_1mm_control_alt_combination_tab$deltapsi)>=0.1, "EVENT"],
+  pladb_10mm_1mm_alt_combination_tab[abs(pladb_10mm_1mm_alt_combination_tab$deltapsi)>=0.1, "EVENT"]), GENE=c(pladb_exon_combination_tab[abs(pladb_exon_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_1mm_control_exon_combination_tab[abs(pladb_1mm_control_exon_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_10mm_1mm_exon_combination_tab[abs(pladb_10mm_1mm_exon_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_intron_combination_tab[abs(pladb_intron_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_1mm_control_intron_combination_tab[abs(pladb_1mm_control_intron_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_10mm_1mm_intron_combination_tab[abs(pladb_10mm_1mm_intron_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_alt_combination_tab[abs(pladb_alt_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_1mm_control_alt_combination_tab[abs(pladb_1mm_control_alt_combination_tab$deltapsi)>=0.1, "GENE"],
+  pladb_10mm_1mm_alt_combination_tab[abs(pladb_10mm_1mm_alt_combination_tab$deltapsi)>=0.1, "GENE"]))
+
+text_list<-list()
+# Loop through clustered events and assign dynamic names
+for (i in 1:length(clustered_events)) {
+  enrich_events <- enrichr(
+    reference_table$GENE[reference_table$EVENT %in% rownames(pladb_matrix)[clustered_events[[i]]]],
+    databases = c("GO_Biological_Process_2023", "GO_Cellular_Component_2023", "GO_Molecular_Function_2023")
+  )
+
+  # Assign the dynamic name and value
+  text_list[[paste0("text", i)]] <- paste(
+    enrich_events$GO_Cellular_Component_2023$Term[1],
+    enrich_events$GO_Cellular_Component_2023$Term[2],
+    enrich_events$GO_Cellular_Component_2023$Term[3],
+    enrich_events$GO_Molecular_Function_2023$Term[1],
+    enrich_events$GO_Molecular_Function_2023$Term[2],
+    enrich_events$GO_Molecular_Function_2023$Term[3],
+    sep = "; \n"
+  )
+}
+
+ha = rowAnnotation(foo = anno_empty(border = FALSE,
+    width = max_text_width(unlist(text_list)) + unit(4, "mm")))
+
+```
+
+### Heatmap showcasing the PSI of every candidate EX and IN
+
+**Note**: Gene ontology of *Cellular Component* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right.
+```{r heatmap_plot, fig.width=20, fig.height=12, out.width="100%", echo=TRUE,dpi=300}
+Heatmap(
+  pladb_matrix, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns  = col_dend,
+  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
+  row_title = "Splicing Events of |dPSI|>=0.1",
+  column_names_rot = 45,
+  column_labels = metadata_pladb$Description,
+  column_dend_reorder = c(1:9),
+  row_km = number_splices,
+  row_dend_reorder = TRUE,
+  right_annotation = ha,
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  column_names_gp = gpar(fontsize = 16),
+  show_row_names = FALSE,
+
+)
+
+for (i in seq_along(clustered_events)) {
+  decorate_annotation("foo", slice = i, {
+    grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
+  })
+}
+
+```
 
 # System Settings
 
