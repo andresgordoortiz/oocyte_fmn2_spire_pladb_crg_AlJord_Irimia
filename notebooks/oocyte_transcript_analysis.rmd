@@ -3425,23 +3425,8 @@ col_fun <- colorRamp2(
   c("purple", "white", "orange")
 )
 
-number_splices<-4
+number_splices<-8
 
-# Assign colors based on the condition
-ht<-Heatmap(pladb_matrix, name = "PSI",
-  clustering_distance_rows = "pearson",
-  col = col_fun,
-  cluster_columns  = col_dend,
-column_title = "PladB Samples in different concentrations",
-     , row_names_gp = gpar(fontsize = 10),
-  column_names_rot = 45,
-column_labels = metadata_pladb$Description,
-  column_dend_reorder=c(1,2,3,4,5,6,7,8,9),
-  row_km = number_splices,
-  row_dend_reorder = T,
-rect_gp = gpar(col = "white", lwd = 0.3),  column_names_gp = gpar(fontsize = 8)  )
-
-ht = draw(ht); clustered_events<-row_order(ht)
 
 reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
   pladb_1mm_control_exon_combination_tab[abs(pladb_1mm_control_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
@@ -3461,6 +3446,34 @@ reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_co
   pladb_1mm_control_alt_combination_tab[abs(pladb_1mm_control_alt_combination_tab$deltapsi)>=0.1, "GENE"],
   pladb_10mm_1mm_alt_combination_tab[abs(pladb_10mm_1mm_alt_combination_tab$deltapsi)>=0.1, "GENE"]))
 
+
+set.seed(45)
+```
+
+### Heatmap showcasing the PSI of every candidate EX and IN
+
+**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right.
+```{r heatmap_plot, fig.width=20, fig.height=25, out.width="100%", echo=TRUE,dpi=300}
+set.seed(45)
+ht<-Heatmap(
+  pladb_matrix, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns  = col_dend,
+  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
+  row_title = "Splicing Events of |dPSI|>=0.1",
+  column_names_rot = 45,
+  column_labels = metadata_pladb$Description,
+  column_dend_reorder = c(1:9),
+  row_km = number_splices,
+  right_annotation = ha,
+  row_dend_reorder = T,
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  column_names_gp = gpar(fontsize = 16),
+  show_row_names = FALSE,
+
+)
+ht = draw(ht); clustered_events<-row_order(ht)
 text_list<-list()
 # Loop through clustered events and assign dynamic names
 for (i in 1:length(clustered_events)) {
@@ -3483,31 +3496,6 @@ for (i in 1:length(clustered_events)) {
 
 ha = rowAnnotation(foo = anno_empty(border = FALSE,
     width = max_text_width(unlist(text_list)) + unit(4, "mm")))
-
-```
-
-### Heatmap showcasing the PSI of every candidate EX and IN
-
-**Note**: Gene ontology of *Cellular Component* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right.
-```{r heatmap_plot, fig.width=20, fig.height=12, out.width="100%", echo=TRUE,dpi=300}
-Heatmap(
-  pladb_matrix, name = "PSI",
-  clustering_distance_rows = "pearson",
-  col = col_fun,
-  cluster_columns  = col_dend,
-  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
-  row_title = "Splicing Events of |dPSI|>=0.1",
-  column_names_rot = 45,
-  column_labels = metadata_pladb$Description,
-  column_dend_reorder = c(1:9),
-  row_km = number_splices,
-  row_dend_reorder = TRUE,
-  right_annotation = ha,
-  rect_gp = gpar(col = "white", lwd = 0.3),
-  column_names_gp = gpar(fontsize = 16),
-  show_row_names = FALSE,
-
-)
 
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
