@@ -3448,13 +3448,7 @@ reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_co
 
 
 set.seed(45)
-```
 
-### Heatmap showcasing the PSI of every candidate EX and IN
-
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right.
-```{r heatmap_plot, fig.width=20, fig.height=25, out.width="100%", echo=TRUE,dpi=300}
-set.seed(45)
 ht<-Heatmap(
   pladb_matrix, name = "PSI",
   clustering_distance_rows = "pearson",
@@ -3466,7 +3460,6 @@ ht<-Heatmap(
   column_labels = metadata_pladb$Description,
   column_dend_reorder = c(1:9),
   row_km = number_splices,
-  right_annotation = ha,
   row_dend_reorder = T,
   rect_gp = gpar(col = "white", lwd = 0.3),
   column_names_gp = gpar(fontsize = 16),
@@ -3497,10 +3490,39 @@ for (i in 1:length(clustered_events)) {
 ha = rowAnnotation(foo = anno_empty(border = FALSE,
     width = max_text_width(unlist(text_list)) + unit(4, "mm")))
 
+```
+
+### Heatmap showcasing the PSI of every candidate EX and IN
+
+**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right.
+```{r heatmap_plot, fig.width=20, fig.height=20, out.width="100%", echo=TRUE,dpi=300}
+set.seed(45)
+
+ht<-Heatmap(
+  pladb_matrix, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns  = col_dend,
+  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
+  row_title = "Splicing Events of |dPSI|>=0.1",
+  column_names_rot = 45,
+  column_labels = metadata_pladb$Description,
+  column_dend_reorder = c(1:9),
+  row_km = number_splices,
+  right_annotation = ha,
+  row_dend_reorder = T,
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  column_names_gp = gpar(fontsize = 16),
+  show_row_names = FALSE,
+
+)
+ht = draw(ht)
+
+
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 15))
   })
 }
 
