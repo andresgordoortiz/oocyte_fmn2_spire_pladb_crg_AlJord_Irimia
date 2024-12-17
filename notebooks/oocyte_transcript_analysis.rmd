@@ -3432,6 +3432,8 @@ plotEnrich(enrichdata[[3]])
 # Splicing Dynamics Heatmap PladB
 
 ```{r heatmap prep, results='hide', fig.show='hide'}
+set.seed(45)
+
 # Extract all events
 pladb_all <- filterEvents(
   pladb_events,
@@ -3495,7 +3497,6 @@ reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_co
   pladb_10mm_1mm_alt_combination_tab[abs(pladb_10mm_1mm_alt_combination_tab$deltapsi)>=0.1, "GENE"]))
 
 
-set.seed(45)
 
 ht<-Heatmap(
   pladb_matrix, name = "PSI",
@@ -3591,7 +3592,7 @@ right_annotation <- rowAnnotation(
 
 **Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. Th predicted impact on the protein appears on the left.
 
-```{r heatmap_plot, fig.width=12, fig.height=8, echo=TRUE,dpi=300}
+```{r heatmap_plot, fig.width=30, fig.height=15, echo=TRUE, out.width="100%"}
 set.seed(45)
 
 ht <- Heatmap(
@@ -3631,7 +3632,7 @@ ht <- draw(ht)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 7))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 12))
   })
 }
 
