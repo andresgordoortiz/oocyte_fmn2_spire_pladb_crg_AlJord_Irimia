@@ -3535,42 +3535,103 @@ for (i in 1:length(clustered_events)) {
   )
 }
 
-ha = rowAnnotation(foo = anno_empty(border = FALSE,
-    width = max_text_width(unlist(text_list)) + unit(4, "mm")))
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t", 
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+
+events_for_impact<-rownames(pladb_matrix[unlist(clustered_events, use.names = F),])
+
+final_impact <- protein_impact %>%
+  filter(EventID %in% events_for_impact) %>%
+  arrange(match(EventID, events_for_impact)) %>%
+  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "1", ONTO)) %>%
+  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
+  mutate(ONTO = case_when(
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "-2",
+    TRUE ~ ONTO
+  )) %>%
+  mutate(ONTO = as.numeric(ONTO)) %>%
+  replace_na(list(ONTO = 0))
+
+
+
+# Define the left annotation (points) with axis labels
+left_annotation <- rowAnnotation(
+  Impact = anno_points(
+    final_impact$ONTO,
+    width = unit(3, "cm"),  # Adjusted width
+    size = unit(2.5, "mm"),   # Adjusted size of points
+    axis_param = list(
+      side = "top",
+      at = c(2, 1, 0, -1, -2), # Numeric values to label
+      labels = c(
+        "ORF disruption upon inclusion",
+        "Alternative Isoform",
+        "Unknown/NonCoding",
+        "Regulatory",
+        "ORF disruption upon exclusion"
+      ),
+      labels_rot = 45, # Rotation of labels
+      gp = gpar(fontsize = 10) # Text style
+    )
+  )
+)
+
+# Define the right annotation (foo)
+right_annotation <- rowAnnotation(
+  foo = anno_empty(
+    border = FALSE,
+    width = max_text_width(unlist(text_list)) + unit(4, "mm")
+  )
+)
 
 ```
 
 ### Heatmap showcasing the PSI of every candidate EX and IN
 
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right.
-```{r heatmap_plot, fig.width=20, fig.height=20, out.width="100%", echo=TRUE,dpi=300}
+**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. Th predicted impact on the protein appears on the left.
+
+```{r heatmap_plot, fig.width=12, fig.height=8, echo=TRUE,dpi=300}
 set.seed(45)
 
-ht<-Heatmap(
-  pladb_matrix, name = "PSI",
+ht <- Heatmap(
+  pladb_matrix, 
+  name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
-  cluster_columns  = col_dend,
-  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
-  row_title = "Splicing Events of |dPSI|>=0.1",
+  cluster_columns = col_dend,
+  column_title = "Oocytes PladB Samples at Different Concentrations of PladB",
+  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 16, fontface = "italic"),
   column_names_rot = 45,
   column_labels = metadata_pladb$Description,
   column_dend_reorder = c(1:9),
   row_km = number_splices,
-  right_annotation = ha,
-  row_dend_reorder = T,
-  rect_gp = gpar(col = "white", lwd = 0.3),
-  column_names_gp = gpar(fontsize = 16),
+  left_annotation = left_annotation,   # Add the points on the left
+  right_annotation = right_annotation, # Add foo on the right
+  row_dend_reorder = TRUE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
   show_row_names = FALSE,
-
+  row_gap = unit(6, "mm"), # Adjust the gap size between rows
+  column_gap = unit(4, "mm"), # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 12),
+    labels_gp = gpar(fontsize = 10),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend horizontally
+  )
 )
-ht = draw(ht)
 
+# Draw the heatmap
+ht <- draw(ht)
 
+# Decorate the "foo" annotation slices (on the right)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 15))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 7))
   })
 }
 
