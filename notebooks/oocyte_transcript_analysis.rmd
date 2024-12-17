@@ -3560,8 +3560,8 @@ final_impact <- protein_impact %>%
 left_annotation <- rowAnnotation(
   Impact = anno_points(
     final_impact$ONTO,
-    width = unit(3, "cm"),  # Adjusted width
-    size = unit(2.5, "mm"),   # Adjusted size of points
+    width = unit(4, "cm"),  # Adjusted width
+    size = unit(4, "mm"),   # Adjusted size of points
     axis_param = list(
       side = "top",
       at = c(2, 1, 0, -1, -2), # Numeric values to label
