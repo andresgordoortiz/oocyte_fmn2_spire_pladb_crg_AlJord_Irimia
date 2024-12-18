@@ -3570,7 +3570,9 @@ final_impact <- protein_impact %>%
   mutate(ONTO = as.numeric(ONTO)) %>%
   replace_na(list(ONTO = 0))
 
-
+final_impact_string<-protein_impact %>%
+  filter(EventID %in% events_for_impact) %>%
+  arrange(match(EventID, events_for_impact))
 
 # Define the left annotation (points) with axis labels
 left_annotation <- rowAnnotation(
@@ -3653,6 +3655,40 @@ for (i in seq_along(clustered_events)) {
 }
 
 ```
+
+### Table of Events from Heatmap
+
+```{r, table heatmap final}
+row_order <- unlist(row_order(ht), use.names = F)
+col_order <- unlist(column_order(ht), use.names = F)
+
+cluster_index <- unlist(lapply(seq_along(row_order(ht)), function(i) rep(i, length(row_order(ht)[[i]]))))
+
+# Reorder the original matrix based on clustering
+clustered_matrix <- pladb_matrix[row_order, col_order]
+heatmap_dataframe<-tibble(EVENT=rownames(clustered_matrix), heatmap_cluster=cluster_index, protein_impact=final_impact_string$ONTO)
+heatmap_dataframe$GENE<-reference_table$GENE[match(heatmap_dataframe$EVENT, reference_table$EVENT)]
+heatmap_dataframe<-select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
+
+# Render DataTable with enhancements
+datatable(
+  heatmap_dataframe,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+
+
+write.csv(heatmap_dataframe,
+          file = paste0("heatmap_cluster_events_", format(Sys.Date(), "%Y%m%d"), ".csv"),
+          row.names = FALSE)
+```
+
+
 
 # System Settings
 
