@@ -231,9 +231,9 @@ fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 2)
 spire_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/spiredko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 spire_events <- getEvents(spire_data, tool = "vast-tools") # Extract alternative splicing events
 spire_events <- alternativeEvents(spire_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-spire_exons <- filterEvents(spire_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 3)
-spire_introns <- filterEvents(spire_events, types = c("IR"), N = 5)
-spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 3)
+spire_exons <- filterEvents(spire_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+spire_introns <- filterEvents(spire_events, types = c("IR"), N = 2)
+spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 2)
 
 
 ```
