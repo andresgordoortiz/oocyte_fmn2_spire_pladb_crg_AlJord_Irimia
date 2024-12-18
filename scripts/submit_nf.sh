@@ -1,4 +1,4 @@
- #!/usr/bin/env bash
+ #!/bin/sh
  #SBATCH --no-requeue
  #SBATCH --mem 6G
  #SBATCH -p genoa64
