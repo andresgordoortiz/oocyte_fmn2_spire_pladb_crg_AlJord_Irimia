@@ -214,17 +214,17 @@ To identify splicing events that are differentially spliced in Oocytes treated w
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 pladb_events <- getEvents(pladb_data, tool = "vast-tools") # Extract alternative splicing events
 pladb_events <- alternativeEvents(pladb_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 3)
-pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 3)
-pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 3)
+pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 2)
+pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 2)
 
 
 fmndko_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/fmndko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 fmndko_events <- getEvents(fmndko_data, tool = "vast-tools") # Extract alternative splicing events
 fmndko_events <- alternativeEvents(fmndko_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-fmndko_exons <- filterEvents(fmndko_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 3)
-fmndko_introns <- filterEvents(fmndko_events, types = c("IR"), N = 5)
-fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 3)
+fmndko_exons <- filterEvents(fmndko_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+fmndko_introns <- filterEvents(fmndko_events, types = c("IR"), N = 2)
+fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 2)
 
 
 
