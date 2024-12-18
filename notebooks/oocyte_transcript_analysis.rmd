@@ -3491,7 +3491,7 @@ col_fun <- colorRamp2(
   c("purple", "white", "orange")
 )
 
-number_splices<-9
+number_splices<-10
 
 
 reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
