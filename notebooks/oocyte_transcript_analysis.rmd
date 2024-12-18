@@ -981,6 +981,8 @@ spire_fdr_exons <- prepareTableVolcanoFDR(
 
 ### FDR Volcano Plots { .tabset}
 
+Volcano Plots of the FDR corrected exons for each study. In pink are the exons with a deltaPSI>=0.1.
+
 #### PladB 10mM vs Control
 
 ```{r pladb fdr volcano exons 10mm control}
@@ -1071,6 +1073,8 @@ theme(
 
 
 ### Individual Combination Tables { .tabset}
+
+These tables show the exons that show a FDR<=0.05 and PDiff (1-pvalue)>=0.95 in the pairwise comparison of each condition.
 
 #### PladB 10mM vs control
 
@@ -1804,6 +1808,9 @@ spire_fdr_introns <- prepareTableVolcanoFDR(
 
 ### FDR Volcano Plots { .tabset}
 
+Volcano Plots of the FDR corrected introns for each study. In pink are the exons with a deltaPSI>=0.1.
+
+
 #### PladB 10mM vs Control
 
 ```{r pladb fdr volcano introns 10mm control}
@@ -1894,6 +1901,8 @@ theme(
 ```
 
 ### Individual Combination Tables { .tabset}
+
+These tables show the introns that show a FDR<=0.05 and PDiff (1-pvalue)>=0.95 in the pairwise comparison of each condition.
 
 #### PladB 10mM vs control
 
@@ -2625,6 +2634,9 @@ spire_fdr_alt <- prepareTableVolcanoFDR(
 
 ### FDR Volcano Plots { .tabset}
 
+Volcano Plots of the FDR corrected Alt37Alt5 for each study. In pink are the exons with a deltaPSI>=0.1.
+
+
 #### PladB 10mM vs Control
 
 ```{r pladb fdr volcano alt 10mm control}
@@ -2716,6 +2728,8 @@ theme(
 ```
 
 ### Individual Combination Tables { .tabset}
+
+These tables show the Alt5 or Alt3 events that show a FDR<=0.05 and PDiff (1-pvalue)>=0.95 in the pairwise comparison of each condition.
 
 #### PladB 10mM vs control
 
@@ -3197,6 +3211,8 @@ write.csv(spire_alt_combination_tab,
 
 ## PSI Distribution Plots { .tabset}
 
+These plots aim to explore any enrichment of either (intron/exon) retention or (intron/exon) exclusion. Symmetric plots show that inclusion and retention are equally common between conditions. Only showing events with |dPSI|>=0.1 for higher clarity. Transparency shows different studies.
+
 ### PladB
 
 ```{r splicing distribution plot, fig.width=10}
@@ -3590,9 +3606,9 @@ right_annotation <- rowAnnotation(
 
 ### Heatmap showcasing the PSI of every candidate EX and IN
 
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. Th predicted impact on the protein appears on the left.
+**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
 
-```{r heatmap_plot, fig.width=30, fig.height=15, echo=TRUE, out.width="100%"}
+```{r heatmap_plot, fig.width=30, fig.height=25, echo=TRUE, out.width="100%"}
 set.seed(45)
 
 ht <- Heatmap(
@@ -3632,7 +3648,7 @@ ht <- draw(ht)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 12))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 17))
   })
 }
 
