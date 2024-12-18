@@ -3610,7 +3610,7 @@ right_annotation <- rowAnnotation(
 
 **Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
 
-```{r heatmap_plot, fig.width=30, fig.height=25, echo=TRUE, out.width="100%"}
+```{r heatmap_plot, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(45)
 
 ht <- Heatmap(
