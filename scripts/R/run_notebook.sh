@@ -35,6 +35,22 @@ set -e
 set -u
 set -o pipefail
 
+URL3="https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"
+FILE3="$PWD/notebooks/PROT_IMPACT-mm10-v2.3.tab.gz"
+UNZIPPED_FILE3="${FILE3%.gz}"
+
+if [ ! -f "$UNZIPPED_FILE3" ]; then
+    if [ ! -f "$FILE3" ]; then
+        echo "$FILE3 not found. Downloading..."
+        wget "$URL3" -O "$FILE3"
+    else
+        echo "$FILE3 already exists. Skipping download."
+    fi
+    echo "Unzipping $FILE3..."
+    gunzip -c "$FILE3" > "$UNZIPPED_FILE3"
+else
+    echo "$UNZIPPED_FILE3 already exists. Skipping download and unzip."
+fi
 # Set the working directory inside the container to /workspace
 singularity run --bind "$(pwd)/notebooks:/shared" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.3 \
