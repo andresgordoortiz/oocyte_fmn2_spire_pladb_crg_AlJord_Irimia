@@ -3491,7 +3491,7 @@ col_fun <- colorRamp2(
   c("purple", "white", "orange")
 )
 
-number_splices<-8
+number_splices<-9
 
 
 reference_table<-data.frame(EVENT=c(pladb_exon_combination_tab[abs(pladb_exon_combination_tab$deltapsi)>=0.1, "EVENT"],
@@ -3552,7 +3552,7 @@ for (i in 1:length(clustered_events)) {
   )
 }
 
-protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t", 
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
                              header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
 
 events_for_impact<-rownames(pladb_matrix[unlist(clustered_events, use.names = F),])
@@ -3612,7 +3612,7 @@ right_annotation <- rowAnnotation(
 set.seed(45)
 
 ht <- Heatmap(
-  pladb_matrix, 
+  pladb_matrix,
   name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
