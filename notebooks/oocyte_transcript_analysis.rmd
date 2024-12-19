@@ -3692,6 +3692,8 @@ for (i in seq_along(clustered_events)) {
 
 ### Table of Events from Heatmap
 
+**Note**: the *heatmap_cluster* column references to the heatmap row cluster (from top to bottom) that specific event belongs to.
+
 ```{r, table heatmap final}
 row_order <- unlist(row_order(ht), use.names = F)
 col_order <- unlist(column_order(ht), use.names = F)
@@ -3730,6 +3732,31 @@ write.csv(heatmap_dataframe,
           row.names = FALSE)
 ```
 
+### Enrichment of ORF Disrupted Genes { .tabset}
+
+Note that interpretation should be done taking into account whether that specific ORF-disrupting events is being spliced in or out. This just may give an idea of the ontology of disrupted proteins.
+
+```{r orf enrichr}
+enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+#### GO Biological Process
+
+```{r orf bioprocess, fig.width=15, fig.height=8}
+plotEnrich(enrichdata[[1]])
+```
+
+#### GO Cellular Component
+
+```{r orf cellcomponent, fig.width=15, fig.height=8}
+plotEnrich(enrichdata[[2]])
+```
+
+#### GO Molecular Function
+
+```{r orf molfunction, fig.width=15, fig.height=8}
+plotEnrich(enrichdata[[3]])
+```
 
 
 # System Settings
