@@ -176,8 +176,8 @@ pdiff=0.95
 # Introduction to this Analysis
 
 ***Important Note***: *This version D of the analysis differs from the others since it has the following filtering parametres*:
- - **Minimum Inclusion Level**: 1 in at least 4 samples
- - **Maximum Inclusion Level**: 99 in at least 4 samples
+ - **Minimum Inclusion Level**: 1 in at least 2 samples
+ - **Maximum Inclusion Level**: 99 in at least 2 samples
  - **FDR (adjusted p-value) and Pdiff**: 0.05 and 0.95 respectively
  Thus, this is the most restrictive version of the analysis
 
@@ -235,9 +235,9 @@ To identify splicing events that are differentially spliced in Oocytes treated w
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 pladb_events <- getEvents(pladb_data, tool = "vast-tools") # Extract alternative splicing events
 pladb_events <- alternativeEvents(pladb_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
-pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 4)
-pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 4)
+pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 2)
+pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 2)
 
 
 fmndko_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/fmndko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")

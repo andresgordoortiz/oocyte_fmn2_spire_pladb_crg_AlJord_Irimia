@@ -1,0 +1,227 @@
+---
+title: "Oocyte PladB Expression"
+author: "Andrés Gordo Ortiz"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(DESeq2)
+library(tximport)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(rhdf5)
+library(EnsDb.Mmusculus.v79)
+library(enrichR)
+# Load metadata
+metadata <- read.csv("metadata/metadata_pladb.csv", sep = "\t")
+
+# Subset count files and metadata
+# "Kallisto/2022_041_S13_L001_R1_001_merged/abundance.h5","Kallisto/2022_042_S14_L001_R1_001_merged/abundance.h5","Kallisto/2022_043_S15_L001_R1_001_merged/abundance.h5",
+count_files <- c("Kallisto/2022_038_S10_L001_R1_001_merged/abundance.h5", "Kallisto/2022_039_S11_L001_R1_001_merged/abundance.h5", "Kallisto/2022_040_S12_L001_R1_001_merged/abundance.h5","Kallisto/2022_044_S16_L001_R1_001_merged/abundance.h5","Kallisto/2022_045_S17_L001_R1_001_merged/abundance.h5","Kallisto/2022_046_S18_L001_R1_001_merged/abundance.h5")
+metadata<-metadata[seq(1, 18, 2),][c(1:3,7:9),]
+
+# Ensure proper formatting
+metadata$Description <- as.factor(metadata$Description)
+
+# Load transcript-to-gene mapping
+Tx <- transcripts(EnsDb.Mmusculus.v79, columns = c("tx_id", "gene_name"))
+Tx <- as_tibble(Tx)[,6:7]
+
+# Import data using tximport
+txi <- tximport(
+  count_files, 
+  type = "kallisto", 
+  tx2gene = Tx, 
+  txOut = FALSE, 
+  countsFromAbundance = "lengthScaledTPM",
+  ignoreTxVersion = TRUE
+)
+
+# Check imported data
+cat("Counts data preview:\n")
+print(head(txi$counts))
+
+# Create DESeq2 dataset
+dds <- DESeqDataSetFromTximport(txi, colData = metadata, design = ~Description)
+
+# Filter lowly expressed genes
+keep <- rowSums(counts(dds) >= 5) >= 1
+dds <- dds[keep, ]
+
+# Variance stabilizing transformation for PCA
+vsd <- vst(dds, blind = FALSE)
+
+# PCA Plot
+pca_plot <- plotPCA(vsd, intgroup = "Description") + 
+  ggtitle("PCA of Transformed Counts")
+print(pca_plot)
+
+```
+
+```{r}
+# Run DESeq2 analysis
+dds <- DESeq(dds)
+
+# Check dispersion estimates
+dispersion_plot <- plotDispEsts(dds)
+print(dispersion_plot)
+
+# Results with FDR threshold
+res <- results(dds, alpha = 0.05)
+
+# MA Plot
+ma_plot <- plotMA(res, ylim = c(-5, 5))
+print(ma_plot)
+
+# Annotate results with gene names
+res$gene <- rownames(res)
+annotated_res <- merge(as.data.frame(res), Tx, by.x = "gene", by.y = "gene_name", all.x = TRUE)
+expression_genes<-annotated_res[annotated_res$padj<=0.1,] %>% na.omit() %>% arrange(-abs(log2FoldChange))
+# Save results
+write.csv(expression_genes, "10mmvsControls_DESeq2_results.csv")
+```
+
+```{r 1mm vs control}
+# Load metadata
+metadata <- read.csv("metadata/metadata_pladb.csv", sep = "\t")
+
+# Subset count files and metadata
+# "Kallisto/2022_041_S13_L001_R1_001_merged/abundance.h5","Kallisto/2022_042_S14_L001_R1_001_merged/abundance.h5","Kallisto/2022_043_S15_L001_R1_001_merged/abundance.h5",
+count_files <- c("Kallisto/2022_038_S10_L001_R1_001_merged/abundance.h5", "Kallisto/2022_039_S11_L001_R1_001_merged/abundance.h5", "Kallisto/2022_040_S12_L001_R1_001_merged/abundance.h5","Kallisto/2022_041_S13_L001_R1_001_merged/abundance.h5","Kallisto/2022_042_S14_L001_R1_001_merged/abundance.h5","Kallisto/2022_043_S15_L001_R1_001_merged/abundance.h5")
+metadata<-metadata[seq(1, 18, 2),][1:6,]
+
+# Ensure proper formatting
+metadata$Description <- as.factor(metadata$Description)
+
+# Load transcript-to-gene mapping
+Tx <- transcripts(EnsDb.Mmusculus.v79, columns = c("tx_id", "gene_name"))
+Tx <- as_tibble(Tx)[,6:7]
+
+# Import data using tximport
+txi <- tximport(
+  count_files, 
+  type = "kallisto", 
+  tx2gene = Tx, 
+  txOut = FALSE, 
+  countsFromAbundance = "lengthScaledTPM",
+  ignoreTxVersion = TRUE
+)
+
+# Check imported data
+cat("Counts data preview:\n")
+print(head(txi$counts))
+
+# Create DESeq2 dataset
+dds <- DESeqDataSetFromTximport(txi, colData = metadata, design = ~Description)
+
+# Filter lowly expressed genes
+keep <- rowSums(counts(dds) >= 5) >= 1
+dds <- dds[keep, ]
+
+# Variance stabilizing transformation for PCA
+vsd <- vst(dds, blind = FALSE)
+
+# PCA Plot
+pca_plot <- plotPCA(vsd, intgroup = "Description") + 
+  ggtitle("PCA of Transformed Counts")
+print(pca_plot)
+
+```
+
+```{r}
+# Run DESeq2 analysis
+dds <- DESeq(dds)
+
+# Check dispersion estimates
+dispersion_plot <- plotDispEsts(dds)
+print(dispersion_plot)
+
+# Results with FDR threshold
+res <- results(dds, alpha = 0.05)
+
+# MA Plot
+ma_plot <- plotMA(res, ylim = c(-5, 5))
+print(ma_plot)
+
+# Annotate results with gene names
+res$gene <- rownames(res)
+annotated_res <- merge(as.data.frame(res), Tx, by.x = "gene", by.y = "gene_name", all.x = TRUE)
+expression_genes<-annotated_res[annotated_res$padj<=0.1,] %>% na.omit() %>% arrange(-abs(log2FoldChange))
+# Save results
+write.csv(expression_genes, "1mmvsControls_DESeq2_results.csv")
+
+```
+
+```{r 10mm vs 1mm}
+# Load metadata
+metadata <- read.csv("metadata/metadata_pladb.csv", sep = "\t")
+
+# Subset count files and metadata
+# "Kallisto/2022_041_S13_L001_R1_001_merged/abundance.h5","Kallisto/2022_042_S14_L001_R1_001_merged/abundance.h5","Kallisto/2022_043_S15_L001_R1_001_merged/abundance.h5",
+count_files <- c("Kallisto/2022_041_S13_L001_R1_001_merged/abundance.h5","Kallisto/2022_042_S14_L001_R1_001_merged/abundance.h5","Kallisto/2022_043_S15_L001_R1_001_merged/abundance.h5","Kallisto/2022_044_S16_L001_R1_001_merged/abundance.h5", "Kallisto/2022_045_S17_L001_R1_001_merged/abundance.h5", "Kallisto/2022_046_S18_L001_R1_001_merged/abundance.h5")
+metadata<-metadata[seq(1, 18, 2),][4:9,]
+
+# Ensure proper formatting
+metadata$Description <- as.factor(metadata$Description)
+
+# Load transcript-to-gene mapping
+Tx <- transcripts(EnsDb.Mmusculus.v79, columns = c("tx_id", "gene_name"))
+Tx <- as_tibble(Tx)[,6:7]
+
+# Import data using tximport
+txi <- tximport(
+  count_files, 
+  type = "kallisto", 
+  tx2gene = Tx, 
+  txOut = FALSE, 
+  countsFromAbundance = "lengthScaledTPM",
+  ignoreTxVersion = TRUE
+)
+
+# Check imported data
+cat("Counts data preview:\n")
+print(head(txi$counts))
+
+# Create DESeq2 dataset
+dds <- DESeqDataSetFromTximport(txi, colData = metadata, design = ~Description)
+
+# Filter lowly expressed genes
+keep <- rowSums(counts(dds) >= 5) >= 1
+dds <- dds[keep, ]
+
+# Variance stabilizing transformation for PCA
+vsd <- vst(dds, blind = FALSE)
+
+# PCA Plot
+pca_plot <- plotPCA(vsd, intgroup = "Description") + 
+  ggtitle("PCA of Transformed Counts")
+print(pca_plot)
+
+```
+
+```{r}
+# Run DESeq2 analysis
+dds <- DESeq(dds)
+
+# Check dispersion estimates
+dispersion_plot <- plotDispEsts(dds)
+print(dispersion_plot)
+
+# Results with FDR threshold
+res <- results(dds, alpha = 0.05)
+
+# MA Plot
+ma_plot <- plotMA(res, ylim = c(-5, 5))
+print(ma_plot)
+
+# Annotate results with gene names
+res$gene <- rownames(res)
+annotated_res <- merge(as.data.frame(res), Tx, by.x = "gene", by.y = "gene_name", all.x = TRUE)
+expression_genes<-annotated_res[annotated_res$padj<=0.1,] %>% na.omit() %>% arrange(-abs(log2FoldChange))
+# Save results
+write.csv(expression_genes, "10mmvs1mm_DESeq2_results.csv")
+
+```
+
