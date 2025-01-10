@@ -47,6 +47,12 @@ body {
   background-color: #f9f9f9; /* Light background */
   margin: 0;
   padding: 0;
+  width: 100%; /* Full width */
+}
+
+.container {
+  max-width: 100%; /* Use full width of the screen */
+  padding: 20px; /* Optional: add padding for better readability */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -288,7 +294,7 @@ DT::datatable(metadata_spire, options = list(pageLength = nrow(metadata_spire), 
 
 Splicing inclusion plots look like a ***U*** when looking at the *exons*, as normally most of them are spliced out completely (PSI=0) or constitutively spliced in (PSI=1), but some of them are in between (alternatively spliced). Those are the most interesting for the analysis. On the other hand, *introns* are usually not included (that is their definition), but in a few cases they are included. Thus, the intron plot looks like the exponential distribution.
 
-## PladB 10mm vs Control PSI Plot 
+## PladB 10mm vs Control PSI Plot
 
 This is used to check if there is higher intron retention after pladb treatment. The plot shows the PSI of PladB 10mM vs the Control.
 
@@ -3248,7 +3254,7 @@ write.csv(spire_alt_combination_tab,
 
 ## PSI Distribution Plots { .tabset}
 
-These plots aim to explore any enrichment of either (intron/exon) retention or (intron/exon) exclusion. Symmetric plots show that inclusion and retention are equally common between conditions. Only showing events with |dPSI|>=0.1 for higher clarity. 
+These plots aim to explore any enrichment of either (intron/exon) retention or (intron/exon) exclusion. Symmetric plots show that inclusion and retention are equally common between conditions. Only showing events with |dPSI|>=0.1 for higher clarity.
 
 ### PladB
 

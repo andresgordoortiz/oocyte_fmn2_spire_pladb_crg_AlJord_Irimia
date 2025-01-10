@@ -1,5 +1,5 @@
 ---
-title: 'Oocyte Alternative Splicing Analysis: Version C'
+title: 'Oocyte Alternative Splicing Analysis: Version A'
 Subtitle: "Pladienolide B, FMN2KO & SPIRE1/2KO"
 author: "Andrés Gordo Ortiz @Al Jord Lab CRG"
 date: "`r Sys.Date()`"
@@ -169,16 +169,16 @@ font_add_google("Roboto", "roboto")
 font="roboto"
 
 #Parametres
-FDR=0.1
-pdiff=0.9
+FDR=0.05
+pdiff=0.95
 ```
 
 # Introduction to this Analysis
 
-***Important Note***: *This version C of the analysis differs from the others since it has the following filtering parametres*:
- - **Minimum Inclusion Level**: 1 in at least 4 samples
- - **Maximum Inclusion Level**: 99 in at least 4 samples
- - **FDR (adjusted p-value) and Pdiff**: 0.1 and 0.9 respectively
+***Important Note***: *This version A of the analysis differs from the others since it has the following filtering parametres*:
+ - **Minimum Inclusion Level**: 0 in at least 2 samples
+ - **Maximum Inclusion Level**: 100 in at least 2 samples
+ - **FDR (adjusted p-value) and Pdiff**: 0.05 and 0.95 respectively
 
 ## Part 1: Upstream Analysis
 
@@ -233,27 +233,27 @@ To identify splicing events that are differentially spliced in Oocytes treated w
 
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 pladb_events <- getEvents(pladb_data, tool = "vast-tools") # Extract alternative splicing events
-pladb_events <- alternativeEvents(pladb_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
-pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 4)
-pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 4)
+pladb_events <- alternativeEvents(pladb_events, minPsi = 0, maxPsi = 100) # Filter events based on PSI thresholds
+pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 2)
+pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 2)
 
 
 fmndko_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/fmndko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 fmndko_events <- getEvents(fmndko_data, tool = "vast-tools") # Extract alternative splicing events
-fmndko_events <- alternativeEvents(fmndko_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-fmndko_exons <- filterEvents(fmndko_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
-fmndko_introns <- filterEvents(fmndko_events, types = c("IR"), N = 4)
-fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 4)
+fmndko_events <- alternativeEvents(fmndko_events, minPsi = 0, maxPsi = 100) # Filter events based on PSI thresholds
+fmndko_exons <- filterEvents(fmndko_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+fmndko_introns <- filterEvents(fmndko_events, types = c("IR"), N = 2)
+fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 2)
 
 
 
 spire_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/spiredko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 spire_events <- getEvents(spire_data, tool = "vast-tools") # Extract alternative splicing events
-spire_events <- alternativeEvents(spire_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-spire_exons <- filterEvents(spire_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
-spire_introns <- filterEvents(spire_events, types = c("IR"), N = 4)
-spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 4)
+spire_events <- alternativeEvents(spire_events, minPsi = 0, maxPsi = 100) # Filter events based on PSI thresholds
+spire_exons <- filterEvents(spire_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+spire_introns <- filterEvents(spire_events, types = c("IR"), N = 2)
+spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 2)
 
 
 ```

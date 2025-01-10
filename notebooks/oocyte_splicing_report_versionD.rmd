@@ -47,6 +47,12 @@ body {
   background-color: #f9f9f9; /* Light background */
   margin: 0;
   padding: 0;
+  width: 100%; /* Full width */
+}
+
+.container {
+  max-width: 100%; /* Use full width of the screen */
+  padding: 20px; /* Optional: add padding for better readability */
 }
 
 h1, h2, h3, h4, h5, h6 {
