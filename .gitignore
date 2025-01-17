@@ -25,6 +25,7 @@ data/processed/*
 *fa
 *star_index/
 *multiqc_data/
+*rMATS/
 
 # ---------------------------
 # Results and Analysis
