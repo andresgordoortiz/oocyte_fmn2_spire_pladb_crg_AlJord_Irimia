@@ -21,6 +21,8 @@
 
 # job name
 #SBATCH --job-name star-index-align
+# job array directive
+#SBATCH --array=0-8
 
 #################
 # start message #
@@ -29,10 +31,11 @@
 FASTA="/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/Mus_musculus.GRCm39.dna_sm.primary_assembly.fa"            # Path to mm10 genome FASTA
 GTF="/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/Mus_musculus.GRCm39.113.gtf"        # Path to GTF annotation file
 GENOME_DIR="/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/STAR/index"           # Directory to store STAR genome index
-FASTQ="/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/data/processed/pladb/2022_038_S10_L001_R1_001_merged.fastq.gz"           # Path to input FASTQ file
-OUTDIR="/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/STAR"         # Directory for alignment output
+OUTDIR="/users/aaljord/agordo/git/24CRG_ADEL_MANU_OOCYTE_SPLICING/STAR_out"         # Directory for alignment output
 
-
+files=($PWD/data/processed/pladb/*_merged.fastq.gz)
+file=${files[$SLURM_ARRAY_TASK_ID]}
+basename=$(basename "$file" _merged.fastq.gz)
 # Check if genome index exists
 if [ ! -d "$GENOME_DIR" ]; then
     echo "Genome directory not found. Creating index at $GENOME_DIR..."
@@ -51,14 +54,17 @@ else
     echo "Genome directory already exists. Skipping index creation."
 fi
 
+mkdir -p "$OUTDIR/$basename"
+
 # Run STAR alignment
 singularity exec --bind $PWD:$PWD docker://quay.io/biocontainers/star:2.7.11b--h5ca1c30_4 STAR \
     --runThreadN 8 \
     --genomeDir "$GENOME_DIR" \
-    --readFilesIn "$FASTQ" \
+    --readFilesIn "$file" \
     --readFilesCommand zcat \
-    --outFileNamePrefix "$OUTDIR/sample" \
+    --outFileNamePrefix "$OUTDIR/$basename" \
     --outSAMtype BAM SortedByCoordinate \
-    --quantMode TranscriptomeSAM GeneCounts
+    --quantMode TranscriptomeSAM GeneCounts \
+    --outTmpDir "$OUTDIR/$basename/tmp"
 
-echo "Alignment completed for sample $FASTQ"
+echo "Alignment completed for sample $basename"
