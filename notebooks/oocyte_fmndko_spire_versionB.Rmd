@@ -152,7 +152,6 @@ library("showtext")
 library("ggtext")
 library("readxl")
 library("biomaRt")
-library("enrichR")
 library("patchwork")
 library("org.Mm.eg.db")
 library("org.Hs.eg.db")
@@ -899,82 +898,6 @@ print(plot_sd_comparison)
 ```
 
 
-```{r study std by gene fmndko}
-# Group genes by the number of exons
-bin_exons <- function(n) {
-  if (is.na(n)) return(NA) # Handle missing values
-  else if (n < 6) return("1-5")
-  else if (n < 11) return("6-10")
-  else return("11+")
-}
-
-# Add exon group information
-add_groups_func <- function(item) {
-  gene_counts <- table(item$GENE) # Count exons per gene
-  item$exon_group <- sapply(item$GENE, function(gene) bin_exons(gene_counts[gene]))
-  item
-}
-fmndko_sd_table<-add_groups_func(na.omit(fmndko_exons$PSI))
-
-# Combine results for plotting
-sd_results <- fmndko_sd_table %>%
-  pivot_longer(
-    cols = 7:10, 
-    names_to = "condition"
-  ) %>%
-  group_by(GENE, condition) %>%
-  summarise(
-    sd = sd(value, na.rm = TRUE), 
-    exon_group = unique(exon_group),
-    .groups = "drop"  # Ensure proper ungrouping
-  ) %>%
-  na.omit()
-
-# Add condition_type and summarize by condition_type
-sd_results <- sd_results %>%
-  mutate(
-    condition_type = case_when(
-      condition %in% c("SRR6026682_SRR6026683_SRR6026684_merged", 
-                       "SRR6026685_SRR6026686_SRR6026687_merged") ~ "cont",
-      condition %in% c("SRR6026688_SRR6026689_SRR6026690_merged", 
-                       "SRR6026691_SRR6026692_SRR6026693_merged") ~ "KO",
-      TRUE ~ "Other"
-    )
-  ) %>%
-  group_by(GENE, condition_type) %>%
-  summarise(
-    mean_sd = mean(sd, na.rm = TRUE),
-    exon_group = unique(exon_group),
-    .groups = "drop"  # Ensure proper ungrouping
-  )
-
-# Plot standard deviations by exon group
-plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd >20 & sd_results$mean_sd <50 ,], aes(x = condition_type)) +
-  geom_boxplot(aes(y = mean_sd), position = position_dodge(width = 0.75)) +
-  labs(
-    title = "Standard Deviation of PSI by Exon Group",
-    x = "Exon Group",
-    y = "Standard Deviation of PSI",
-    fill = "Condition",
-    caption = paste0("Created by AG on ", Sys.Date())
-  ) +
-  theme_minimal(base_family = font) +
-  theme(
-    legend.position = "right",
-    axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")  # Increase the distance between facets
-  ) +
-  scale_fill_brewer(palette = "Set1") +
-  facet_wrap(~exon_group)
-
-print(plot_sd_comparison)
-
-```
 
 ## PCA Plot { .tabset}
 
@@ -2373,7 +2296,7 @@ datatable(
 
 ## FMNDKO
 
-```{r nuclear spckeles data hadnling spire}
+```{r nuclear spckeles data hadnling fmndko}
 set.seed(43)
 
 fmndko_speckle_prots <- fmndko_events$PSI %>%
@@ -3183,10 +3106,126 @@ plotEnrich(enrichdata[[2]])
 plotEnrich(enrichdata[[3]])
 ```
 
+
+# Gene Expression Analysis
+
+```{r fmndko gene expression}
+BiocManager::install(c("edgeR","DESeq2","tximport","viridis","rhdf5","EnsDb.Mmusculus.v79","enrichR"))
+library(DESeq2)
+library(tximport)
+library(ggplot2)
+library(viridis)
+library(rhdf5)
+library(EnsDb.Mmusculus.v79)
+library(enrichR)
+library(edgeR)
+# Subset count files and ensure proper formatting
+count_files <- file.path(paste0("Kallisto/", metadata_fmn2dko$samples, "/abundance.h5"))
+metadata_fmn2dko$condition <- as.factor(metadata_fmn2dko$condition)
+
+# Load transcript-to-gene mapping
+Tx <- transcripts(EnsDb.Mmusculus.v79, columns = c("tx_id", "gene_name"))
+Tx <- as_tibble(Tx)[, c("tx_id", "gene_name")]
+
+# Import data using tximport
+txi <- tximport(
+  count_files, 
+  type = "kallisto", 
+  tx2gene = Tx, 
+  txOut = FALSE, 
+  countsFromAbundance = "lengthScaledTPM",
+  ignoreTxVersion = TRUE
+)
+
+
+# Ensure row order consistency
+rownames(metadata_fmn2dko) <- metadata_fmn2dko$samples
+
+# Create DESeq2 dataset
+dds <- DESeqDataSetFromTximport(txi, colData = metadata_fmn2dko, design = ~condition)
+
+# Filter out lowly expressed genes using CPM threshold
+cpm <- cpm(counts(dds))
+keep <- rowSums(cpm >= 1) >= 2  # At least 1 CPM in 2 or more samples
+dds <- dds[keep, ]
+
+# Perform variance stabilizing transformation (VST)
+vsd <- vst(dds, blind = FALSE)
+
+# PCA Plot for EDA
+pca_plot <- plotPCA(vsd, intgroup = "condition") + 
+  ggtitle("PCA of Transformed Counts") + 
+  theme_minimal()
+
+# Run DESeq2 analysis
+dds <- DESeq(dds)
+
+# Results for the comparison "7_days" vs "4_days"
+res <- results(dds, contrast = c("condition", "fmndko", "control"), alpha = 0.05)
+
+# MA Plot
+# Convert results to a data frame
+res_df <- as.data.frame(res)
+
+# Create MA plot using ggplot2
+ma_plot <- ggplot(res_df, aes(x = baseMean, y = log2FoldChange)) +
+  geom_point(aes(color = padj < 0.05), alpha = 0.6) +
+  scale_x_log10() +
+  scale_color_manual(values = c("gray", "red")) +
+  labs(
+    title = "MA Plot: 7_days vs 4_days",
+    x = "Mean of Normalized Counts",
+    y = "Log2 Fold Change"
+  ) +
+  theme_minimal()
+
+
+# Annotate results with gene names
+res$gene <- rownames(res)
+annotated_res <- merge(as.data.frame(res), Tx, by.x = "gene", by.y = "gene_name", all.x = TRUE)
+
+# Filter significantly differentially expressed genes
+expression_genes_fmndko <- annotated_res %>% 
+  dplyr::filter(padj <= 0.05 & abs(log2FoldChange) >= 1) %>% 
+  na.omit() %>% 
+  arrange(-abs(log2FoldChange))
+
+# Export results
+write.csv(expression_genes_fmndko, "deseq2_results_fmndko.csv", row.names = FALSE)
+
+# Volcano Plot
+volcano_plot <- ggplot(annotated_res, aes(x = log2FoldChange, y = -log10(padj))) +
+  geom_point(aes(color = padj <= 0.05 & abs(log2FoldChange) >= 1.5), alpha = 0.6) +
+  scale_color_manual(values = c("gray", "red")) +
+  labs(title = "Volcano Plot: KO vs control", x = "Log2 Fold Change", y = "-Log10 Adjusted P-value") +
+  theme_minimal()
+
+
+
+```
+
+### Expression Plots { .tabset}
+
+#### PCA Plot
+
+```{r pca plto de}
+print(pca_plot)
+```
+
+#### MA Plot
+
+```{r ma plto de}
+print(ma_plot)
+```
+
+#### Volcano Plot
+
+```{r volcano plto de}
+print(volcano_plot)
+```
+
 # System Settings
 
 ```{r session info}
 sessionInfo()
 ```
-
-
