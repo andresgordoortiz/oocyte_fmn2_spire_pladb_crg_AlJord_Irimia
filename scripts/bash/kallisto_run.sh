@@ -16,7 +16,7 @@
 #SBATCH --requeue
 
 # memory (MB)
-#SBATCH --mem=50G
+#SBATCH --mem=15G
 #SBATCH --cpus-per-task=8
 
 # job name
@@ -59,9 +59,13 @@ mkdir -p "$SAMPLE_OUTDIR"
 #######################
 echo "Processing $SAMPLE_NAME..."
 
-singularity exec --bind $PWD:$PWD docker://quay.io/biocontainers/kallisto:0.51.1--ha4fb952_1 kallisto quant -i "$INDEX_DIR/transcripts.idx" \
+singularity exec --bind $PWD:$PWD docker://quay.io/biocontainers/kallisto:0.51.1--ha4fb952_1 kallisto quant -i "$INDEX_DIR/kallisto_index" \
                   -o "$SAMPLE_OUTDIR" \
                   -t 8 \
                   --single -l 200 -s 20 "$FASTQ"
 
 echo "Sample $SAMPLE_NAME processed successfully."
+# end message #
+###############
+end_epoch=`date +%s`
+echo [$(date +"%Y-%m-%d %H:%M:%S")] finished on $(hostname) after $((end_epoch-start_epoch)) seconds
