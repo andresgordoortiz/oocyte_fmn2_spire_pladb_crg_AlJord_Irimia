@@ -504,8 +504,8 @@ plot_psi_distribution <- ggplot(
   spire_exons_df[abs(spire_exons_df$difference) >= 10,], 
   aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
 ) +
-  geom_histogram(bins = 100, position = "identity") +
-  facet_wrap(~exon_group, scales = "free_y") +
+  geom_histogram(bins = 50, position = "identity") +
+  facet_wrap(~exon_group, scales = "fixed") +
   labs(
     title = "PSI Difference Distribution Grouped by Number of Exons present in a Gene",
     subtitle = "Spire, dPSI = KO - Control",
@@ -555,8 +555,8 @@ plot_psi_distribution <- ggplot(
   fmndko_exons_df[abs(fmndko_exons_df$difference) >= 10,], 
   aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
 ) +
-  geom_histogram(bins = 100, position = "identity") +
-  facet_wrap(~exon_group, scales = "free_y") +
+  geom_histogram(bins = 50, position = "identity") +
+  facet_wrap(~exon_group, scales = "fixed") +
   labs(
     title = "PSI Difference Distribution Grouped by Number of Exons present in a Gene",
     subtitle = "FMNDKO, dPSI = KO - Control",
@@ -608,10 +608,10 @@ plot_psi_distribution <- ggplot(
   spire_introns_df[abs(spire_introns_df$difference) >= 10,], 
   aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
 ) +
-  geom_histogram(bins = 100, position = "identity") +
-  facet_wrap(~intron_group, scales = "free_y") +
+  geom_histogram(bins = 50, position = "identity") +
+  facet_wrap(~intron_group, scales = "fixed") +
   labs(
-    title = "PSI Difference Distribution Grouped by Number of Exons present in a Gene",
+    title = "PSI Difference Distribution Grouped by Number of Introns present in a Gene",
     subtitle = "Spire, dPSI = KO - Control",
     x = "ΔPSI (DKO - WT)",
     y = "Density",
@@ -659,10 +659,10 @@ plot_psi_distribution <- ggplot(
   fmndko_introns_df[abs(fmndko_introns_df$difference) >= 10,], 
   aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
 ) +
-  geom_histogram(bins = 100, position = "identity") +
-  facet_wrap(~intron_group, scales = "free_y") +
+  geom_histogram(bins = 50, position = "identity") +
+  facet_wrap(~intron_group, scales = "fixed") +
   labs(
-    title = "PSI Difference Distribution Grouped by Number of Exons present in a Gene",
+    title = "PSI Difference Distribution Grouped by Number of Introns present in a Gene",
     subtitle = "FMNDKO, dPSI = KO - Control",
     x = "ΔPSI (DKO - WT)",
     y = "Density",
@@ -710,12 +710,19 @@ sd_results <- sd_results %>%
   group_by(GENE, condition_type) %>%
   summarise(
     mean_sd = mean(sd, na.rm = TRUE),
-    exon_group=unique(exon_group)
-  )
+    exon_group = unique(exon_group)
+  ) 
 
 sd_results$exon_group<-factor(sd_results$exon_group, levels = c("1-5","6-10","11-20","21+"))
+# First, filter rows with mean_sd between 10 and 30
+filtered_results <- sd_results[sd_results$mean_sd > 10 & sd_results$mean_sd < 40,]
+
+# Then, find rows where the GENE column values are repeated exactly twice
+subset_results <- filtered_results[duplicated(filtered_results$GENE) | duplicated(filtered_results$GENE, fromLast = TRUE),]
+
+
 # Plot standard deviations by exon group
-plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd>10,], aes(x = condition_type)) +
+plot_sd_comparison <- ggplot(subset_results, aes(x = condition_type)) +
   geom_boxplot(aes(y = mean_sd), position = position_dodge(width = 0.75)) +
   labs(
     title = "Standard Deviation of PSI by Exon Group",
@@ -736,9 +743,10 @@ plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd>10,], aes(x = conditi
     panel.spacing = unit(1.5, "lines")  # Increase the distance between facets
   ) +
   scale_fill_brewer(palette = "Set1") +
-  facet_wrap(~exon_group)
+  facet_wrap(~exon_group, scales="fixed")
 
 print(plot_sd_comparison)
+
 
 ```
 
@@ -766,7 +774,7 @@ sd_results <- sd_results %>%
 
 sd_results$exon_group<-factor(sd_results$exon_group, levels = c("1-5","6-10","11-20","21+"))
 # Plot standard deviations by exon group
-plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd>10,], aes(x = condition_type)) +
+plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd>=10 & sd_results$mean_sd<=30,], aes(x = condition_type)) +
   geom_boxplot(aes(y = mean_sd), position = position_dodge(width = 0.75)) +
   labs(
     title = "Standard Deviation of PSI by Exon Group",

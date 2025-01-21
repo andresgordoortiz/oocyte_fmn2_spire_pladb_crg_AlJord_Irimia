@@ -222,15 +222,12 @@ To identify splicing events that are differentially spliced in Oocytes treated w
 ## Importing Inclusion Data
 
 ```{r inclusion tables}
-
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 pladb_events <- getEvents(pladb_data, tool = "vast-tools") # Extract alternative splicing events
 pladb_events <- alternativeEvents(pladb_events, minPsi = 0, maxPsi = 100) # Filter events based on PSI thresholds
 pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
 pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 2)
 pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 2)
-
-
 ```
 
 
@@ -427,8 +424,8 @@ plot_psi_distribution <- ggplot(
   pladb_exons_df[abs(pladb_exons_df$difference) >= 10,], 
   aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
 ) +
-  geom_histogram(bins = 100, position = "identity") +
-  facet_wrap(~exon_group, scales = "free_y") +
+  geom_histogram(bins = 50, position = "identity") +
+  facet_wrap(~exon_group, scales = "fixed") +
   labs(
     title = "PSI Difference Distribution Grouped by Number of Exons present in a Gene",
     subtitle = "PladB, dPSI = 10mm - Control",
@@ -479,7 +476,7 @@ plot_psi_distribution <- ggplot(
   aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
 ) +
   geom_histogram(bins = 100, position = "identity") +
-  facet_wrap(~intron_group, scales = "free_y") +
+  facet_wrap(~intron_group, scales = "fixed") +
   labs(
     title = "PSI Difference Distribution Grouped by Number of Exons present in a Gene",
     subtitle = "Spire, dPSI = KO - Control",
@@ -533,7 +530,7 @@ sd_results <- sd_results %>%
 
 sd_results$exon_group<-factor(sd_results$exon_group, levels = c("1-5","6-10","11-20","21+"))
 # Plot standard deviations by exon group
-plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd>10,], aes(x = condition_type)) +
+plot_sd_comparison <- ggplot(sd_results[sd_results$mean_sd>10 & sd_results$mean_sd<30 ,], aes(x = condition_type)) +
   geom_boxplot(aes(y = mean_sd), position = position_dodge(width = 0.75)) +
   labs(
     title = "Standard Deviation of PSI by Exon Group",
@@ -2527,7 +2524,7 @@ protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
 events_for_impact<-rownames(pladb_matrix)
 
 final_impact <- protein_impact %>%
-  filter(EventID %in% events_for_impact) %>%
+  dplyr::filter(EventID %in% events_for_impact) %>%
   arrange(match(EventID, events_for_impact)) %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
@@ -2637,14 +2634,14 @@ cluster_index <- unlist(lapply(seq_along(row_order(ht)), function(i) rep(i, leng
 clustered_matrix <- pladb_matrix[row_order, col_order]
 
 final_impact_string<-protein_impact %>%
-  filter(EventID %in% events_for_impact) %>%
+  dplyr::filter(EventID %in% events_for_impact) %>%
   arrange(match(EventID, events_for_impact))
 final_impact_string<- final_impact_string[match(rownames(clustered_matrix),final_impact_string$EventID),]
 
 
 heatmap_dataframe<-tibble(EVENT=rownames(clustered_matrix), heatmap_cluster=cluster_index, protein_impact=final_impact_string$ONTO)
 heatmap_dataframe$GENE<-reference_table$GENE[match(heatmap_dataframe$EVENT, reference_table$EVENT)]
-heatmap_dataframe<-select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
+heatmap_dataframe<-dplyr::select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
 
 # Render DataTable with enhancements
 datatable(
@@ -2690,6 +2687,140 @@ plotEnrich(enrichdata[[2]])
 plotEnrich(enrichdata[[3]])
 ```
 
+
+# Gene Expression Analysis
+
+```{r pladb gene expression}
+library(DESeq2)
+library(tximport)
+library(ggplot2)
+library(viridis)
+library(rhdf5)
+library(EnsDb.Mmusculus.v79)
+library(enrichR)
+library(edgeR)
+
+# Subset count files and ensure proper formatting
+count_files <- file.path(paste0("Kallisto/", gsub(pattern = "\\.fastq\\.gz$", replacement = "_merged", x = metadata_pladb$fastq_files)
+, "/abundance.h5"))
+metadata_pladb$Description <- as.factor(metadata_pladb$Description)
+
+# Load transcript-to-gene mapping
+Tx <- transcripts(EnsDb.Mmusculus.v79, columns = c("tx_id", "gene_name"))
+Tx <- as_tibble(Tx)[, c("tx_id", "gene_name")]
+
+# Import data using tximport
+txi <- tximport(
+  count_files, 
+  type = "kallisto", 
+  tx2gene = Tx, 
+  txOut = FALSE, 
+  countsFromAbundance = "lengthScaledTPM",
+  ignoreTxVersion = TRUE
+)
+
+
+# Ensure row order consistency
+rownames(metadata_pladb) <- gsub(pattern = "\\.fastq\\.gz$", replacement = "_merged", x = metadata_pladb$fastq_files)
+
+# Create DESeq2 dataset
+dds <- DESeqDataSetFromTximport(txi, colData = metadata_pladb, design = ~Description)
+
+# Filter out lowly expressed genes using CPM threshold
+cpm <- cpm(counts(dds))
+keep <- rowSums(cpm >= 1) >= 2  # At least 1 CPM in 2 or more samples
+dds <- dds[keep, ]
+
+# Perform variance stabilizing transformation (VST)
+vsd <- vst(dds, blind = FALSE)
+
+# PCA Plot for EDA
+pca_plot <- plotPCA(vsd, intgroup = "Description") + 
+  ggtitle("PCA of Transformed Counts") + 
+  theme_minimal()
+
+# Run DESeq2 analysis
+dds <- DESeq(dds)
+
+# Results for the comparison "7_days" vs "4_days"
+res <- results(dds, contrast = c("Description", "Fmn2+-_+1mMPlatB", "ControlFmn2+-"), alpha = 0.05)
+
+# MA Plot
+# Convert results to a data frame
+res_df <- as.data.frame(res)
+
+
+# Annotate results with gene names
+res$gene <- rownames(res)
+annotated_res <- merge(as.data.frame(res), Tx, by.x = "gene", by.y = "gene_name", all.x = TRUE)
+
+# Filter significantly differentially expressed genes
+expression_genes_pladb_1mm_control <- annotated_res %>% 
+  dplyr::filter(padj <= 0.05 & abs(log2FoldChange) >= 1) %>% 
+  na.omit() %>% 
+  arrange(-abs(log2FoldChange))
+
+# Results for the comparison "7_days" vs "4_days"
+res <- results(dds, contrast = c("Description", "Fmn2+-_+10mMPlatB", "ControlFmn2+-"), alpha = 0.05)
+
+# MA Plot
+# Convert results to a data frame
+res_df <- as.data.frame(res)
+
+
+# Annotate results with gene names
+res$gene <- rownames(res)
+annotated_res <- merge(as.data.frame(res), Tx, by.x = "gene", by.y = "gene_name", all.x = TRUE)
+
+# Filter significantly differentially expressed genes
+expression_genes_pladb_10mm_control <- annotated_res %>% 
+  dplyr::filter(padj <= 0.05 & abs(log2FoldChange) >= 1) %>% 
+  na.omit() %>% 
+  arrange(-abs(log2FoldChange))
+
+```
+
+
+
+## PCA Plot
+
+```{r pca plto de}
+print(pca_plot)
+```
+
+## 1mm Plad vs Control
+
+```{r 1mm vs cotrol}
+# Render DataTable with enhancements
+datatable(
+  expression_genes_pladb_1mm_control,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+
+```
+
+## 10mm Plad vs Control
+
+```{r 10mm vs cotrol}
+# Render DataTable with enhancements
+datatable(
+  expression_genes_pladb_10mm_control,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+
+```
 
 # System Settings
 
