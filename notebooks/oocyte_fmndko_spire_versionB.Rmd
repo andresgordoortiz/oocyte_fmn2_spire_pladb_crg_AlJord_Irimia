@@ -1725,16 +1725,7 @@ datatable(
 ```{r fmndko enrichr}
 enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
-datatable(
-  enrichdata,
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
+
 ```
 
 
@@ -1742,27 +1733,9 @@ datatable(
 
 ```{r fmndko bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
-```
-
-#### GO Cellular Component
-
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-```
-
-#### GO Molecular Function
-
-```{r fmndko molfunction, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-```
-
-### Spire { .tabset}
-
-```{r spire enrichr}
-enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 datatable(
-  enrichdata,
+  enrichdata[[1]],
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -1773,22 +1746,92 @@ datatable(
 ))
 ```
 
+#### GO Cellular Component
+
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### Spire { .tabset}
+
+```{r spire enrichr}
+enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+
+
+```
+
 #### GO Biological Process
 
 ```{r spire bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 #### GO Cellular Component
 
 ```{r spire cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 #### GO Molecular Function
 
 ```{r spire molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 
@@ -2136,8 +2179,16 @@ Note that interpretation should be done taking into account whether that specifi
 enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 
+
+```
+
+#### GO Biological Process
+
+```{r orf bioprocess, fig.width=15, fig.height=8}
+plotEnrich(enrichdata[[1]])
+
 datatable(
-  enrichdata,
+  enrichdata[[1]],
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2148,22 +2199,36 @@ datatable(
 ))
 ```
 
-#### GO Biological Process
-
-```{r orf bioprocess, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[1]])
-```
-
 #### GO Cellular Component
 
 ```{r orf cellcomponent, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[2]])
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 #### GO Molecular Function
 
 ```{r orf molfunction, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[3]])
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 # Splicing Dynamics Heatmap FMNDKO
@@ -2396,8 +2461,16 @@ Note that interpretation should be done taking into account whether that specifi
 ```{r orf enrichr fmndko}
 enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
+
+
+```
+
+#### GO Biological Process
+
+```{r orf bioprocess fmndko, fig.width=15, fig.height=8}
+plotEnrich(enrichdata[[1]])
 datatable(
-  enrichdata,
+  enrichdata[[1]],
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2406,25 +2479,38 @@ datatable(
   rownames = FALSE,                       # Disable row names
   extensions = "Buttons"                  # Enable export buttons
 ))
-
-```
-
-#### GO Biological Process
-
-```{r orf bioprocess fmndko, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[1]])
 ```
 
 #### GO Cellular Component
 
 ```{r orf cellcomponent fmndko, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[2]])
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 #### GO Molecular Function
 
 ```{r orf molfunction fmndko, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[3]])
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 
