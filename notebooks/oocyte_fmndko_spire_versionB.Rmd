@@ -1026,9 +1026,7 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-write.csv(fmndko_exon_combination_tab,
-          file = paste0("fmndko_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
+
 ```
 
 #### Spire2
@@ -1083,9 +1081,7 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-write.csv(spire_exon_combination_tab,
-          file = paste0("spire_exon_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
+
 ```
 
 
@@ -1348,9 +1344,7 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-write.csv(fmndko_intron_combination_tab,
-          file = paste0("fmndko_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
+
 ```
 
 #### Spire2
@@ -1405,9 +1399,6 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-write.csv(spire_intron_combination_tab,
-          file = paste0("spire_intron_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
 ```
 
 
@@ -1665,9 +1656,7 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-write.csv(fmndko_alt_combination_tab,
-          file = paste0("fmndko_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
+
 ```
 
 #### Spire2
@@ -1723,9 +1712,7 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
-write.csv(spire_alt_combination_tab,
-          file = paste0("spire_alt_combination_table_", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
+
 ```
 
 
@@ -1739,8 +1726,15 @@ write.csv(spire_alt_combination_tab,
 enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 datatable(
-  enrichdata
-)
+  enrichdata,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 
@@ -1768,8 +1762,15 @@ plotEnrich(enrichdata[[3]])
 enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 datatable(
-  enrichdata
-)
+  enrichdata,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 #### GO Biological Process
@@ -1833,9 +1834,17 @@ draw(heatmap)
 
 ```{r table speckles spire}
 # Render DataTable with enhancements
+
 datatable(
-  spire_speckle_prots              # Enable export buttons
-)
+  spire_speckle_prots,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 
@@ -1876,9 +1885,18 @@ draw(heatmap)
 
 ```{r table speckles fmndko}
 # Render DataTable with enhancements
+
+
 datatable(
-  fmndko_speckle_prots              # Enable export buttons
-)
+  fmndko_speckle_prots,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 # Splicing Dynamics Heatmap Spire
@@ -2107,9 +2125,7 @@ datatable(
 ))
 
 
-write.csv(heatmap_dataframe,
-          file = paste0("heatmap_cluster_events_spire", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
+
 ```
 
 ### Enrichment of ORF Disrupted Genes { .tabset}
@@ -2119,10 +2135,17 @@ Note that interpretation should be done taking into account whether that specifi
 ```{r orf enrichr}
 enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
-datatable(
-  enrichdata
-)
 
+datatable(
+  enrichdata,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 #### GO Biological Process
@@ -2364,9 +2387,6 @@ datatable(
 ))
 
 
-write.csv(heatmap_dataframe,
-          file = paste0("heatmap_cluster_events_fmndko", format(Sys.Date(), "%Y%m%d"), ".csv"),
-          row.names = FALSE)
 ```
 
 ### Enrichment of ORF Disrupted Genes { .tabset}
@@ -2377,8 +2397,16 @@ Note that interpretation should be done taking into account whether that specifi
 enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 datatable(
-  enrichdata
-)
+  enrichdata,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+
 ```
 
 #### GO Biological Process
