@@ -1035,7 +1035,7 @@ datatable(
 ```{r spire combination table exons}
 # Render DataTable with enhancements
 datatable(
-  spire_exon_combination_tab,
+  differential_spire_exons,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
