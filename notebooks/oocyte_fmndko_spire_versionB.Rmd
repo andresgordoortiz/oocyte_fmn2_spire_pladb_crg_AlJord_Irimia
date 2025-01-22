@@ -1537,7 +1537,7 @@ volcano_plot
 
 #### Spire2
 
-```{r spire fdr volcano exons}
+```{r spire fdr volcano alt}
 spire_pdiff_alt$Shared <- ifelse(spire_pdiff_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
 
 # Classify significance
