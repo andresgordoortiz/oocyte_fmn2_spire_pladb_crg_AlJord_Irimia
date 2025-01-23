@@ -167,9 +167,6 @@ showtext_auto()
 font_add_google("Roboto", "roboto")
 font="roboto"
 
-#Parametres
-FDR=0.05
-pdiff=0.95
 ```
 
 # Introduction to this Analysis
@@ -821,7 +818,7 @@ shared_exons<-differential_spire_exons$EVENT[differential_spire_exons$EVENT %in%
 ```{r fmndko fdr volcano exons}
 
 library(ggrepel)
-
+fmndko_pdiff_exons<-na.omit(fmndko_pdiff_exons)
 # Add a Shared column based on the shared_exons
 fmndko_pdiff_exons$Shared <- ifelse(fmndko_pdiff_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
 
@@ -867,7 +864,7 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) 
     x = "Delta PSI",
     y = expression(-log[10](1 - Pdiff)),
     title = "Volcano Plot of FMN2DKO Exons",
-    subtitle = "Shared events are highlighted in goldenrod"
+    subtitle = "Shared events are highlighted in golden"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -897,7 +894,7 @@ volcano_plot
 #### Spire2
 
 ```{r spire fdr volcano exons}
-
+spire_pdiff_exons<-na.omit(spire_pdiff_exons)
 # Add a Shared column based on the shared_exons
 spire_pdiff_exons$Shared <- ifelse(spire_pdiff_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
 
@@ -943,7 +940,7 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
     x = "Delta PSI",
     y = expression(-log[10](1 - Pdiff)),
     title = "Volcano Plot of Spire Exons",
-    subtitle = "Shared events are highlighted in goldenrod"
+    subtitle = "Shared events are highlighted in golden"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1138,6 +1135,7 @@ shared_introns<-differential_spire_introns$EVENT[differential_spire_introns$EVEN
 
 
 ```{r fmndko volcano introns}
+fmndko_pdiff_introns<-na.omit(fmndko_pdiff_introns)
 # Add a Shared column based on the shared_exons
 fmndko_pdiff_introns$Shared <- ifelse(fmndko_pdiff_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
 
@@ -1183,7 +1181,7 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)
     x = "Delta PSI",
     y = expression(-log[10](1 - Pdiff)),
     title = "Volcano Plot of FMN2DKO Introns",
-    subtitle = "Shared events are highlighted in goldenrod"
+    subtitle = "Shared events are highlighted in golden"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1214,6 +1212,7 @@ volcano_plot
 #### Spire2
 
 ```{r spire volcano introns}
+spire_pdiff_introns<-na.omit(spire_pdiff_introns)
 spire_pdiff_introns$Shared <- ifelse(spire_pdiff_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
 
 # Classify significance
@@ -1258,7 +1257,7 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi, y = negLogpvalue))
     x = "Delta PSI",
     y = expression(-log[10](1 - Pdiff)),
     title = "Volcano Plot of Spire Introns",
-    subtitle = "Shared events are highlighted in goldenrod"
+    subtitle = "Shared events are highlighted in golden"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1455,6 +1454,7 @@ shared_alt<-differential_spire_alt$EVENT[differential_spire_alt$EVENT %in% diffe
 #### FMN2DKO
 
 ```{r fmndko  volcano alt}
+fmndko_pdiff_alt<-na.omit(fmndko_pdiff_alt)
 fmndko_pdiff_alt$Shared <- ifelse(fmndko_pdiff_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
 
 # Classify significance
@@ -1498,8 +1498,8 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   labs(
     x = "Delta PSI",
     y = expression(-log[10](1 - Pdiff)),
-    title = "Volcano Plot of Spire Introns",
-    subtitle = "Shared events are highlighted in goldenrod"
+    title = "Volcano Plot of FMN2DKO Alternative 5´/3´",
+    subtitle = "Shared events are highlighted in golden"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1529,6 +1529,7 @@ volcano_plot
 #### Spire2
 
 ```{r spire fdr volcano alt}
+spire_pdiff_alt<-na.omit(spire_pdiff_alt)
 spire_pdiff_alt$Shared <- ifelse(spire_pdiff_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
 
 # Classify significance
@@ -1572,8 +1573,8 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   labs(
     x = "Delta PSI",
     y = expression(-log[10](1 - Pdiff)),
-    title = "Volcano Plot of Spire Introns",
-    subtitle = "Shared events are highlighted in goldenrod"
+    title = "Volcano Plot of Spire Alternative 5´/3´",
+    subtitle = "Shared events are highlighted in golden"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1750,6 +1751,7 @@ datatable(
 
 ```{r fmndko cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
+
 datatable(
   enrichdata[[2]],
   options = list(
@@ -1988,7 +1990,7 @@ col_fun <- colorRamp2(
 number_splices<-4
 
 
-reference_table<-data.frame(EVENT=c(differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "EVENT"],differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "EVENT"],differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "EVENT"],differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "EVENT"]), GENE=c(differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "GENE"],differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "EVENT"],differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "GENE"],differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "GENE"]))
+reference_table<-data.frame(EVENT=c(differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "EVENT"],differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "EVENT"],differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "EVENT"],differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "EVENT"]), GENE=c(differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "GENE"],differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "GENE"],differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "GENE"],differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "GENE"]))
 
 
 
@@ -2110,8 +2112,8 @@ ht <- Heatmap(
   column_gap = unit(4, "mm"), # Adjust the gap size between columns
   heatmap_legend_param = list(
     title = "PSI Value",
-    title_gp = gpar(fontsize = 40),
-    labels_gp = gpar(fontsize = 10),
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
     legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
     legend_direction = "vertical" # Align the legend horizontally
   )
@@ -2124,7 +2126,7 @@ ht <- draw(ht)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 17))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 30))
   })
 }
 
@@ -2379,7 +2381,7 @@ ht <- Heatmap(
   col = col_fun,
   cluster_columns = col_dend,
   column_title = "Oocytes Samples",
-  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
   row_title = "Splicing Events of |dPSI| >= 0.1",
   row_title_gp = gpar(fontsize = 28, fontface = "italic"),
   column_names_rot = 45,
@@ -2395,8 +2397,8 @@ ht <- Heatmap(
   column_gap = unit(4, "mm"), # Adjust the gap size between columns
   heatmap_legend_param = list(
     title = "PSI Value",
-    title_gp = gpar(fontsize = 40),
-    labels_gp = gpar(fontsize = 10),
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
     legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
     legend_direction = "vertical" # Align the legend horizontally
   )
@@ -2409,7 +2411,7 @@ ht <- draw(ht)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 17))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 30))
   })
 }
 
@@ -2459,7 +2461,7 @@ datatable(
 Note that interpretation should be done taking into account whether that specific ORF-disrupting events is being spliced in or out. This just may give an idea of the ontology of disrupted proteins.
 
 ```{r orf enrichr fmndko}
-enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+enrichdata<-enrichr(unique(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]]), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 
 
