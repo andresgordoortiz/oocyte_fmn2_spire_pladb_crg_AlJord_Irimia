@@ -1,5 +1,5 @@
 ---
-title: 'Oocyte Alternative Splicing Analysis: Version B'
+title: 'Oocyte Alternative Splicing Analysis'
 Subtitle: "FMN2KO & SPIRE1/2KO"
 author: "Andrés Gordo Ortiz @Al Jord Lab CRG"
 date: "`r Sys.Date()`"
@@ -171,12 +171,6 @@ font="roboto"
 
 # Introduction to this Analysis
 
-***Important Note***: *This version B of the analysis differs from the others since it has the following filtering parametres*:
- - **Minimum Inclusion Level**: 0.1 in at least 2 samples
- - **Maximum Inclusion Level**: 99.9 in at least 2 samples
- - **FDR (adjusted p-value) and Pdiff**: 0.05 and 0.95 respectively *This changes from version A*
-
-
 ## Part 1: Upstream Analysis
 
 The upstream analysis is performed on the CRG cluster using the Bash command line. This phase involves:
@@ -229,7 +223,7 @@ To identify splicing events that are differentially spliced in Oocytes modified 
 
 fmndko_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/fmndko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 fmndko_events <- getEvents(fmndko_data, tool = "vast-tools") # Extract alternative splicing events
-fmndko_events <- alternativeEvents(fmndko_events, minPsi = 0, maxPsi = 100) # Filter events based on PSI thresholds
+
 fmndko_exons <- filterEvents(fmndko_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
 fmndko_introns <- filterEvents(fmndko_events, types = c("IR"), N = 4)
 fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 4)
@@ -238,7 +232,7 @@ fmndko_alt <- filterEvents(fmndko_events, types = c("Alt5", "Alt3"), N = 4)
 
 spire_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/spiredko_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 spire_events <- getEvents(spire_data, tool = "vast-tools") # Extract alternative splicing events
-spire_events <- alternativeEvents(spire_events, minPsi = 0, maxPsi = 100) # Filter events based on PSI thresholds
+
 spire_exons <- filterEvents(spire_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
 spire_introns <- filterEvents(spire_events, types = c("IR"), N = 4)
 spire_alt <- filterEvents(spire_events, types = c("Alt5", "Alt3"), N = 4)
