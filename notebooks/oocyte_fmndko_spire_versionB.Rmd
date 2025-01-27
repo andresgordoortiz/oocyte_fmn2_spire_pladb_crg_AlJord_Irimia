@@ -1281,7 +1281,7 @@ volcano_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the introns that show a FDR<=`r FDR` and PDiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition.
+These tables show the introns that show a PDiff (1-pvalue)>=0.90 in the pairwise comparison of each condition.
 
 
 #### FMN2DKO
@@ -1597,7 +1597,7 @@ volcano_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the Alt5 or Alt3 events that show a FDR<=`r FDR`5 and PDiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition.
+These tables show the Alt5 or Alt3 events that show a PDiff (1-pvalue)>=0.90 in the pairwise comparison of each condition.
 
 #### FMN2DKO
 
