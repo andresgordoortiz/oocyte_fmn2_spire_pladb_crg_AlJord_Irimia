@@ -310,6 +310,42 @@ combined_plot <- plot_proportion / plot_absolute +
 combined_plot
 ```
 
+
+
+```{r general stats}
+vastdb_events<-read.table("EVENT_INFO-mm10.tab", header = TRUE, sep = "\t")
+bin_exons <- function(n) {
+  if (is.na(n)) return(NA) # Handle missing values
+  else if (n < 6) return("1-5")
+  else if (n < 9) return("6-10")
+  else if (n < 21) return("11-20")
+  else return("21+")
+}
+
+#subset vastdb events if they contin the word "EX" in the column EVENT
+vastdb_exons<-vastdb_events[grep("EX", vastdb_events$EVENT),]
+# Add exon group information
+apply_bin_exons <- function(item) {
+  gene_counts <- table(item$GENE) # Count exons per gene
+  item$exon_group <- sapply(item$GENE, function(gene) bin_exons(gene_counts[gene]))
+  item
+}
+
+vastdb_exons<-apply_bin_exons(vastdb_exons)
+
+#subset vastdb events if they contin the word "EX" in the column EVENT
+vastdb_introns<-vastdb_events[grep("IN", vastdb_events$EVENT),]
+# Add exon group information
+apply_bin_exons <- function(item) {
+  gene_counts <- table(item$GENE) # Count exons per gene
+  item$intron_group <- sapply(item$GENE, function(gene) bin_exons(gene_counts[gene]))
+  item
+}
+
+vastdb_introns<-apply_bin_exons(vastdb_introns)
+
+```
+
 # Splicing & Sample Quality Checking
 
 Splicing inclusion plots look like a ***U*** when looking at the *exons*, as normally most of them are spliced out completely (PSI=0) or constitutively spliced in (PSI=1), but some of them are in between (alternatively spliced). Those are the most interesting for the analysis. On the other hand, *introns* are usually not included (that is their definition), but in a few cases they are included. Thus, the intron plot looks like the exponential distribution.
