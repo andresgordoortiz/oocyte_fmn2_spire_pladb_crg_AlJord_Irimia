@@ -2524,7 +2524,7 @@ datatable(
 
 ### Same Heatmap but averaging PSI values from same condition
 
-```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+```{r heatmap_plot short fmndko, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
 fmndko_unique_short <- cbind(
