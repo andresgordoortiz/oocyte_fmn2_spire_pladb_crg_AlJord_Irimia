@@ -2309,7 +2309,7 @@ plot_psi_distribution
 
 ### PladB Total Counts
 
-```{r splicing distribution plot, fig.width=10}
+```{r splicing distribution plot alt, fig.width=10}
 
 # List of dataframes with metadata
 dfs <- list(
@@ -2367,13 +2367,13 @@ plot_psi_distribution
 
 ### Gene Ontology of all genes differentially spliced under any dose compared to control.
 
-```{r pladb enrichr}
+```{r pladb enrichr alt}
 enrichdata<-enrichr(unique(c(differential_pladb10mm_exons$GENE,differential_pladb1mm_exons$GENE,differential_pladb10mm_introns$GENE,differential_pladb1mm_introns$GENE,differential_pladb10mm_alt$GENE,differential_pladb1mm_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 #### GO Biological Process
 
-```{r pladb bioprocess, fig.width=15, fig.height=8}
+```{r pladb bioprocessn alt, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[1]])
 datatable(
   enrichdata[[1]],
@@ -2389,7 +2389,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r pladb cellcomponent, fig.width=15, fig.height=8}
+```{r pladb cellcomponent alt, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[2]])
 datatable(
   enrichdata[[2]],
@@ -2405,7 +2405,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r pladb molfunction, fig.width=15, fig.height=8}
+```{r pladb molfunction alt, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[3]])
 datatable(
   enrichdata[[3]],
