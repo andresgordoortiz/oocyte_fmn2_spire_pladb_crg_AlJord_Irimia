@@ -225,24 +225,10 @@ To identify splicing events that are differentially spliced in Oocytes treated w
 
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
 pladb_events <- getEvents(pladb_data, tool = "vast-tools") # Extract alternative splicing events
-pladb_events <- alternativeEvents(pladb_events, minPsi = 0.1, maxPsi = 99.9) # Filter events based on PSI thresholds
-pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 2)
+pladb_events <- alternativeEvents(pladb_events, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
+pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 4)
 pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 2)
-pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 2)
-
-# Importing patial inclusion tables
-pladb_data_10mm <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_10mm_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
-pladb_events_10mm <- getEvents(pladb_data_10mm, tool = "vast-tools") # Extract alternative splicing events
-pladb_events_10mm <- alternativeEvents(pladb_events_10mm, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-# Importing patial inclusion tables
-pladb_data_1mm <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_1mm_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
-pladb_events_1mm <- getEvents(pladb_data_1mm, tool = "vast-tools") # Extract alternative splicing events
-pladb_events_1mm <- alternativeEvents(pladb_events_1mm, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
-
-# Importing patial inclusion tables
-pladb_data_control <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_control_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
-pladb_events_control <- getEvents(pladb_data_control, tool = "vast-tools") # Extract alternative splicing events
-pladb_events_control <- alternativeEvents(pladb_events_control, minPsi = 1, maxPsi = 99) # Filter events based on PSI thresholds
+pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 4)
 
 ```
 
