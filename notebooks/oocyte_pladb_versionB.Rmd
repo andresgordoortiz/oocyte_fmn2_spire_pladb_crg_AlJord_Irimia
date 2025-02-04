@@ -1030,7 +1030,7 @@ datatable(
 ```{r pladb combination table exons 10mm 1mm}
 # Render DataTable with enhancements
 datatable(
-  pladb_10mm_1mm_exon_combination_tab,
+  differential_pladb10mm_1mm_exons,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -1690,7 +1690,7 @@ datatable(
 ```
 
 
-## Alterntive 5´ and 3´ Lists
+## Alternative 5´ and 3´ Lists
 
 ### Calculations
 
@@ -2586,7 +2586,8 @@ col_fun <- colorRamp2(
   c("purple", "white", "orange")
 )
 
-number_splices<-5
+number_splices<-8
+
 
 
 reference_table<-data.frame(EVENT=c(differential_pladb10mm_exons$EVENT,differential_pladb10mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb10mm_exons$EVENT,differential_pladb1mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb1mm_introns$EVENT), GENE=c(differential_pladb10mm_exons$GENE,differential_pladb10mm_introns$GENE,differential_pladb1mm_exons$GENE,differential_pladb10mm_exons$GENE,differential_pladb1mm_introns$GENE,differential_pladb1mm_exons$GENE,differential_pladb1mm_introns$GENE))
@@ -2769,9 +2770,65 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ))
 
+# 
+
+```
+
+
+### Same Heatmap but averaging PSI values from same condition
+
+```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+pladb_matrix_short <- cbind(
+  rowMeans(pladb_matrix[, 1:3]),
+  rowMeans(pladb_matrix[, 4:6]),
+  rowMeans(pladb_matrix[, 7:9])
+)
+
+# Convert to matrix and print result
+colnames(pladb_matrix_short) <- c("Control", "PladB_1mM", "PladB_10mM")
+
+pladb_matrix_short <- pladb_matrix_short[row_order,]
+
+ht <- Heatmap(
+  pladb_matrix_short,
+  name = "PSI",
+  col = col_fun,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = c(1:3),
+  cluster_rows = FALSE,   # <-- This disables row clustering
+  cluster_columns = FALSE, # Optionally disable column clustering if desired
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(6, "mm"),      # Adjust the gap size between rows
+  left_annotation = left_annotation[row_order],   # Add the points on the left
+  right_annotation = right_annotation[row_order],
+  column_gap = unit(4, "mm"),   # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend vertically
+  )
+)
+
+# Draw the heatmap
+ht <- draw(ht)
+
+# Draw the heatmap
+
+
 
 
 ```
+
+
 
 ### Enrichment of ORF Disrupted Genes { .tabset}
 
