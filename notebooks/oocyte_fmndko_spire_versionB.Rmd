@@ -2017,6 +2017,58 @@ write.csv(heatmap_dataframe,
           row.names = FALSE)
 ```
 
+### Same Heatmap but averaging PSI values from same condition
+
+```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+spire_unique_short <- cbind(
+  rowMeans(spire_unique[, 1:3]),
+  rowMeans(spire_unique[, 4:6])
+)
+
+# Convert to matrix and print result
+colnames(spire_unique_short) <- c("Control", "SpireKO")
+
+spire_unique_short <- spire_unique_short[row_order,]
+
+ht <- Heatmap(
+  spire_unique_short,
+  name = "PSI",
+  col = col_fun,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = c(1:3),
+  cluster_rows = FALSE,   # <-- This disables row clustering
+  cluster_columns = FALSE, # Optionally disable column clustering if desired
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(6, "mm"),      # Adjust the gap size between rows
+  left_annotation = left_annotation[row_order],   # Add the points on the left
+  right_annotation = right_annotation[row_order],
+  column_gap = unit(4, "mm"),   # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend vertically
+  )
+)
+
+# Draw the heatmap
+ht <- draw(ht)
+
+# Draw the heatmap
+
+
+
+
+```
+
 ### Enrichment of ORF Disrupted Genes { .tabset}
 
 Note that interpretation should be done taking into account whether that specific ORF-disrupting events is being spliced in or out. This just may give an idea of the ontology of disrupted proteins.
@@ -2267,6 +2319,58 @@ datatable(
 write.csv(heatmap_dataframe,
           file = paste0("heatmap_cluster_events_fmndko", format(Sys.Date(), "%Y%m%d"), ".csv"),
           row.names = FALSE)
+```
+
+### Same Heatmap but averaging PSI values from same condition
+
+```{r heatmap_plot short fmndko, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+fmndko_unique_short <- cbind(
+  rowMeans(fmndko_unique[, 1:2]),
+  rowMeans(fmndko_unique[, 3:4])
+)
+
+# Convert to matrix and print result
+colnames(fmndko_unique_short) <- c("Control", "FMNDKO")
+
+fmndko_unique_short <- fmndko_unique_short[row_order,]
+
+ht <- Heatmap(
+  fmndko_unique_short,
+  name = "PSI",
+  col = col_fun,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = c(1:3),
+  cluster_rows = FALSE,   # <-- This disables row clustering
+  cluster_columns = FALSE, # Optionally disable column clustering if desired
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(6, "mm"),      # Adjust the gap size between rows
+  left_annotation = left_annotation[row_order],   # Add the points on the left
+  right_annotation = right_annotation[row_order],
+  column_gap = unit(4, "mm"),   # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend vertically
+  )
+)
+
+# Draw the heatmap
+ht <- draw(ht)
+
+# Draw the heatmap
+
+
+
+
 ```
 
 ### Enrichment of ORF Disrupted Genes { .tabset}
