@@ -1030,7 +1030,7 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ) %>%
   formatStyle(
-    columns = "Pdiff",
+    columns = "FDR",
     color = styleInterval(0.99, c("black", "green")),
     fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
   ) %>%
@@ -1085,7 +1085,7 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ) %>%
   formatStyle(
-    columns = "Pdiff",
+    columns = "FDR",
     color = styleInterval(0.99, c("black", "green")),
     fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
   ) %>%
@@ -1352,7 +1352,7 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ) %>%
   formatStyle(
-    columns = "Pdiff",
+    columns = "FDR",
     color = styleInterval(0.99, c("black", "green")),
     fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
   ) %>%
@@ -1407,7 +1407,7 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ) %>%
   formatStyle(
-    columns = "Pdiff",
+    columns = "FDR",
     color = styleInterval(0.99, c("black", "green")),
     fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
   ) %>%
@@ -1668,7 +1668,7 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ) %>%
   formatStyle(
-    columns = "Pdiff",
+    columns = "FDR",
     color = styleInterval(0.99, c("black", "green")),
     fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
   ) %>%
@@ -1724,7 +1724,7 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ) %>%
   formatStyle(
-    columns = "Pdiff",
+    columns = "FDR",
     color = styleInterval(0.99, c("black", "green")),
     fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
   ) %>%
