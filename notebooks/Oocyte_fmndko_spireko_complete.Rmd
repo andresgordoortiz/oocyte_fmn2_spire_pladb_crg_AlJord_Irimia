@@ -265,6 +265,8 @@ DT::datatable(metadata_spire, options = list(pageLength = nrow(metadata_spire), 
 
 # Total Splicing Events
 
+This plot shows the total number of splicing events found during the **mapping**, alongside the proportions of each type of event. It is important to know that *vast-tools* does not find new events, but it identifies those manually curated in the database. The total number is the same for both datasets, as it is the total number of events registered and curated in ***VASTDB***, hence the *Complete Version.* 
+
 
 ```{r splicing events barplot stacked}
 
@@ -608,10 +610,10 @@ print(plot_psi_distribution)
 
 
 
-## PCA Plot { .tabset}
+# PCA Plot { .tabset}
 
 
-### SpireDKO
+## SpireDKO
 
 ```{r pca calculation spire}
 # Subset and scale data
@@ -661,7 +663,7 @@ pca_plot
 ```
 
 
-### FMN2DKO
+## FMN2DKO
 
 ```{r pca calculation fmndko}
 # Subset and scale data
@@ -783,7 +785,7 @@ set.seed(42) #Setting seed for downstream simulations of the beta distribution
 ```{r pdiff calculation exons}
 
 # Prepare table for fmn2dko
-fmndko_pdiff_exons <- prepareTableVolcano(
+fmndko_pdiff_exons <- prepareTableVolcanoFDR(
   psitable = fmndko_exons$PSI,
   qualtable = fmndko_exons$Qual,
   npoints = 500,
@@ -794,12 +796,13 @@ fmndko_pdiff_exons <- prepareTableVolcano(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
+  nsim = 100,
   seed = TRUE,
   CoverageWeight = FALSE
 )
 
 # Prepare table for spire
-spire_pdiff_exons <- prepareTableVolcano(
+spire_pdiff_exons <- prepareTableVolcanoFDR(
   psitable = spire_exons$PSI,
   qualtable = spire_exons$Qual,
   npoints = 500,
@@ -810,12 +813,13 @@ spire_pdiff_exons <- prepareTableVolcano(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
+  nsim = 100,
   seed = TRUE,
   CoverageWeight = FALSE
 )
 
-differential_spire_exons<-na.omit(spire_pdiff_exons[spire_pdiff_exons$Pdiff >= 0.90 & abs(spire_pdiff_exons$deltapsi) >= 0.1,])
-differential_fmndko_exons<-na.omit(fmndko_pdiff_exons[fmndko_pdiff_exons$Pdiff >= 0.90 & abs(fmndko_pdiff_exons$deltapsi) >= 0.1,])
+differential_spire_exons<-na.omit(spire_pdiff_exons[spire_pdiff_exons$FDR <= 0.1,])
+differential_fmndko_exons<-na.omit(fmndko_pdiff_exons[fmndko_pdiff_exons$FDR <= 0.1,])
 
 shared_exons<-differential_spire_exons$EVENT[differential_spire_exons$EVENT %in% differential_fmndko_exons$EVENT]
 ```
@@ -837,15 +841,15 @@ fmndko_pdiff_exons$Shared <- ifelse(fmndko_pdiff_exons$EVENT %in% shared_exons, 
 
 # Classify significance
 fmndko_pdiff_exons$Significant <- ifelse(
-  fmndko_pdiff_exons$Pdiff >= 0.90 & fmndko_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  fmndko_pdiff_exons$FDR <=0.1 & fmndko_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_exons$Pdiff >= 0.90 & fmndko_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    fmndko_pdiff_exons$FDR <=0.1 & fmndko_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-fmndko_pdiff_exons$negLogpvalue <- -log10(1 - fmndko_pdiff_exons$Pdiff)
+fmndko_pdiff_exons$negLogpvalue <- -log10(fmndko_pdiff_exons$FDR)
 
 
 # Updated volcano plot with improved fonts and axis styling
@@ -875,7 +879,7 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) 
   )) +
   labs(
     x = "Delta PSI",
-    y = expression(-log[10](1 - Pdiff)),
+    y = expression(-log[10](FDR)),
     title = "Volcano Plot of FMN2DKO Exons",
     subtitle = "Shared events are highlighted in golden"
   ) +
@@ -913,15 +917,15 @@ spire_pdiff_exons$Shared <- ifelse(spire_pdiff_exons$EVENT %in% shared_exons, "S
 
 # Classify significance
 spire_pdiff_exons$Significant <- ifelse(
-  spire_pdiff_exons$Pdiff >= 0.90 & spire_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  spire_pdiff_exons$FDR <=0.1 & spire_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_exons$Pdiff >= 0.90 & spire_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    spire_pdiff_exons$FDR <=0.1 & spire_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-spire_pdiff_exons$negLogpvalue <- -log10(1 - spire_pdiff_exons$Pdiff)
+spire_pdiff_exons$negLogpvalue <- -log10(spire_pdiff_exons$FDR)
 
 
 # Updated volcano plot with improved fonts and axis styling
@@ -951,7 +955,7 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
   )) +
   labs(
     x = "Delta PSI",
-    y = expression(-log[10](1 - Pdiff)),
+    y = expression(-log[10](FDR)),
     title = "Volcano Plot of Spire Exons",
     subtitle = "Shared events are highlighted in golden"
   ) +
@@ -982,7 +986,7 @@ volcano_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the exons that show a Pdiff (1-pvalue)>=0.90 in the pairwise comparison of each condition.
+These tables show the exons that show FDR <= 0.1 in the pairwise comparison of each condition. The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
 
 
 #### FMN2DKO
@@ -1104,7 +1108,7 @@ datatable(
 
 
 # Prepare table for Tao
-fmndko_pdiff_introns <- prepareTableVolcano(
+fmndko_pdiff_introns <- prepareTableVolcanoFDR(
   psitable = fmndko_introns$PSI,
   qualtable = fmndko_introns$Qual,
   npoints = 500,
@@ -1115,12 +1119,13 @@ fmndko_pdiff_introns <- prepareTableVolcano(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
+  nsim = 100,
   seed = TRUE,
   CoverageWeight = FALSE
 )
 
 # Prepare table for spire
-spire_pdiff_introns <- prepareTableVolcano(
+spire_pdiff_introns <- prepareTableVolcanoFDR(
   psitable = spire_introns$PSI,
   qualtable = spire_introns$Qual,
   npoints = 500,
@@ -1131,12 +1136,13 @@ spire_pdiff_introns <- prepareTableVolcano(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
+  nsim=100,
   seed = TRUE,
   CoverageWeight = FALSE
 )
 
-differential_spire_introns<-na.omit(spire_pdiff_introns[spire_pdiff_introns$Pdiff >= 0.90 & abs(spire_pdiff_introns$deltapsi) >= 0.1,])
-differential_fmndko_introns<-na.omit(fmndko_pdiff_introns[fmndko_pdiff_introns$Pdiff >= 0.90 & abs(fmndko_pdiff_introns$deltapsi) >= 0.1,])
+differential_spire_introns<-na.omit(spire_pdiff_introns[spire_pdiff_introns$FDR <=0.1,])
+differential_fmndko_introns<-na.omit(fmndko_pdiff_introns[fmndko_pdiff_introns$FDR <=0.1,])
 
 shared_introns<-differential_spire_introns$EVENT[differential_spire_introns$EVENT %in% differential_fmndko_introns$EVENT]
 ```
@@ -1154,15 +1160,15 @@ fmndko_pdiff_introns$Shared <- ifelse(fmndko_pdiff_introns$EVENT %in% shared_int
 
 # Classify significance
 fmndko_pdiff_introns$Significant <- ifelse(
-  fmndko_pdiff_introns$Pdiff >= 0.90 & fmndko_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  fmndko_pdiff_introns$FDR <=0.1 & fmndko_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_introns$Pdiff >= 0.90 & fmndko_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    fmndko_pdiff_introns$FDR <=0.1 & fmndko_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-fmndko_pdiff_introns$negLogpvalue <- -log10(1 - fmndko_pdiff_introns$Pdiff)
+fmndko_pdiff_introns$negLogpvalue <- -log10(fmndko_pdiff_introns$FDR)
 
 
 # Updated volcano plot with improved fonts and axis styling
@@ -1192,7 +1198,7 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)
   )) +
   labs(
     x = "Delta PSI",
-    y = expression(-log[10](1 - Pdiff)),
+    y = expression(-log[10](FDR)),
     title = "Volcano Plot of FMN2DKO Introns",
     subtitle = "Shared events are highlighted in golden"
   ) +
@@ -1230,15 +1236,15 @@ spire_pdiff_introns$Shared <- ifelse(spire_pdiff_introns$EVENT %in% shared_intro
 
 # Classify significance
 spire_pdiff_introns$Significant <- ifelse(
-  spire_pdiff_introns$Pdiff >= 0.90 & spire_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  spire_pdiff_introns$FDR <=0.1 & spire_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_introns$Pdiff >= 0.90 & spire_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    spire_pdiff_introns$FDR <=0.1 & spire_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-spire_pdiff_introns$negLogpvalue <- -log10(1 - spire_pdiff_introns$Pdiff)
+spire_pdiff_introns$negLogpvalue <- -log10(spire_pdiff_introns$FDR)
 
 
 # Updated volcano plot with improved fonts and axis styling
@@ -1268,7 +1274,7 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi, y = negLogpvalue))
   )) +
   labs(
     x = "Delta PSI",
-    y = expression(-log[10](1 - Pdiff)),
+    y = expression(-log[10](FDR)),
     title = "Volcano Plot of Spire Introns",
     subtitle = "Shared events are highlighted in golden"
   ) +
@@ -1300,7 +1306,7 @@ volcano_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the introns that show a PDiff (1-pvalue)>=0.90 in the pairwise comparison of each condition.
+These tables show the introns that show FDR <= 0.1 in the pairwise comparison of each condition. The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
 
 
 #### FMN2DKO
@@ -1421,7 +1427,7 @@ datatable(
 ```{r pdiff calculation alt}
 
 # Prepare table for Tao
-fmndko_pdiff_alt <- prepareTableVolcano(
+fmndko_pdiff_alt <- prepareTableVolcanoFDR(
   psitable = fmndko_alt$PSI,
   qualtable = fmndko_alt$Qual,
   npoints = 500,
@@ -1432,12 +1438,13 @@ fmndko_pdiff_alt <- prepareTableVolcano(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
+  nsim=100,
   seed = TRUE,
   CoverageWeight = FALSE
 )
 
 # Prepare table for spire
-spire_pdiff_alt <- prepareTableVolcano(
+spire_pdiff_alt <- prepareTableVolcanoFDR(
   psitable = spire_alt$PSI,
   qualtable = spire_alt$Qual,
   npoints = 500,
@@ -1448,12 +1455,13 @@ spire_pdiff_alt <- prepareTableVolcano(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
+  nsim=100,
   seed = TRUE,
   CoverageWeight = FALSE
 )
 
-differential_spire_alt<-na.omit(spire_pdiff_alt[spire_pdiff_alt$Pdiff >= 0.90 & abs(spire_pdiff_alt$deltapsi) >= 0.1,])
-differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$Pdiff >= 0.90 & abs(fmndko_pdiff_alt$deltapsi) >= 0.1,])
+differential_spire_alt<-na.omit(spire_pdiff_alt[spire_pdiff_alt$FDR <=0.1,])
+differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$FDR <=0.1,])
 
 shared_alt<-differential_spire_alt$EVENT[differential_spire_alt$EVENT %in% differential_fmndko_alt$EVENT]
 ```
@@ -1472,15 +1480,15 @@ fmndko_pdiff_alt$Shared <- ifelse(fmndko_pdiff_alt$EVENT %in% shared_alt, "Share
 
 # Classify significance
 fmndko_pdiff_alt$Significant <- ifelse(
-  fmndko_pdiff_alt$Pdiff >= 0.90 & fmndko_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  fmndko_pdiff_alt$FDR <=0.1 & fmndko_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_alt$Pdiff >= 0.90 & fmndko_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    fmndko_pdiff_alt$FDR <=0.1 & fmndko_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-fmndko_pdiff_alt$negLogpvalue <- -log10(1 - fmndko_pdiff_alt$Pdiff)
+fmndko_pdiff_alt$negLogpvalue <- -log10(fmndko_pdiff_alt$FDR)
 
 
 # Updated volcano plot with improved fonts and axis styling
@@ -1510,7 +1518,7 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   )) +
   labs(
     x = "Delta PSI",
-    y = expression(-log[10](1 - Pdiff)),
+    y = expression(-log[10](FDR)),
     title = "Volcano Plot of FMN2DKO Alternative 5´/3´",
     subtitle = "Shared events are highlighted in golden"
   ) +
@@ -1547,15 +1555,15 @@ spire_pdiff_alt$Shared <- ifelse(spire_pdiff_alt$EVENT %in% shared_alt, "Shared"
 
 # Classify significance
 spire_pdiff_alt$Significant <- ifelse(
-  spire_pdiff_alt$Pdiff >= 0.90 & spire_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  spire_pdiff_alt$FDR <=0.1 & spire_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_alt$Pdiff >= 0.90 & spire_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    spire_pdiff_alt$FDR <=0.1 & spire_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-spire_pdiff_alt$negLogpvalue <- -log10(1 - spire_pdiff_alt$Pdiff)
+spire_pdiff_alt$negLogpvalue <- -log10(spire_pdiff_alt$FDR)
 
 
 # Updated volcano plot with improved fonts and axis styling
@@ -1585,7 +1593,7 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   )) +
   labs(
     x = "Delta PSI",
-    y = expression(-log[10](1 - Pdiff)),
+    y = expression(-log[10](FDR)),
     title = "Volcano Plot of Spire Alternative 5´/3´",
     subtitle = "Shared events are highlighted in golden"
   ) +
@@ -1616,7 +1624,7 @@ volcano_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the Alt5 or Alt3 events that show a PDiff (1-pvalue)>=0.90 in the pairwise comparison of each condition.
+These tables show the Alt5 or Alt3 that show FDR <= 0.1 in the pairwise comparison of each condition. The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
 
 #### FMN2DKO
 
@@ -1958,6 +1966,8 @@ datatable(
 ```
 
 # Splicing Dynamics Heatmap Spire
+
+From now, onwards, only events with |dPSI|>=0.1 are considered.
 
 ```{r heatmap pre-prep, results='hide', fig.show='hide'}
 
