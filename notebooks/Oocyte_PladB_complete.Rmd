@@ -651,9 +651,9 @@ Volcano Plots of the FDR corrected exons for each study. In pink are the exons w
 
 ```{r pladb fdr volcano exons 10mm control}
 # INtersecting dhared exons between 10mm vs control and 1mm vs control
-differential_pladb10mm_exons<-na.omit(pladb_pdiff_exons[pladb_pdiff_exons$FDR<=0.1 & abs(pladb_pdiff_exons$deltapsi) >= 0.1,])
-differential_pladb1mm_exons<-na.omit(pladb_1mm_control_pdiff_exons[pladb_1mm_control_pdiff_exons$FDR<=0.1 & abs(pladb_1mm_control_pdiff_exons$deltapsi) >= 0.1,])
-differential_pladb10mm_1mm_exons<-na.omit(pladb_1mm_10mm_pdiff_exons[pladb_1mm_10mm_pdiff_exons$FDR<=0.1 & abs(pladb_1mm_10mm_pdiff_exons$deltapsi) >= 0.1,])
+differential_pladb10mm_exons<-na.omit(pladb_pdiff_exons[pladb_pdiff_exons$FDR<=0.1,])
+differential_pladb1mm_exons<-na.omit(pladb_1mm_control_pdiff_exons[pladb_1mm_control_pdiff_exons$FDR<=0.1,])
+differential_pladb10mm_1mm_exons<-na.omit(pladb_1mm_10mm_pdiff_exons[pladb_1mm_10mm_pdiff_exons$FDR<=0.1,])
 
 shared_exons<-differential_pladb10mm_exons$EVENT[differential_pladb10mm_exons$EVENT %in% differential_pladb1mm_exons$EVENT]
 
@@ -915,7 +915,8 @@ dose_dependent_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the exons that show a FDR<=0.1 in the pairwise comparison of each condition.
+These tables show the exons that show a FDR<=0.1 in the pairwise comparison of each condition.The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+
 
 #### PladB 10mM vs control
 
@@ -1467,7 +1468,8 @@ dose_dependent_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the introns that show a FDR<=0.1 in the pairwise comparison of each condition.
+These tables show the introns that show a FDR<=0.1 in the pairwise comparison of each condition.The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+
 
 #### PladB 10mM vs control
 
@@ -2022,7 +2024,8 @@ dose_dependent_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the alt that show a FDR<=0.1 in the pairwise comparison of each condition.
+These tables show the alt that show a FDR<=0.1 in the pairwise comparison of each condition.The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+
 
 #### PladB 10mM vs control
 
@@ -2548,7 +2551,7 @@ datatable(
 
 # Splicing Dynamics Heatmap PladB
 
-Only Exons and Introns cassettes, not Alt.
+Only Exons and Introns cassettes, not Alt. From now, onwards, only events with |dPSI|>=0.1 are considered.
 
 ```{r heatmap prep 2, results='hide', fig.show='hide'}
 set.seed(44)
@@ -2567,7 +2570,7 @@ rownames(pladb_matrix) <- pladb_all$PSI$EVENT
 
 # Filter rows based on the final event lists and with abs(deltapsi)>=0.1
 filtered_events <- unique(c(
-  differential_pladb10mm_exons$EVENT,differential_pladb10mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb10mm_exons$EVENT,differential_pladb1mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb1mm_introns))
+  differential_pladb10mm_exons$EVENT[abs(differential_pladb10mm_exons$deltapsi)>=0.1],differential_pladb10mm_introns$EVENT[abs(differential_pladb10mm_introns$deltapsi)>=0.1],differential_pladb1mm_exons$EVENT[abs(differential_pladb1mm_exons$deltapsi)>=0.1],differential_pladb1mm_introns$EVENT[abs(differential_pladb1mm_introns$deltapsi)>=0.1]))
 pladb_matrix <- pladb_matrix[rownames(pladb_matrix) %in% filtered_events, ]
 
 # Arrange columns based on metadata
