@@ -372,6 +372,7 @@ plot1 / plot2
 
 ## Total Splicing Events
 
+This plot shows the total number of splicing events found during the **mapping**, alongside the proportions of each type of event. It is important to know that *vast-tools* does not find new events, but it identifies those manually curated in the database. The total number changes between versions, as I am filtering out events according to their PSI.
 
 ```{r splicing events barplot stacked}
 
@@ -772,7 +773,8 @@ theme(
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the exons that show a FDR<=`r FDR` and Pdiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition.
+These tables show the exons that show a FDR<=`r FDR` and Pdiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition. The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+
 
 
 #### FMN2DKO
@@ -1131,7 +1133,8 @@ theme(
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the introns that show a FDR<=`r FDR` and PDiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition.
+These tables show the introns that show a FDR<=`r FDR` and PDiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition. The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+
 
 
 #### FMN2DKO
@@ -1484,7 +1487,8 @@ theme(
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the Alt5 or Alt3 events that show a FDR<=`r FDR`5 and PDiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition.
+These tables show the Alt5 or Alt3 events that show a FDR<=`r FDR`5 and PDiff (1-pvalue)>=`r pdiff` in the pairwise comparison of each condition. The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+
 
 #### FMN2DKO
 
@@ -1705,7 +1709,7 @@ final_df <- bind_rows(dfs_with_metadata) %>%
   na.omit()# Adjust this line if other columns should be prioritized
 
 
-plot_psi_distribution <- ggplot(final_df, aes(x = deltapsi, fill = ifelse(deltapsi < 0, "Skipped", "Included"))) +
+plot_psi_distribution <- ggplot(final_df, aes(y=..density..,x = deltapsi, fill = ifelse(deltapsi < 0, "Skipped", "Included"))) +
   geom_histogram( bins = 100, position = "identity") +
   labs(
     title = "PSI Distribution",
@@ -1784,6 +1788,8 @@ plotEnrich(enrichdata[[3]])
 
 
 # Splicing Dynamics Heatmap Spire
+
+From now, onwards, only events with |dPSI|>=0.1 are considered.
 
 ```{r heatmap prep, results='hide', fig.show='hide'}
 set.seed(44)
