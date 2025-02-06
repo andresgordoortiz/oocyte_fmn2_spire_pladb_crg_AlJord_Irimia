@@ -822,6 +822,10 @@ differential_spire_exons<-na.omit(spire_pdiff_exons[spire_pdiff_exons$FDR <= 0.1
 differential_fmndko_exons<-na.omit(fmndko_pdiff_exons[fmndko_pdiff_exons$FDR <= 0.1,])
 
 shared_exons<-differential_spire_exons$EVENT[differential_spire_exons$EVENT %in% differential_fmndko_exons$EVENT]
+
+write.csv(differential_spire_exons,"differential_spire_exons.csv")
+write.csv(differential_fmndko_exons,"differential_fmndko_exons.csv")
+
 ```
 
 
@@ -1145,6 +1149,9 @@ differential_spire_introns<-na.omit(spire_pdiff_introns[spire_pdiff_introns$FDR 
 differential_fmndko_introns<-na.omit(fmndko_pdiff_introns[fmndko_pdiff_introns$FDR <=0.1,])
 
 shared_introns<-differential_spire_introns$EVENT[differential_spire_introns$EVENT %in% differential_fmndko_introns$EVENT]
+
+write.csv(differential_spire_introns,"differential_spire_introns.csv")
+write.csv(differential_fmndko_introns,"differential_fmndko_introns.csv")
 ```
 
 
@@ -1464,6 +1471,9 @@ differential_spire_alt<-na.omit(spire_pdiff_alt[spire_pdiff_alt$FDR <=0.1,])
 differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$FDR <=0.1,])
 
 shared_alt<-differential_spire_alt$EVENT[differential_spire_alt$EVENT %in% differential_fmndko_alt$EVENT]
+
+write.csv(differential_spire_alt,"differential_spire_alt.csv")
+write.csv(differential_fmndko_alt,"differential_fmndko_alt.csv")
 ```
 
 
@@ -2076,11 +2086,12 @@ for (i in 1:length(clustered_events)) {
 protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
                              header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
 
-events_for_impact<-rownames(spire_unique)
+events_for_impact <- rownames(spire_unique)
 
 final_impact <- protein_impact %>%
   filter(EventID %in% events_for_impact) %>%
-  arrange(match(EventID, events_for_impact)) %>%
+  # Arrange final_impact in the same order as spire_unique's row names:
+  slice(match(events_for_impact, EventID)) %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
   mutate(ONTO = case_when(
@@ -2417,7 +2428,7 @@ events_for_impact<-rownames(fmndko_unique)
 
 final_impact <- protein_impact %>%
   filter(EventID %in% events_for_impact) %>%
-  arrange(match(EventID, events_for_impact)) %>%
+  slice(match(EventID, events_for_impact)) %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
   mutate(ONTO = case_when(

@@ -638,6 +638,10 @@ pladb_1mm_10mm_pdiff_exons <- prepareTableVolcanoFDR(
   seed=TRUE,
   CoverageWeight = FALSE)
 
+write.csv(pladb_pdiff_exons,"pladb_pdiff_exons.csv")
+write.csv(pladb_1mm_control_pdiff_exons,"pladb_1mm_control_pdiff_exons.csv")
+write.csv(pladb_1mm_10mm_pdiff_exons,"pladb_1mm_10mm_pdiff_exons.csv")
+
 ```
 
 
@@ -1186,7 +1190,9 @@ pladb_1mm_10mm_pdiff_introns <- prepareTableVolcanoFDR(
   seed=TRUE, 
   CoverageWeight = FALSE) 
 
-
+write.csv(pladb_pdiff_introns,"pladb_pdiff_introns.csv")
+write.csv(pladb_1mm_control_pdiff_introns,"pladb_1mm_control_pdiff_introns.csv")
+write.csv(pladb_1mm_10mm_pdiff_introns,"pladb_1mm_10mm_pdiff_introns.csv")
 ```
 
 
@@ -1743,6 +1749,9 @@ pladb_1mm_10mm_pdiff_alt <- prepareTableVolcanoFDR(
   CoverageWeight = FALSE) 
 
 
+write.csv(pladb_pdiff_alt,"pladb_pdiff_alt.csv")
+write.csv(pladb_1mm_control_pdiff_alt,"pladb_1mm_control_pdiff_alt.csv")
+write.csv(pladb_1mm_10mm_pdiff_alt,"pladb_1mm_10mm_pdiff_alt.csv")
 ```
 
 
@@ -2756,7 +2765,7 @@ clustered_matrix <- pladb_matrix[row_order, col_order]
 
 final_impact_string<-protein_impact %>%
   dplyr::filter(EventID %in% events_for_impact) %>%
-  arrange(match(EventID, events_for_impact))
+  slice(match(EventID, events_for_impact))
 final_impact_string<- final_impact_string[match(rownames(clustered_matrix),final_impact_string$EventID),]
 
 
@@ -3068,7 +3077,7 @@ events_for_impact<-rownames(pladb_matrix)
 
 final_impact <- protein_impact %>%
   dplyr::filter(EventID %in% events_for_impact) %>%
-  arrange(match(EventID, events_for_impact)) %>%
+  slice(match(EventID, events_for_impact)) %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
   mutate(ONTO = case_when(
