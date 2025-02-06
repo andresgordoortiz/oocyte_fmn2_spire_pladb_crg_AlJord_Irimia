@@ -1930,7 +1930,16 @@ datatable(
 set.seed(43)
 
 fmndko_speckle_prots <- fmndko_events$PSI %>%
-  filter(EVENT %in% differential_fmndko_exons$EVENT[tolower(differential_fmndko_exons$GENE) %in% tolower(speckles_proteins$Gene)] | EVENT %in% differential_fmndko_introns$EVENT[tolower(differential_fmndko_introns$GENE) %in% tolower(speckles_proteins$Gene)] | EVENT %in% differential_fmndko_alt$EVENT[tolower(differential_fmndko_alt$GENE) %in% tolower(speckles_proteins$Gene)])
+  filter((EVENT %in% differential_fmndko_exons$EVENT[
+            tolower(differential_fmndko_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
+            abs(differential_fmndko_exons$deltapsi) >= 0.1]) |
+         (EVENT %in% differential_fmndko_introns$EVENT[
+            tolower(differential_fmndko_introns$GENE) %in% tolower(speckles_proteins$Gene) & 
+            abs(differential_fmndko_introns$deltapsi) >= 0.1]) |
+         (EVENT %in% differential_fmndko_alt$EVENT[
+            tolower(differential_fmndko_alt$GENE) %in% tolower(speckles_proteins$Gene) & 
+            abs(differential_fmndko_alt$deltapsi) >= 0.1]))
+
 
 
 
