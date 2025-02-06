@@ -2479,7 +2479,7 @@ datatable(
 # Nuclear Speckle Protein Splicing Correlation
 
 Nuclear speckles genes were obtained from the Human Protein Atlas
-Differentially spliced events were filtered to obtain those proteins localizing within speckles. I performed pearson correlation between those selected events.
+Differentially spliced events were filtered to obtain those proteins localizing within speckles. I performed pearson correlation between those selected events. |dPSI|>=0.1
 
 ```{r nuclear spckeles data hadnling spire}
 set.seed(43)
@@ -2488,18 +2488,21 @@ speckles_proteins <- read_tsv("nuclear_speckles_protein_human_atlas.tsv")
 # Filter events based on gene names
 pladb_speckle_prots <- pladb_events$PSI %>%
   filter(
-    EVENT %in% differential_pladb10mm_exons$EVENT[
-      tolower(differential_pladb10mm_exons$GENE) %in% tolower(speckles_proteins$Gene)
-    ] |
-    EVENT %in% differential_pladb10mm_introns$EVENT[
-      tolower(differential_pladb10mm_introns$GENE) %in% tolower(speckles_proteins$Gene)
-    ] |
-    EVENT %in% differential_pladb1mm_introns$EVENT[
-      tolower(differential_pladb1mm_introns$GENE) %in% tolower(speckles_proteins$Gene)
-    ] |
-    EVENT %in% differential_pladb1mm_exons$EVENT[
-      tolower(differential_pladb1mm_exons$GENE) %in% tolower(speckles_proteins$Gene)
-    ]
+    (EVENT %in% differential_pladb10mm_exons$EVENT[
+      tolower(differential_pladb10mm_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
+      abs(differential_pladb10mm_exons$deltapsi) >= 0.1]) |
+    
+    (EVENT %in% differential_pladb10mm_introns$EVENT[
+      tolower(differential_pladb10mm_introns$GENE) %in% tolower(speckles_proteins$Gene) & 
+      abs(differential_pladb10mm_introns$deltapsi) >= 0.1]) |
+    
+    (EVENT %in% differential_pladb1mm_introns$EVENT[
+      tolower(differential_pladb1mm_introns$GENE) %in% tolower(speckles_proteins$Gene) & 
+      abs(differential_pladb1mm_introns$deltapsi) >= 0.1]) |
+    
+    (EVENT %in% differential_pladb1mm_exons$EVENT[
+      tolower(differential_pladb1mm_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
+      abs(differential_pladb1mm_exons$deltapsi) >= 0.1])
   )
 
 # Create a mapping between events and gene names
