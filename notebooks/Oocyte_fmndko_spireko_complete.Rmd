@@ -1861,7 +1861,7 @@ datatable(
 # Nuclear Speckle Protein Splicing Correlation { .tabset}
 
 Nuclear speckles genes were obtained from the Human Protein Atlas
-Differentially spliced events were filtered to obtain those proteins localizing within speckles. I performed pearson correlation between those selected events.
+Differentially spliced events were filtered to obtain those proteins localizing within speckles. I performed pearson correlation between those selected events. In adittion to the FDR threshold, they also need to have a |dPSI|>=0.1.
 
 ## Spire
 
@@ -1870,7 +1870,16 @@ set.seed(43)
 speckles_proteins<-read_tsv("nuclear_speckles_protein_human_atlas.tsv")
 
 spire_speckle_prots <- spire_events$PSI %>%
-  filter(EVENT %in% differential_spire_exons$EVENT[tolower(differential_spire_exons$GENE) %in% tolower(speckles_proteins$Gene)] | EVENT %in% differential_spire_introns$EVENT[tolower(differential_spire_introns$GENE) %in% tolower(speckles_proteins$Gene)] | EVENT %in% differential_spire_alt$EVENT[tolower(differential_spire_alt$GENE) %in% tolower(speckles_proteins$Gene)])
+  filter((EVENT %in% differential_spire_exons$EVENT[
+            tolower(differential_spire_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
+            abs(differential_spire_exons$deltapsi) >= 0.1]) |
+         (EVENT %in% differential_spire_introns$EVENT[
+            tolower(differential_spire_introns$GENE) %in% tolower(speckles_proteins$Gene) & 
+            abs(differential_spire_introns$deltapsi) >= 0.1]) |
+         (EVENT %in% differential_spire_alt$EVENT[
+            tolower(differential_spire_alt$GENE) %in% tolower(speckles_proteins$Gene) & 
+            abs(differential_spire_alt$deltapsi) >= 0.1]))
+
 
 
 
