@@ -200,12 +200,11 @@ To identify splicing events that are differentially spliced in Oocytes treated w
 1. **Statistical Testing**:
    - Use the [betAS package](https://rnajournal.cshlp.org/content/30/4/337) in R to perform Beta Distribution simulations, T-test and ANOVA to obtain:
      - **False Discovery Rate (FDR)**
-     - **F-statistic**
      - **Probability of Differential Splicing (Pdiff)**
 
 2. **Filtering Criteria**:
    - Retain events with:
-     - **FDR ≤ 0.1**
+     - **FDR ≤ 0.01**
 
 
 3. **Batch Effect Mitigation**:
@@ -655,9 +654,9 @@ Volcano Plots of the FDR corrected exons for each study. In pink are the exons w
 
 ```{r pladb fdr volcano exons 10mm control}
 # INtersecting dhared exons between 10mm vs control and 1mm vs control
-differential_pladb10mm_exons<-na.omit(pladb_pdiff_exons[pladb_pdiff_exons$FDR<=0.1,])
-differential_pladb1mm_exons<-na.omit(pladb_1mm_control_pdiff_exons[pladb_1mm_control_pdiff_exons$FDR<=0.1,])
-differential_pladb10mm_1mm_exons<-na.omit(pladb_1mm_10mm_pdiff_exons[pladb_1mm_10mm_pdiff_exons$FDR<=0.1,])
+differential_pladb10mm_exons<-na.omit(pladb_pdiff_exons[pladb_pdiff_exons$FDR<=0.01 & abs(pladb_pdiff_exons$deltapsi)>=0.1,])
+differential_pladb1mm_exons<-na.omit(pladb_1mm_control_pdiff_exons[pladb_1mm_control_pdiff_exons$FDR<=0.01 & abs(pladb_1mm_control_pdiff_exons$deltapsi)>=0.1,])
+differential_pladb10mm_1mm_exons<-na.omit(pladb_1mm_10mm_pdiff_exons[pladb_1mm_10mm_pdiff_exons$FDR<=0.01 & abs(pladb_1mm_10mm_pdiff_exons$deltapsi)>=0.1,])
 
 shared_exons<-differential_pladb10mm_exons$EVENT[differential_pladb10mm_exons$EVENT %in% differential_pladb1mm_exons$EVENT]
 
@@ -919,7 +918,7 @@ dose_dependent_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the exons that show a FDR<=0.1 in the pairwise comparison of each condition.The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+These tables show the exons that show a FDR<=0.1 in the pairwise comparison of each condition.
 
 
 #### PladB 10mM vs control
@@ -1204,10 +1203,10 @@ Volcano Plots of the FDR corrected exons for each study. In pink are the exons w
 
 ```{r pladb fdr volcano introns 10mm control}
 # INtersecting dhared introns between 10mm vs control and 1mm vs control
-differential_pladb10mm_introns<-na.omit(pladb_pdiff_introns[pladb_pdiff_introns$FDR<=0.1 & abs(pladb_pdiff_introns$deltapsi) >= 0.1,])
-differential_pladb1mm_introns<-na.omit(pladb_1mm_control_pdiff_introns[pladb_1mm_control_pdiff_introns$FDR<=0.1 & abs(pladb_1mm_control_pdiff_introns$deltapsi) >= 0.1,])
+differential_pladb10mm_introns<-na.omit(pladb_pdiff_introns[pladb_pdiff_introns$FDR<=0.01 & abs(pladb_pdiff_introns$deltapsi) >= 0.1,])
+differential_pladb1mm_introns<-na.omit(pladb_1mm_control_pdiff_introns[pladb_1mm_control_pdiff_introns$FDR<=0.01 & abs(pladb_1mm_control_pdiff_introns$deltapsi) >= 0.1,])
 
-differential_pladb10mm_1mm_introns<-na.omit(pladb_1mm_10mm_pdiff_introns[pladb_1mm_10mm_pdiff_introns$FDR<=0.1 & abs(pladb_1mm_10mm_pdiff_introns$deltapsi) >= 0.1,])
+differential_pladb10mm_1mm_introns<-na.omit(pladb_1mm_10mm_pdiff_introns[pladb_1mm_10mm_pdiff_introns$FDR<=0.01 & abs(pladb_1mm_10mm_pdiff_introns$deltapsi) >= 0.1,])
 
 shared_introns<-differential_pladb10mm_introns$EVENT[differential_pladb10mm_introns$EVENT %in% differential_pladb1mm_introns$EVENT]
 
@@ -1474,8 +1473,7 @@ dose_dependent_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the introns that show a FDR<=0.1 in the pairwise comparison of each condition.The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
-
+These tables show the introns that show a FDR<=0.1 in the pairwise comparison of each condition.
 
 #### PladB 10mM vs control
 
@@ -1763,10 +1761,10 @@ Volcano Plots of the FDR corrected exons for each study. In pink are the exons w
 
 ```{r pladb fdr volcano alt 10mm control}
 # INtersecting dhared alt between 10mm vs control and 1mm vs control
-differential_pladb10mm_alt<-na.omit(pladb_pdiff_alt[pladb_pdiff_alt$FDR<=0.1 & abs(pladb_pdiff_alt$deltapsi) >= 0.1,])
-differential_pladb1mm_alt<-na.omit(pladb_1mm_control_pdiff_alt[pladb_1mm_control_pdiff_alt$FDR<=0.1 & abs(pladb_1mm_control_pdiff_alt$deltapsi) >= 0.1,])
+differential_pladb10mm_alt<-na.omit(pladb_pdiff_alt[pladb_pdiff_alt$FDR<=0.01 & abs(pladb_pdiff_alt$deltapsi) >= 0.1,])
+differential_pladb1mm_alt<-na.omit(pladb_1mm_control_pdiff_alt[pladb_1mm_control_pdiff_alt$FDR<=0.01 & abs(pladb_1mm_control_pdiff_alt$deltapsi) >= 0.1,])
 
-differential_pladb10mm_1mm_alt<-na.omit(pladb_1mm_10mm_pdiff_alt[pladb_1mm_10mm_pdiff_alt$FDR<=0.1 & abs(pladb_1mm_10mm_pdiff_alt$deltapsi) >= 0.1,])
+differential_pladb10mm_1mm_alt<-na.omit(pladb_1mm_10mm_pdiff_alt[pladb_1mm_10mm_pdiff_alt$FDR<=0.01 & abs(pladb_1mm_10mm_pdiff_alt$deltapsi) >= 0.1,])
 
 shared_alt<-differential_pladb10mm_alt$EVENT[differential_pladb10mm_alt$EVENT %in% differential_pladb1mm_alt$EVENT]
 
@@ -2033,7 +2031,7 @@ dose_dependent_plot
 
 ### Individual Combination Tables { .tabset}
 
-These tables show the alt that show a FDR<=0.1 in the pairwise comparison of each condition.The delta PSI is *not* filtered yet (so you can download the complete version of the spreadsheet).
+These tables show the alt that show a FDR<=0.1 in the pairwise comparison of each condition.
 
 
 #### PladB 10mM vs control
@@ -2652,9 +2650,8 @@ protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
 
 events_for_impact<-rownames(pladb_matrix)
 
-final_impact <- protein_impact %>%
-  dplyr::filter(EventID %in% events_for_impact) %>%
-  arrange(match(EventID, events_for_impact)) %>%
+final_impact <- data.frame(EventID = rownames(pladb_matrix)) %>%  # Extract row names as EventID
+  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
   mutate(ONTO = case_when(
@@ -2663,8 +2660,7 @@ final_impact <- protein_impact %>%
     TRUE ~ ONTO
   )) %>%
   mutate(ONTO = as.numeric(ONTO)) %>%
-  replace_na(list(ONTO = 0))
-
+  replace_na(list(ONTO = 0))  # Fill missing ONTO values with 0
 
 # Define the left annotation (points) with axis labels
 left_annotation <- rowAnnotation(
@@ -2742,7 +2738,7 @@ ht <- draw(ht)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 30))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
   })
 }
 
@@ -3075,9 +3071,8 @@ protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
 
 events_for_impact<-rownames(pladb_matrix)
 
-final_impact <- protein_impact %>%
-  dplyr::filter(EventID %in% events_for_impact) %>%
-  slice(match(EventID, events_for_impact)) %>%
+final_impact <- data.frame(EventID = rownames(pladb_matrix)) %>%  # Extract row names as EventID
+  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
   mutate(ONTO = case_when(
@@ -3086,7 +3081,7 @@ final_impact <- protein_impact %>%
     TRUE ~ ONTO
   )) %>%
   mutate(ONTO = as.numeric(ONTO)) %>%
-  replace_na(list(ONTO = 0))
+  replace_na(list(ONTO = 0))  # Fill missing ONTO values with 0
 
 
 # Define the left annotation (points) with axis labels
@@ -3165,7 +3160,7 @@ ht <- draw(ht)
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 30))
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
   })
 }
 
