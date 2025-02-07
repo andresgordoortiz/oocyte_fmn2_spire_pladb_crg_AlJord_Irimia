@@ -2474,7 +2474,8 @@ datatable(
 
 ```{r gene-centric plot}
 set.seed(44)
-
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
 # -------------------------------
 # 1. Combine data and add protein impact
 # -------------------------------

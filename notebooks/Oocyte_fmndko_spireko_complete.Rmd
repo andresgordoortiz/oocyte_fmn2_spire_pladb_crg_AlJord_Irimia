@@ -826,6 +826,7 @@ shared_exons<-differential_spire_exons$EVENT[differential_spire_exons$EVENT %in%
 write.csv(differential_spire_exons,"differential_spire_exons.csv")
 write.csv(differential_fmndko_exons,"differential_fmndko_exons.csv")
 
+
 ```
 
 
@@ -845,9 +846,9 @@ fmndko_pdiff_exons$Shared <- ifelse(fmndko_pdiff_exons$EVENT %in% shared_exons, 
 
 # Classify significance
 fmndko_pdiff_exons$Significant <- ifelse(
-  fmndko_pdiff_exons$FDR <=0.1 & fmndko_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  fmndko_pdiff_exons$FDR <=0.01 & fmndko_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_exons$FDR <=0.1 & fmndko_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    fmndko_pdiff_exons$FDR <=0.01 & fmndko_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -921,9 +922,9 @@ spire_pdiff_exons$Shared <- ifelse(spire_pdiff_exons$EVENT %in% shared_exons, "S
 
 # Classify significance
 spire_pdiff_exons$Significant <- ifelse(
-  spire_pdiff_exons$FDR <=0.1 & spire_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  spire_pdiff_exons$FDR <=0.01 & spire_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_exons$FDR <=0.1 & spire_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    spire_pdiff_exons$FDR <=0.01 & spire_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1170,9 +1171,9 @@ fmndko_pdiff_introns$Shared <- ifelse(fmndko_pdiff_introns$EVENT %in% shared_int
 
 # Classify significance
 fmndko_pdiff_introns$Significant <- ifelse(
-  fmndko_pdiff_introns$FDR <=0.1 & fmndko_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  fmndko_pdiff_introns$FDR <=0.01 & fmndko_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_introns$FDR <=0.1 & fmndko_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    fmndko_pdiff_introns$FDR <=0.01 & fmndko_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1246,9 +1247,9 @@ spire_pdiff_introns$Shared <- ifelse(spire_pdiff_introns$EVENT %in% shared_intro
 
 # Classify significance
 spire_pdiff_introns$Significant <- ifelse(
-  spire_pdiff_introns$FDR <=0.1 & spire_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  spire_pdiff_introns$FDR <=0.01 & spire_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_introns$FDR <=0.1 & spire_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    spire_pdiff_introns$FDR <=0.01 & spire_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1469,8 +1470,8 @@ spire_pdiff_alt <- prepareTableVolcanoFDR(
   CoverageWeight = FALSE
 )
 
-differential_spire_alt<-na.omit(spire_pdiff_alt[spire_pdiff_alt$FDR <=0.1 & abs(spire_pdiff_alt$deltapsi)>=0.1 ,])
-differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$FDR <=0.1 & abs(fmndko_pdiff_alt$deltapsi)>=0.1 ,])
+differential_spire_alt<-na.omit(spire_pdiff_alt[spire_pdiff_alt$FDR <=0.01 & abs(spire_pdiff_alt$deltapsi)>=0.1 ,])
+differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$FDR <=0.01 & abs(fmndko_pdiff_alt$deltapsi)>=0.1 ,])
 
 shared_alt<-differential_spire_alt$EVENT[differential_spire_alt$EVENT %in% differential_fmndko_alt$EVENT]
 
@@ -1492,9 +1493,9 @@ fmndko_pdiff_alt$Shared <- ifelse(fmndko_pdiff_alt$EVENT %in% shared_alt, "Share
 
 # Classify significance
 fmndko_pdiff_alt$Significant <- ifelse(
-  fmndko_pdiff_alt$FDR <=0.1 & fmndko_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  fmndko_pdiff_alt$FDR <=0.01 & fmndko_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_alt$FDR <=0.1 & fmndko_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    fmndko_pdiff_alt$FDR <=0.01 & fmndko_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1567,9 +1568,9 @@ spire_pdiff_alt$Shared <- ifelse(spire_pdiff_alt$EVENT %in% shared_alt, "Shared"
 
 # Classify significance
 spire_pdiff_alt$Significant <- ifelse(
-  spire_pdiff_alt$FDR <=0.1 & spire_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  spire_pdiff_alt$FDR <=0.01 & spire_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_alt$FDR <=0.1 & spire_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    spire_pdiff_alt$FDR <=0.01 & spire_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1757,7 +1758,9 @@ datatable(
 ### FMN2DKO { .tabset}
 
 ```{r fmndko enrichr}
-enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+differential_spire_exons<-filter(read.csv("differential_spire_exons.csv")[,-1], abs(deltapsi)>=0.1, FDR<=0.01)
+
+enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE,)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 
 ```
@@ -1867,6 +1870,568 @@ datatable(
   rownames = FALSE,                       # Disable row names
   extensions = "Buttons"                  # Enable export buttons
 ))
+```
+
+
+# Gene-centric Analysis { .tabset}
+
+
+## FMNDKO
+
+```{r gene-centric plot}
+set.seed(44)
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+# -------------------------------
+# 1. Combine data and add protein impact
+# -------------------------------
+combined_df <- bind_rows(
+  exons  = differential_fmndko_exons,
+  introns   = differential_fmndko_introns,
+  .id = "source"   # new column indicating the origin
+) 
+
+# Match the protein impact values
+combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+# select only unqiue values in GENE
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE)
+# -------------------------------
+# 2. Create per-gene summary data
+# -------------------------------
+combined_df_summary <- combined_df %>%
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # number of events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort so that genes with more events come first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set the ordering for the x-axis
+
+# -------------------------------
+# 3. Update original data and join summary info
+# -------------------------------
+combined_df <- combined_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  ) %>%
+  left_join(combined_df_summary %>% select(GENE, nEvents), by = "GENE") %>%
+  mutate(GENE = factor(GENE, levels = levels(combined_df_summary$GENE)))
+
+# -------------------------------
+# 4. Create custom facet strip labels (optional)
+# -------------------------------
+facet_labels <- combined_df_summary %>%
+  group_by(nEvents) %>%
+  summarise(n_genes = n()) %>%
+  mutate(label = paste0(nEvents, " events (", n_genes, " genes)")) %>%
+  deframe()  # a named vector mapping nEvents -> "n events (x genes)"
+
+# -------------------------------
+# 5. Create a mapping for x-axis labels: blank out gene names for nEvents==1 or 2
+# -------------------------------
+gene_labels <- combined_df_summary %>%
+  mutate(gene_label = ifelse(nEvents %in% c(1, 2), "", as.character(GENE))) %>%
+  select(GENE, gene_label) %>%
+  deframe()
+
+# -------------------------------
+# 6. Create annotation data for facets with nEvents 1 and 2
+# -------------------------------
+annotation_df <- combined_df_summary %>%
+  filter(nEvents %in% c(1, 2)) %>%
+  group_by(nEvents) %>%
+  summarise(
+    n_genes      = n(),
+    max_meanDelta= max(meanDelta)
+  ) %>%
+  # Here we compute an approximate x-location (center of the facet)
+  # Note: In a free_x facet the bars are placed at positions 1,2,..., so (n_genes+1)/2 is roughly centered.
+  mutate(
+    x = (n_genes + 1) / 2,
+    y = max_meanDelta * 1.05  # position the label slightly above the tallest bar in that facet
+  )
+
+# -------------------------------
+# 7. Build the plot
+# -------------------------------
+p <- ggplot() +
+  # Bar plot: summary values (mean absolute deltapsi) per gene
+  geom_bar(
+    data = combined_df_summary[-which(combined_df_summary$GENE==""),], 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Jitter: individual event values, with shape by protein impact
+  geom_jitter(
+    data = combined_df[-which(combined_df$GENE==""),],
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter
+    size = 2.5, 
+    alpha = 0.6,
+    color = "black"
+  ) +
+  # Add a text annotation in facets where nEvents==1 or 2 showing the number of genes
+  geom_text(
+    data = annotation_df,
+    aes(x = x, y = y, label = paste(n_genes, "genes")),
+    inherit.aes = FALSE,
+    size = 5,
+    color = "black"
+  ) +
+  # Use a color palette for the bars and manually define the shapes
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Apply the custom x-axis labels (gene names only appear for genes with >2 events)
+  scale_x_discrete(labels = gene_labels) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title="FMNDKO",
+    subtitle = "Mean |dPSI| of genes grouped by the number significant Splicing Events"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    # Rotate x-axis labels (for facets that show them)
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title   = element_text(hjust = 0.5),
+    # Improved facet strip aesthetics:
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text       = element_text(face = "bold"),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank()
+  ) +
+  # Facet the plot by the number of events (with free x-axis scales)
+  facet_wrap(~ nEvents, scales = "free_x", labeller = labeller(nEvents = facet_labels))
+
+# Display the plot
+print(p)
+
+
+```
+
+## Spire
+
+```{r gene-centric plot}
+set.seed(44)
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+# -------------------------------
+# 1. Combine data and add protein impact
+# -------------------------------
+combined_df <- bind_rows(
+  exons  = differential_spire_exons,
+  introns   = differential_spire_introns,
+  .id = "source"   # new column indicating the origin
+) 
+
+# Match the protein impact values
+combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+# select only unqiue values in GENE
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE)
+# -------------------------------
+# 2. Create per-gene summary data
+# -------------------------------
+combined_df_summary <- combined_df %>%
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # number of events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort so that genes with more events come first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set the ordering for the x-axis
+
+# -------------------------------
+# 3. Update original data and join summary info
+# -------------------------------
+combined_df <- combined_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  ) %>%
+  left_join(combined_df_summary %>% select(GENE, nEvents), by = "GENE") %>%
+  mutate(GENE = factor(GENE, levels = levels(combined_df_summary$GENE)))
+
+# -------------------------------
+# 4. Create custom facet strip labels (optional)
+# -------------------------------
+facet_labels <- combined_df_summary %>%
+  group_by(nEvents) %>%
+  summarise(n_genes = n()) %>%
+  mutate(label = paste0(nEvents, " events (", n_genes, " genes)")) %>%
+  deframe()  # a named vector mapping nEvents -> "n events (x genes)"
+
+# -------------------------------
+# 5. Create a mapping for x-axis labels: blank out gene names for nEvents==1 or 2
+# -------------------------------
+gene_labels <- combined_df_summary %>%
+  mutate(gene_label = ifelse(nEvents %in% c(1, 2), "", as.character(GENE))) %>%
+  select(GENE, gene_label) %>%
+  deframe()
+
+# -------------------------------
+# 6. Create annotation data for facets with nEvents 1 and 2
+# -------------------------------
+annotation_df <- combined_df_summary %>%
+  filter(nEvents %in% c(1, 2)) %>%
+  group_by(nEvents) %>%
+  summarise(
+    n_genes      = n(),
+    max_meanDelta= max(meanDelta)
+  ) %>%
+  # Here we compute an approximate x-location (center of the facet)
+  # Note: In a free_x facet the bars are placed at positions 1,2,..., so (n_genes+1)/2 is roughly centered.
+  mutate(
+    x = (n_genes + 1) / 2,
+    y = max_meanDelta * 1.05  # position the label slightly above the tallest bar in that facet
+  )
+
+# -------------------------------
+# 7. Build the plot
+# -------------------------------
+p <- ggplot() +
+  # Bar plot: summary values (mean absolute deltapsi) per gene
+  geom_bar(
+    data = combined_df_summary[-which(combined_df_summary$GENE==""),], 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Jitter: individual event values, with shape by protein impact
+  geom_jitter(
+    data = combined_df[-which(combined_df$GENE==""),],
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter
+    size = 2.5, 
+    alpha = 0.6,
+    color = "black"
+  ) +
+  # Add a text annotation in facets where nEvents==1 or 2 showing the number of genes
+  geom_text(
+    data = annotation_df,
+    aes(x = x, y = y, label = paste(n_genes, "genes")),
+    inherit.aes = FALSE,
+    size = 5,
+    color = "black"
+  ) +
+  # Use a color palette for the bars and manually define the shapes
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Apply the custom x-axis labels (gene names only appear for genes with >2 events)
+  scale_x_discrete(labels = gene_labels) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title="Spire",
+    subtitle = "Mean |dPSI| of genes grouped by the number significant Splicing Events"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    # Rotate x-axis labels (for facets that show them)
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title   = element_text(hjust = 0.5),
+    # Improved facet strip aesthetics:
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text       = element_text(face = "bold"),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank()
+  ) +
+  # Facet the plot by the number of events (with free x-axis scales)
+  facet_wrap(~ nEvents, scales = "free_x", labeller = labeller(nEvents = facet_labels))
+
+# Display the plot
+print(p)
+
+
+```
+
+# Spliceosome Ontology Genes { .tabset}
+
+
+## Spire
+
+```{r, splicesosomo ontology behaviour}
+
+enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE,differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+
+# Extract and format gene names
+genes_splicing_1 <- enrichdata[[1]] %>%
+  filter(str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
+  pull(Genes) %>%                         # Extract Genes column
+  str_split(";") %>%                      # Split gene names
+  unlist() %>%                            # Flatten list
+  str_to_lower() %>%                      # Convert to lowercase
+  str_replace("^.", toupper) 
+# Capitalize first letter
+genes_splicing_2 <- enrichdata[[2]] %>%
+  filter(str_detect(Term, "splic") | str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
+  pull(Genes) %>%                         # Extract Genes column
+  str_split(";") %>%                      # Split gene names
+  unlist() %>%                            # Flatten list
+  str_to_lower() %>%                      # Convert to lowercase
+  str_replace("^.", toupper) 
+
+genes_splicing<-unique(c(genes_splicing_1,genes_splicing_2))
+
+combined_df <- bind_rows(
+  exons_spire = differential_spire_exons,
+  introns_spire = differential_spire_introns,
+  .id = "source"  # This will be the new column indicating the origin
+)
+splicing_df<-filter(combined_df, GENE %in% genes_splicing)
+splicing_df$protein_impact<-protein_impact$ONTO[match(splicing_df$EVENT, protein_impact$EventID)]
+
+
+
+# Prepare the summary data frame, ensuring proper sorting and factor ordering
+splicing_df_summary <- splicing_df %>%
+  # Remove duplicate rows for the same gene and event (if applicable)
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # count unique events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  # Set the factor levels for GENE according to the sorted order
+  mutate(GENE = factor(GENE, levels = unique(GENE)))
+
+# Update the original data frame:
+# - Create a column for the absolute value of deltapsi.
+# - Ensure that GENE is a factor with levels set by the summary.
+# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
+splicing_df <- splicing_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    GENE = factor(GENE, levels = levels(splicing_df_summary$GENE)),
+    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  )
+
+# Create the publication-ready plot:
+p <- ggplot() +
+  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
+  geom_bar(
+    data = splicing_df_summary, 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Overlay individual data points with jitter, mapping shape by the 'impact' column
+  geom_jitter(
+    data = splicing_df,
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter to reduce overplotting
+    size = 2.5, 
+    alpha = 0.6,     # adjust transparency
+    color = "black"  # point border color
+  ) +
+  # Use a pleasing color palette for the bars (from RColorBrewer)
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Publication-quality theme settings
+  theme_bw(base_size = 14) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Splicing related Genes in Spire"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+print(p)
+
+
+```
+
+
+```{r splicing plots spire, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+spire_shared<-filter(spire_events$PSI, EVENT %in% splicing_df$EVENT)
+
+# Add GENE names to the EVENT column
+spire_shared <- spire_shared %>%
+  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
+
+spire_shared <- spire_shared %>%
+  pivot_longer(
+    cols = 7:10,  # Only selecting columns 7 to 10
+    names_to = "Condition",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Group = case_when(
+      Condition %in% names(spire_shared)[7:9] ~ "Control",
+      Condition %in% names(spire_shared)[10:12] ~ "spireKO"
+    )
+  )
+
+
+spire_shared$Group<-factor(spire_shared$Group, levels = c("Control","spireKO"))
+# Plot with updated EVENT names
+ggplot(spire_shared, aes(x = Group, y = Value, color = EVENT)) +
+  geom_boxplot(size = 1,show.legend = FALSE) +
+  labs(
+    title = "Events of Splicing Proteins Spire",
+    x = "",
+    y = "PSI"
+  ) +
+  theme_minimal() +
+  facet_wrap(~EVENT)
+```
+
+
+
+## FMNDKO
+
+```{r splicing fmndko}
+
+enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE,differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+
+# Extract and format gene names
+genes_splicing_1 <- enrichdata[[1]] %>%
+  filter(str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
+  pull(Genes) %>%                         # Extract Genes column
+  str_split(";") %>%                      # Split gene names
+  unlist() %>%                            # Flatten list
+  str_to_lower() %>%                      # Convert to lowercase
+  str_replace("^.", toupper) 
+# Capitalize first letter
+genes_splicing_2 <- enrichdata[[2]] %>%
+  filter(str_detect(Term, "splic") | str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
+  pull(Genes) %>%                         # Extract Genes column
+  str_split(";") %>%                      # Split gene names
+  unlist() %>%                            # Flatten list
+  str_to_lower() %>%                      # Convert to lowercase
+  str_replace("^.", toupper) 
+
+genes_splicing<-unique(c(genes_splicing_1,genes_splicing_2))
+
+combined_df <- bind_rows(
+  exons_fmndko = differential_fmndko_exons,
+  introns_fmndko = differential_fmndko_introns,
+  .id = "source"  # This will be the new column indicating the origin
+)
+splicing_df<-filter(combined_df, GENE %in% genes_splicing)
+splicing_df$protein_impact<-protein_impact$ONTO[match(splicing_df$EVENT, protein_impact$EventID)]
+
+
+
+# Prepare the summary data frame, ensuring proper sorting and factor ordering
+splicing_df_summary <- splicing_df %>%
+  # Remove duplicate rows for the same gene and event (if applicable)
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # count unique events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  # Set the factor levels for GENE according to the sorted order
+  mutate(GENE = factor(GENE, levels = unique(GENE)))
+
+# Update the original data frame:
+# - Create a column for the absolute value of deltapsi.
+# - Ensure that GENE is a factor with levels set by the summary.
+# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
+splicing_df <- splicing_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    GENE = factor(GENE, levels = levels(splicing_df_summary$GENE)),
+    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  )
+
+# Create the publication-ready plot:
+p <- ggplot() +
+  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
+  geom_bar(
+    data = splicing_df_summary, 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Overlay individual data points with jitter, mapping shape by the 'impact' column
+  geom_jitter(
+    data = splicing_df,
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter to reduce overplotting
+    size = 2.5, 
+    alpha = 0.6,     # adjust transparency
+    color = "black"  # point border color
+  ) +
+  # Use a pleasing color palette for the bars (from RColorBrewer)
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Publication-quality theme settings
+  theme_bw(base_size = 14) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Splicing related Genes in FMNDKO"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+print(p)
+
+
+```
+
+```{r splicing plots, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+fmndko_shared<-filter(fmndko_events$PSI, EVENT %in% splicing_df$EVENT)
+
+# Add GENE names to the EVENT column
+fmndko_shared <- fmndko_shared %>%
+  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
+
+fmndko_shared <- fmndko_shared %>%
+  pivot_longer(
+    cols = 7:10,  # Only selecting columns 7 to 10
+    names_to = "Condition",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Group = case_when(
+      Condition %in% names(fmndko_shared)[7:8] ~ "Control",
+      Condition %in% names(fmndko_shared)[9:10] ~ "fmndko"
+    )
+  )
+
+
+fmndko_shared$Group<-factor(fmndko_shared$Group, levels = c("Control","fmndko"))
+# Plot with updated EVENT names
+ggplot(fmndko_shared, aes(x = Group, y = Value, color = EVENT)) +
+  geom_boxplot(size = 1,show.legend = FALSE) +
+  labs(
+    title = "Events of Splicing Proteins FMNDKO",
+    x = "",
+    y = "PSI"
+  ) +
+  theme_minimal() +
+  facet_wrap(~EVENT)
 ```
 
 
@@ -2377,7 +2942,7 @@ col_fun <- colorRamp2(
   c("purple", "white", "orange")
 )
 
-number_splices<-5
+number_splices<-6
 
 
 
