@@ -2018,7 +2018,7 @@ print(p)
 
 ## Spire
 
-```{r gene-centric plot}
+```{r gene-centric plot spire}
 set.seed(44)
 protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
                              header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
