@@ -668,9 +668,9 @@ pladb_pdiff_exons$Shared <- ifelse(pladb_pdiff_exons$EVENT %in% shared_exons, "S
 
 # Classify significance
 pladb_pdiff_exons$Significant <- ifelse(
-  pladb_pdiff_exons$FDR<=0.1 & pladb_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  pladb_pdiff_exons$FDR<=0.01 & pladb_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_pdiff_exons$FDR<=0.1 & pladb_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    pladb_pdiff_exons$FDR<=0.01 & pladb_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -679,7 +679,6 @@ pladb_pdiff_exons$Significant <- ifelse(
 pladb_pdiff_exons$negLogpvalue <- -log10(pladb_pdiff_exons$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(pladb_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -693,13 +692,13 @@ volcano_plot <- ggplot(pladb_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -710,26 +709,30 @@ volcano_plot <- ggplot(pladb_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
     title = "Pladb (10mm - control) Exons",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "sans") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 
-# Display the plot
 volcano_plot
+
 
 ```
 
@@ -742,9 +745,9 @@ pladb_1mm_control_pdiff_exons$Shared <- ifelse(pladb_1mm_control_pdiff_exons$EVE
 
 # Classify significance
 pladb_1mm_control_pdiff_exons$Significant <- ifelse(
-  pladb_1mm_control_pdiff_exons$FDR<=0.1 & pladb_1mm_control_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_control_pdiff_exons$FDR<=0.01 & pladb_1mm_control_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_control_pdiff_exons$FDR<=0.1 & pladb_1mm_control_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_control_pdiff_exons$FDR<=0.01 & pladb_1mm_control_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -753,7 +756,6 @@ pladb_1mm_control_pdiff_exons$Significant <- ifelse(
 pladb_1mm_control_pdiff_exons$negLogpvalue <- -log10(pladb_1mm_control_pdiff_exons$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(pladb_1mm_control_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -767,13 +769,13 @@ volcano_plot <- ggplot(pladb_1mm_control_pdiff_exons, aes(x = deltapsi, y = negL
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -781,27 +783,30 @@ volcano_plot <- ggplot(pladb_1mm_control_pdiff_exons, aes(x = deltapsi, y = negL
   labs(
     x = "Delta PSI",
     y = expression(-log[10](FDR)),
-    title = "Pladb (1mm - Control) Exons",
+    title = "Pladb (1mm - control) Exons",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "sans") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
-
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 # Display the plot
 volcano_plot
 
@@ -816,9 +821,9 @@ pladb_1mm_10mm_pdiff_exons$Shared <- ifelse(pladb_1mm_10mm_pdiff_exons$EVENT %in
 
 # Classify significance
 pladb_1mm_10mm_pdiff_exons$Significant <- ifelse(
-  pladb_1mm_10mm_pdiff_exons$FDR<=0.1 & pladb_1mm_10mm_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_10mm_pdiff_exons$FDR<=0.01 & pladb_1mm_10mm_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_10mm_pdiff_exons$FDR<=0.1 & pladb_1mm_10mm_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_10mm_pdiff_exons$FDR<=0.01 & pladb_1mm_10mm_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -827,7 +832,7 @@ pladb_1mm_10mm_pdiff_exons$Significant <- ifelse(
 pladb_1mm_10mm_pdiff_exons$negLogpvalue <- -log10(pladb_1mm_10mm_pdiff_exons$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
+
 volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -841,13 +846,13 @@ volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_exons, aes(x = deltapsi, y = negLogp
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -858,23 +863,27 @@ volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_exons, aes(x = deltapsi, y = negLogp
     title = "Pladb (10mm - 1mm) Exons",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "sans") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 
 # Display the plot
 volcano_plot
@@ -1218,9 +1227,9 @@ pladb_pdiff_introns$Shared <- ifelse(pladb_pdiff_introns$EVENT %in% shared_intro
 
 # Classify significance
 pladb_pdiff_introns$Significant <- ifelse(
-  pladb_pdiff_introns$FDR<=0.1 & pladb_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  pladb_pdiff_introns$FDR<=0.01 & pladb_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_pdiff_introns$FDR<=0.1 & pladb_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    pladb_pdiff_introns$FDR<=0.01 & pladb_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1229,7 +1238,6 @@ pladb_pdiff_introns$Significant <- ifelse(
 pladb_pdiff_introns$negLogpvalue <- -log10(pladb_pdiff_introns$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(pladb_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -1243,13 +1251,13 @@ volcano_plot <- ggplot(pladb_pdiff_introns, aes(x = deltapsi, y = negLogpvalue))
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared introns
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared introns
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -1260,24 +1268,27 @@ volcano_plot <- ggplot(pladb_pdiff_introns, aes(x = deltapsi, y = negLogpvalue))
     title = "Pladb (10mm - control) Introns",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
-
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 # Display the plot
 volcano_plot
 
@@ -1292,9 +1303,9 @@ pladb_1mm_control_pdiff_introns$Shared <- ifelse(pladb_1mm_control_pdiff_introns
 
 # Classify significance
 pladb_1mm_control_pdiff_introns$Significant <- ifelse(
-  pladb_1mm_control_pdiff_introns$FDR<=0.1 & pladb_1mm_control_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_control_pdiff_introns$FDR<=0.01 & pladb_1mm_control_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_control_pdiff_introns$FDR<=0.1 & pladb_1mm_control_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_control_pdiff_introns$FDR<=0.01 & pladb_1mm_control_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1303,7 +1314,6 @@ pladb_1mm_control_pdiff_introns$Significant <- ifelse(
 pladb_1mm_control_pdiff_introns$negLogpvalue <- -log10(pladb_1mm_control_pdiff_introns$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(pladb_1mm_control_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -1317,13 +1327,13 @@ volcano_plot <- ggplot(pladb_1mm_control_pdiff_introns, aes(x = deltapsi, y = ne
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared introns
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared introns
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -1331,27 +1341,30 @@ volcano_plot <- ggplot(pladb_1mm_control_pdiff_introns, aes(x = deltapsi, y = ne
   labs(
     x = "Delta PSI",
     y = expression(-log[10](FDR)),
-    title = "Pladb (1mm - Control) Introns",
+    title = "Pladb (1mm - control) Introns",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
-
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 # Display the plot
 volcano_plot
 
@@ -1366,9 +1379,9 @@ pladb_1mm_10mm_pdiff_introns$Shared <- ifelse(pladb_1mm_10mm_pdiff_introns$EVENT
 
 # Classify significance
 pladb_1mm_10mm_pdiff_introns$Significant <- ifelse(
-  pladb_1mm_10mm_pdiff_introns$FDR<=0.1 & pladb_1mm_10mm_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_10mm_pdiff_introns$FDR<=0.01 & pladb_1mm_10mm_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_10mm_pdiff_introns$FDR<=0.1 & pladb_1mm_10mm_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_10mm_pdiff_introns$FDR<=0.01 & pladb_1mm_10mm_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1377,7 +1390,6 @@ pladb_1mm_10mm_pdiff_introns$Significant <- ifelse(
 pladb_1mm_10mm_pdiff_introns$negLogpvalue <- -log10(pladb_1mm_10mm_pdiff_introns$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -1391,13 +1403,13 @@ volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_introns, aes(x = deltapsi, y = negLo
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared introns
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared introns
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -1408,23 +1420,27 @@ volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_introns, aes(x = deltapsi, y = negLo
     title = "Pladb (10mm - 1mm) Introns",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 
 # Display the plot
 volcano_plot
@@ -1776,9 +1792,9 @@ pladb_pdiff_alt$Shared <- ifelse(pladb_pdiff_alt$EVENT %in% shared_alt, "Shared"
 
 # Classify significance
 pladb_pdiff_alt$Significant <- ifelse(
-  pladb_pdiff_alt$FDR<=0.1 & pladb_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  pladb_pdiff_alt$FDR<=0.01 & pladb_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_pdiff_alt$FDR<=0.1 & pladb_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    pladb_pdiff_alt$FDR<=0.01 & pladb_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1787,7 +1803,6 @@ pladb_pdiff_alt$Significant <- ifelse(
 pladb_pdiff_alt$negLogpvalue <- -log10(pladb_pdiff_alt$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(pladb_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -1801,13 +1816,13 @@ volcano_plot <- ggplot(pladb_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared alt
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared alt
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -1815,27 +1830,30 @@ volcano_plot <- ggplot(pladb_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   labs(
     x = "Delta PSI",
     y = expression(-log[10](FDR)),
-    title = "Pladb (10mm - control) Alt",
+    title = "Pladb (10mm - control) Alt 5´ & 3´",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
-
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 # Display the plot
 volcano_plot
 
@@ -1850,9 +1868,9 @@ pladb_1mm_control_pdiff_alt$Shared <- ifelse(pladb_1mm_control_pdiff_alt$EVENT %
 
 # Classify significance
 pladb_1mm_control_pdiff_alt$Significant <- ifelse(
-  pladb_1mm_control_pdiff_alt$FDR<=0.1 & pladb_1mm_control_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_control_pdiff_alt$FDR<=0.01 & pladb_1mm_control_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_control_pdiff_alt$FDR<=0.1 & pladb_1mm_control_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_control_pdiff_alt$FDR<=0.01 & pladb_1mm_control_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1861,7 +1879,7 @@ pladb_1mm_control_pdiff_alt$Significant <- ifelse(
 pladb_1mm_control_pdiff_alt$negLogpvalue <- -log10(pladb_1mm_control_pdiff_alt$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
+
 volcano_plot <- ggplot(pladb_1mm_control_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -1875,13 +1893,13 @@ volcano_plot <- ggplot(pladb_1mm_control_pdiff_alt, aes(x = deltapsi, y = negLog
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared alt
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared alt
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -1889,27 +1907,30 @@ volcano_plot <- ggplot(pladb_1mm_control_pdiff_alt, aes(x = deltapsi, y = negLog
   labs(
     x = "Delta PSI",
     y = expression(-log[10](FDR)),
-    title = "Pladb (1mm - Control) Alt",
+    title = "Pladb (1mm - control) Alt 5´ & 3´",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
-
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 # Display the plot
 volcano_plot
 
@@ -1924,9 +1945,9 @@ pladb_1mm_10mm_pdiff_alt$Shared <- ifelse(pladb_1mm_10mm_pdiff_alt$EVENT %in% sh
 
 # Classify significance
 pladb_1mm_10mm_pdiff_alt$Significant <- ifelse(
-  pladb_1mm_10mm_pdiff_alt$FDR<=0.1 & pladb_1mm_10mm_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_10mm_pdiff_alt$FDR<=0.01 & pladb_1mm_10mm_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_10mm_pdiff_alt$FDR<=0.1 & pladb_1mm_10mm_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_10mm_pdiff_alt$FDR<=0.01 & pladb_1mm_10mm_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1935,7 +1956,7 @@ pladb_1mm_10mm_pdiff_alt$Significant <- ifelse(
 pladb_1mm_10mm_pdiff_alt$negLogpvalue <- -log10(pladb_1mm_10mm_pdiff_alt$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
+
 volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
     color = ifelse(Shared == "Shared", "Shared", Significant),
@@ -1949,13 +1970,13 @@ volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_alt, aes(x = deltapsi, y = negLogpva
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared alt
+    "Shared" = 1.0,         # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared alt
+    "Shared" = 3,           # Larger size for shared exons
     "Overrepresented" = 2,
     "Underrepresented" = 2,
     "Not Significant" = 1
@@ -1963,68 +1984,34 @@ volcano_plot <- ggplot(pladb_1mm_10mm_pdiff_alt, aes(x = deltapsi, y = negLogpva
   labs(
     x = "Delta PSI",
     y = expression(-log[10](FDR)),
-    title = "Pladb (10mm - 1mm) Alt",
+    title = "Pladb (10mm - 1mm) Alt 5´ & 3´",
     subtitle = "Shared events are highlighted in golden"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.title = element_text(
-      hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
-    plot.subtitle = element_text(
-      hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = "black"),
+    plot.subtitle = element_text(hjust = 0.5, size = 14, face = "italic", color = "gray30"),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()  # Remove the built-in border
   ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
-
+  # Increase y-axis space at the top:
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), limits = c(0, NA)) +
+  # Add back left, bottom, and right borders:
+  geom_segment(aes(x = -Inf, xend = Inf, y = -Inf, yend = -Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = -Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1) +
+  geom_segment(aes(x = Inf, xend = Inf, y = -Inf, yend = Inf),
+               inherit.aes = FALSE, color = "black", size = 1)
 # Display the plot
 volcano_plot
 
 ```
-
-
-#### Dynamics of Shared Alt
-
-```{r dynamics shraed alt}
-shared_alt_df <- data.frame(
-  Event = shared_alt,
-  control = rep(0, length(shared_alt)),
-  PladB_1mm = 0 + pladb_1mm_control_pdiff_alt$deltapsi[pladb_1mm_control_pdiff_alt$EVENT %in% shared_alt]
-)
-shared_alt_df$PladB_10mm <- shared_alt_df$PladB_1mm + pladb_1mm_10mm_pdiff_alt$deltapsi[pladb_1mm_10mm_pdiff_alt$EVENT %in% shared_alt]
-shared_alt_df <- pivot_longer(shared_alt_df, cols = 2:4, names_to = "dose")
-shared_alt_df$dose <- factor(shared_alt_df$dose, levels = c("control", "PladB_1mm", "PladB_10mm"))
-
-# Plot
-dose_dependent_plot<-ggplot(shared_alt_df, aes(x = dose, y = value, group = Event, color = Event)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") + # Horizontal line at y=0
-  geom_line(size = 1, alpha = 0.7) + # Connect points with lines
-  geom_point(size = 3, alpha = 0.8) + # Points for emphasis
-  facet_wrap(~ Event, scales = "fixed") + # Facet by Event
-  labs(
-    title = "Dose-Dependent Changes in Alt deltaPSI",
-    x = "Dose",
-    y = "ΔPSI",
-    color = "Event"
-  ) +
-  theme_minimal(base_size = 15) + # Clean, professional theme
-  theme(
-    strip.text = element_text(face = "bold"), # Highlight Event labels
-    legend.position = "none", # Remove legend for clarity in facets
-    axis.text.x = element_text(angle = 45, hjust = 1) # Rotate x-axis labels
-  )
-
-
-dose_dependent_plot
-```
-
 
 
 
@@ -2438,7 +2425,7 @@ enrichdata<-enrichr(unique(c(differential_pladb10mm_1mm_introns$GENE, differenti
 #### GO Biological Process
 
 ```{r pladb bioprocess 10mm 1mm, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[1])
+plotEnrich(enrichdata[[1]])
 datatable(
   enrichdata[[1]],
   options = list(
@@ -2454,9 +2441,9 @@ datatable(
 #### GO Cellular Component
 
 ```{r pladb cellcomponent 10mm 1mm, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
+plotEnrich(enrichdata[[2]])
 datatable(
-  enrichdata[[1]],
+  enrichdata[[2]],
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2470,9 +2457,9 @@ datatable(
 #### GO Molecular Function
 
 ```{r pladb molfunction 10mm 1mm, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
+plotEnrich(enrichdata[[3]])
 datatable(
-  enrichdata[[1]],
+  enrichdata[[3]],
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2481,6 +2468,147 @@ datatable(
   rownames = FALSE,                       # Disable row names
   extensions = "Buttons"                  # Enable export buttons
 ))
+```
+
+# Gene-centric Analysis
+
+```{r gene-centric plot}
+set.seed(44)
+
+# -------------------------------
+# 1. Combine data and add protein impact
+# -------------------------------
+combined_df <- bind_rows(
+  exons_10mm  = differential_pladb10mm_exons,
+  exons_1mm   = differential_pladb1mm_exons,
+  introns_10mm= differential_pladb10mm_introns,
+  introns_1mm = differential_pladb1mm_introns,
+  .id = "source"   # new column indicating the origin
+) %>% 
+  select(-X)
+
+# Match the protein impact values
+combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+# select only unqiue values in GENE
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE)
+# -------------------------------
+# 2. Create per-gene summary data
+# -------------------------------
+combined_df_summary <- combined_df %>%
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # number of events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort so that genes with more events come first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set the ordering for the x-axis
+
+# -------------------------------
+# 3. Update original data and join summary info
+# -------------------------------
+combined_df <- combined_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  ) %>%
+  left_join(combined_df_summary %>% select(GENE, nEvents), by = "GENE") %>%
+  mutate(GENE = factor(GENE, levels = levels(combined_df_summary$GENE)))
+
+# -------------------------------
+# 4. Create custom facet strip labels (optional)
+# -------------------------------
+facet_labels <- combined_df_summary %>%
+  group_by(nEvents) %>%
+  summarise(n_genes = n()) %>%
+  mutate(label = paste0(nEvents, " events (", n_genes, " genes)")) %>%
+  deframe()  # a named vector mapping nEvents -> "n events (x genes)"
+
+# -------------------------------
+# 5. Create a mapping for x-axis labels: blank out gene names for nEvents==1 or 2
+# -------------------------------
+gene_labels <- combined_df_summary %>%
+  mutate(gene_label = ifelse(nEvents %in% c(1, 2), "", as.character(GENE))) %>%
+  select(GENE, gene_label) %>%
+  deframe()
+
+# -------------------------------
+# 6. Create annotation data for facets with nEvents 1 and 2
+# -------------------------------
+annotation_df <- combined_df_summary %>%
+  filter(nEvents %in% c(1, 2)) %>%
+  group_by(nEvents) %>%
+  summarise(
+    n_genes      = n(),
+    max_meanDelta= max(meanDelta)
+  ) %>%
+  # Here we compute an approximate x-location (center of the facet)
+  # Note: In a free_x facet the bars are placed at positions 1,2,..., so (n_genes+1)/2 is roughly centered.
+  mutate(
+    x = (n_genes + 1) / 2,
+    y = max_meanDelta * 1.05  # position the label slightly above the tallest bar in that facet
+  )
+
+# -------------------------------
+# 7. Build the plot
+# -------------------------------
+p <- ggplot() +
+  # Bar plot: summary values (mean absolute deltapsi) per gene
+  geom_bar(
+    data = combined_df_summary[-which(combined_df_summary$GENE==""),], 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Jitter: individual event values, with shape by protein impact
+  geom_jitter(
+    data = combined_df[-which(combined_df$GENE==""),],
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter
+    size = 2.5, 
+    alpha = 0.6,
+    color = "black"
+  ) +
+  # Add a text annotation in facets where nEvents==1 or 2 showing the number of genes
+  geom_text(
+    data = annotation_df,
+    aes(x = x, y = y, label = paste(n_genes, "genes")),
+    inherit.aes = FALSE,
+    size = 5,
+    color = "black"
+  ) +
+  # Use a color palette for the bars and manually define the shapes
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Apply the custom x-axis labels (gene names only appear for genes with >2 events)
+  scale_x_discrete(labels = gene_labels) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Mean |dPSI| of genes grouped by the number significant Splicing Events"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    # Rotate x-axis labels (for facets that show them)
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title   = element_text(hjust = 0.5),
+    # Improved facet strip aesthetics:
+    strip.background = element_rect(fill = "lightblue", color = "black"),
+    strip.text       = element_text(face = "bold"),
+    panel.background = element_blank(),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank()
+  ) +
+  # Facet the plot by the number of events (with free x-axis scales)
+  facet_wrap(~ nEvents, scales = "free_x", labeller = labeller(nEvents = facet_labels))
+
+# Display the plot
+print(p)
+
+
 ```
 
 # Nuclear Speckle Protein Splicing Correlation
@@ -2749,7 +2877,7 @@ for (i in seq_along(clustered_events)) {
 
 **Note**: the *heatmap_cluster* column references to the heatmap row cluster (from top to bottom) that specific event belongs to.
 
-```{r, table heatmap final 2}
+```{r, table heatmap final 3}
 row_order <- unlist(row_order(ht), use.names = F)
 col_order <- unlist(column_order(ht), use.names = F)
 
@@ -2788,7 +2916,7 @@ datatable(
 
 ### Same Heatmap but averaging PSI values from same condition
 
-```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+```{r heatmap_plot short 2, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
 pladb_matrix_short <- cbind(
@@ -2899,93 +3027,8 @@ datatable(
 ))
 ```
 
-# Event Densities { .tabset}
 
-## ORF Disrupted Events on GO: Cilium movement involved in cell motility
 
-```{r densities_per_event, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
-event_names <- c("MmuINT0050724", "MmuEX0027064", "MmuEX0001718", 
-          "MmuINT1008824", "MmuINT0051012", "MmuINT0087636", 
-          "MmuEX0032332", "MmuEX0032352", "MmuEX0025964", 
-          "MmuINT1008798", "MmuINT0029238","MmuEX0010927","MmuINT0060968")
-pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
-
-# Add GENE names to the EVENT column
-pladb_events_shared <- pladb_events_shared %>%
-  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
-
-# Reshape data for plotting
-pladb_events_shared <- pladb_events_shared %>%
-  pivot_longer(
-    cols = 7:15,
-    names_to = "Condition",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Group = case_when(
-      grepl("038|039|040", Condition) ~ "Control",
-      grepl("041|042|043", Condition) ~ "Pladb1mM",
-      grepl("044|045|046", Condition) ~ "Pladb10mM"
-    )
-  )
-
-pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
-# Plot with updated EVENT names
-ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
-  geom_boxplot(size = 1) +
-  labs(
-    title = "ORF Disrupted Events on GO: Cilium movement involved in cell motility",
-    x = "",
-    y = "PSI"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "right"
-  ) + 
-  facet_wrap(~EVENT)
-```
-
-## ORF Disrupted Events on GO: Regulation of fibroblast proliferation
-
-```{r densities_per_event 2, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
-event_names <- c("MmuEX0019420", "MmuEX0019425", "MmuEX0016754", 
-          "MmuEX0010581", "MmuINT0016328", "MmuINT0078365")
-pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
-
-# Add GENE names to the EVENT column
-pladb_events_shared <- pladb_events_shared %>%
-  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
-
-# Reshape data for plotting
-pladb_events_shared <- pladb_events_shared %>%
-  pivot_longer(
-    cols = 7:15,
-    names_to = "Condition",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Group = case_when(
-      grepl("038|039|040", Condition) ~ "Control",
-      grepl("041|042|043", Condition) ~ "Pladb1mM",
-      grepl("044|045|046", Condition) ~ "Pladb10mM"
-    )
-  )
-
-pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
-# Plot with updated EVENT names
-ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
-  geom_boxplot(size = 1) +
-  labs(
-    title = "ORF Disrupted Events on GO: Regulation of fibroblast proliferation",
-    x = "",
-    y = "PSI"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "right"
-  ) + 
-  facet_wrap(~EVENT)
-```
 
 # PladB 10mM vs Control UNIQUE (not shared with 1mM) events
 
@@ -3311,6 +3354,840 @@ ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
     legend.position = "right"
   ) + 
   facet_wrap(~EVENT)
+```
+
+
+# Splicing Dynamics Heatmap PladB
+
+Only Exons and Introns cassettes, not Alt. From now, onwards, only events with |dPSI|>=0.1 are considered.
+
+```{r heatmap prep 3, results='hide', fig.show='hide'}
+set.seed(44)
+
+# Extract all events
+pladb_all <- filterEvents(
+  pladb_events,
+  types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
+  N = 3
+)
+
+# Convert PSI values to a matrix and set row names
+pladb_matrix <- pladb_all$PSI[, 7:15] %>%
+  as.matrix()
+rownames(pladb_matrix) <- pladb_all$PSI$EVENT
+
+# Filter rows based on the final event lists and with abs(deltapsi)>=0.1
+filtered_events <- unique(c(
+  differential_pladb10mm_exons$EVENT[abs(differential_pladb10mm_exons$deltapsi)>=0.1],differential_pladb10mm_introns$EVENT[abs(differential_pladb10mm_introns$deltapsi)>=0.1],differential_pladb1mm_exons$EVENT[abs(differential_pladb1mm_exons$deltapsi)>=0.1],differential_pladb1mm_introns$EVENT[abs(differential_pladb1mm_introns$deltapsi)>=0.1]))
+pladb_matrix <- pladb_matrix[rownames(pladb_matrix) %in% filtered_events, ]
+
+# Arrange columns based on metadata
+colnames(pladb_matrix)<-metadata_pladb$fastq_files
+# Create a dendrogram for the columns
+col_dend <- hclust(dist(t(pladb_matrix))) %>%
+  as.dendrogram() %>%
+  color_branches(k = 3) # Color branches with 3 clusters
+
+# Check if row names contain "EX"
+contains_EX <- grepl("EX", rownames(pladb_matrix))
+
+# Define an improved color gradient for the heatmap
+col_fun <- colorRamp2(
+  c(0, 50, 100),
+  c("purple", "white", "orange")
+)
+
+number_splices<-8
+
+
+
+reference_table<-data.frame(EVENT=c(differential_pladb10mm_exons$EVENT,differential_pladb10mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb10mm_exons$EVENT,differential_pladb1mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb1mm_introns$EVENT), GENE=c(differential_pladb10mm_exons$GENE,differential_pladb10mm_introns$GENE,differential_pladb1mm_exons$GENE,differential_pladb10mm_exons$GENE,differential_pladb1mm_introns$GENE,differential_pladb1mm_exons$GENE,differential_pladb1mm_introns$GENE))
+
+
+
+ht<-Heatmap(
+  pladb_matrix, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns  = col_dend,
+  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
+  row_title = "Splicing Events of |dPSI|>=0.1",
+  column_names_rot = 45,
+  column_labels = metadata_pladb$Description,
+  column_dend_reorder = c(1:9),
+  row_km = number_splices,
+  row_dend_reorder = F,
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  column_names_gp = gpar(fontsize = 16),
+  show_row_names = FALSE,
+
+)
+ht = draw(ht); clustered_events<-row_order(ht)
+text_list<-list()
+# Loop through clustered events and assign dynamic names
+for (i in 1:length(clustered_events)) {
+  enrich_events <- enrichr(
+    reference_table$GENE[reference_table$EVENT %in% rownames(pladb_matrix)[clustered_events[[i]]]],
+    databases = c("GO_Biological_Process_2023", "GO_Cellular_Component_2023", "GO_Molecular_Function_2023")
+  )
+
+  # Assign the dynamic name and value
+  text_list[[paste0("text", i)]] <- paste(
+    enrich_events$GO_Cellular_Component_2023$Term[1],
+    enrich_events$GO_Cellular_Component_2023$Term[2],
+    enrich_events$GO_Cellular_Component_2023$Term[3],
+    enrich_events$GO_Molecular_Function_2023$Term[1],
+    enrich_events$GO_Molecular_Function_2023$Term[2],
+    enrich_events$GO_Molecular_Function_2023$Term[3],
+    sep = "; \n"
+  )
+}
+
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+
+events_for_impact<-rownames(pladb_matrix)
+
+final_impact <- data.frame(EventID = rownames(pladb_matrix)) %>%  # Extract row names as EventID
+  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
+  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
+  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
+  mutate(ONTO = case_when(
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
+    TRUE ~ ONTO
+  )) %>%
+  mutate(ONTO = as.numeric(ONTO)) %>%
+  replace_na(list(ONTO = 0))  # Fill missing ONTO values with 0
+
+# Define the left annotation (points) with axis labels
+left_annotation <- rowAnnotation(
+  Impact = anno_points(
+    final_impact$ONTO,
+    width = unit(4, "cm"),  # Adjusted width
+    size = unit(4, "mm"),   # Adjusted size of points
+    axis_param = list(
+      side = "top",
+      at = -2:2, # Numeric values to label
+      labels = c(
+        "Regulatory (5´UTR)",
+        "Alternative Isoform",
+        "Unknown/NonCoding",
+        "ORF disruption upon exclusion",
+        "ORF disruption upon inclusion"
+      ),
+      labels_rot = 45, # Rotation of labels
+      gp = gpar(fontsize = 15) # Text style
+    )
+  )
+)
+
+# Define the right annotation (foo)
+right_annotation <- rowAnnotation(
+  foo = anno_empty(
+    border = FALSE,
+    width = max_text_width(unlist(text_list)) + unit(4, "mm")
+  )
+)
+
+```
+
+### Heatmap showcasing the PSI of every candidate EX and IN
+
+**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
+
+```{r heatmap_plot 4, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+ht <- Heatmap(
+  pladb_matrix,
+  name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns = col_dend,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_labels = metadata_pladb$Description,
+  column_dend_reorder = c(1:9),
+  row_km = number_splices,
+  left_annotation = left_annotation,   # Add the points on the left
+  right_annotation = right_annotation, # Add foo on the right
+  row_dend_reorder = F,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(6, "mm"), # Adjust the gap size between rows
+  column_gap = unit(4, "mm"), # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend horizontally
+  )
+)
+
+# Draw the heatmap
+ht <- draw(ht)
+
+# Decorate the "foo" annotation slices (on the right)
+for (i in seq_along(clustered_events)) {
+  decorate_annotation("foo", slice = i, {
+    grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
+  })
+}
+
+
+```
+
+### Table of Events from Heatmap
+
+**Note**: the *heatmap_cluster* column references to the heatmap row cluster (from top to bottom) that specific event belongs to.
+
+```{r, table heatmap final 2}
+row_order <- unlist(row_order(ht), use.names = F)
+col_order <- unlist(column_order(ht), use.names = F)
+
+
+cluster_index <- unlist(lapply(seq_along(row_order(ht)), function(i) rep(i, length(row_order(ht)[[i]]))))
+
+# Reorder the original matrix based on clustering
+clustered_matrix <- pladb_matrix[row_order, col_order]
+
+final_impact_string<-protein_impact %>%
+  dplyr::filter(EventID %in% events_for_impact) %>%
+  slice(match(EventID, events_for_impact))
+final_impact_string<- final_impact_string[match(rownames(clustered_matrix),final_impact_string$EventID),]
+
+
+heatmap_dataframe<-tibble(EVENT=rownames(clustered_matrix), heatmap_cluster=cluster_index, protein_impact=final_impact_string$ONTO)
+heatmap_dataframe$GENE<-reference_table$GENE[match(heatmap_dataframe$EVENT, reference_table$EVENT)]
+heatmap_dataframe<-dplyr::select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
+
+# Render DataTable with enhancements
+datatable(
+  heatmap_dataframe,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+
+# 
+
+```
+
+
+### Same Heatmap but averaging PSI values from same condition
+
+```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+pladb_matrix_short <- cbind(
+  rowMeans(pladb_matrix[, 1:3]),
+  rowMeans(pladb_matrix[, 4:6]),
+  rowMeans(pladb_matrix[, 7:9])
+)
+
+# Convert to matrix and print result
+colnames(pladb_matrix_short) <- c("Control", "PladB_1mM", "PladB_10mM")
+
+pladb_matrix_short <- pladb_matrix_short[row_order,]
+
+ht <- Heatmap(
+  pladb_matrix_short,
+  name = "PSI",
+  col = col_fun,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = c(1:3),
+  cluster_rows = FALSE,   # <-- This disables row clustering
+  cluster_columns = FALSE, # Optionally disable column clustering if desired
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(6, "mm"),      # Adjust the gap size between rows
+  left_annotation = left_annotation[row_order],   # Add the points on the left
+  right_annotation = right_annotation[row_order],
+  column_gap = unit(4, "mm"),   # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend vertically
+  )
+)
+
+# Draw the heatmap
+ht <- draw(ht)
+
+# Draw the heatmap
+
+
+
+
+```
+
+
+# Metascape Ontology Analysis { .tabset}
+
+## Cell Cycle related
+
+
+```{r cell cycle genes plot}
+set.seed(44)
+metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
+metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
+
+cell_cycle_genes<-unique(c(
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:1901987 regulation of cell cycle phase`=="1.0" | metascape_alltocontrol$`GO:0051321 meiotic cell cycle`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0010564 regulation of cell cycle proce`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0061982 meiosis I cell cycle process`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1901976 regulation of cell cycle check`=="1.0")])
+  )
+
+combined_df <- select(bind_rows(
+  exons_10mm = differential_pladb10mm_exons,
+  exons_1mm = differential_pladb1mm_exons,
+  introns_10mm = differential_pladb10mm_introns,
+  introns_1mm = differential_pladb1mm_introns,
+  .id = "source"  # This will be the new column indicating the origin
+), -X)
+cell_cycle_df<-filter(combined_df, GENE %in% cell_cycle_genes)
+cell_cycle_df$protein_impact<-protein_impact$ONTO[match(cell_cycle_df$EVENT, protein_impact$EventID)]
+
+
+
+# Prepare the summary data frame, ensuring proper sorting and factor ordering
+cell_cycle_df_summary <- cell_cycle_df %>%
+  # Remove duplicate rows for the same gene and event (if applicable)
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # count unique events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  # Set the factor levels for GENE according to the sorted order
+  mutate(GENE = factor(GENE, levels = unique(GENE)))
+
+# Update the original data frame:
+# - Create a column for the absolute value of deltapsi.
+# - Ensure that GENE is a factor with levels set by the summary.
+# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
+cell_cycle_df <- cell_cycle_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    GENE = factor(GENE, levels = levels(cell_cycle_df_summary$GENE)),
+    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  )
+
+# Create the publication-ready plot:
+p <- ggplot() +
+  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
+  geom_bar(
+    data = cell_cycle_df_summary, 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Overlay individual data points with jitter, mapping shape by the 'impact' column
+  geom_jitter(
+    data = cell_cycle_df,
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter to reduce overplotting
+    size = 2.5, 
+    alpha = 0.6,     # adjust transparency
+    color = "black"  # point border color
+  ) +
+  # Use a pleasing color palette for the bars (from RColorBrewer)
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Publication-quality theme settings
+  theme_bw(base_size = 14) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Cell Cycle related Genes"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+print(p)
+
+
+```
+
+
+```{r cell cycle, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+event_names <- cell_cycle_df$EVENT[cell_cycle_df$impact=="ORF"]
+pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
+
+# Add GENE names to the EVENT column
+pladb_events_shared <- pladb_events_shared %>%
+  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
+
+# Reshape data for plotting
+pladb_events_shared <- pladb_events_shared %>%
+  pivot_longer(
+    cols = 7:15,
+    names_to = "Condition",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Group = case_when(
+      grepl("038|039|040", Condition) ~ "Control",
+      grepl("041|042|043", Condition) ~ "Pladb1mM",
+      grepl("044|045|046", Condition) ~ "Pladb10mM"
+    )
+  )
+
+pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
+# Plot with updated EVENT names
+ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
+  geom_boxplot(size = 1,show.legend = FALSE) +
+  labs(
+    title = "ORF Disrupted Events Cell Cycle Related",
+    x = "",
+    y = "PSI"
+  ) +
+  theme_minimal() +
+  facet_wrap(~EVENT)
+```
+
+## Cytoskeleton related
+
+
+```{r ctoskeleton genes plot}
+set.seed(44)
+metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
+metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
+metascape_allgenes_1mmvscontrol <- read_excel("metascape_allgenes_1mmvscontrol.xlsx")
+metascape_allgenes_10mmvs1mm <- read_excel("metascape_allgenes_10mmvs1mm.xlsx")
+
+
+cytoskeleton_genes<-unique(c(
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0034453 microtubule anchoring`=="1.0" | metascape_alltocontrol$`mmu04814 Motor proteins - Mus musculus`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0034453 microtubule anchoring`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1905274 regulation of modification of`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1902117 positive regulation of organel`=="1.0")]),
+  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0034454 microtubule anchoring at centr`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0007064 mitotic sister chromatid cohes`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0022027 interkinetic nuclear migration`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0010638 positive regulation of organel`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0034727 piecemeal microautophagy of th`=="1.0","Cep170")]
+  )
+
+combined_df <- select(bind_rows(
+  exons_10mm = differential_pladb10mm_exons,
+  exons_1mm = differential_pladb1mm_exons,
+  introns_10mm = differential_pladb10mm_introns,
+  introns_1mm = differential_pladb1mm_introns,
+  .id = "source"  # This will be the new column indicating the origin
+), -X)
+
+cytoskeleton_df<-filter(combined_df, GENE %in% cytoskeleton_genes)
+cytoskeleton_df$protein_impact<-protein_impact$ONTO[match(cytoskeleton_df$EVENT, protein_impact$EventID)]
+
+
+
+# Prepare the summary data frame, ensuring proper sorting and factor ordering
+cytoskeleton_df_summary <- cytoskeleton_df %>%
+  # Remove duplicate rows for the same gene and event (if applicable)
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # count unique events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  # Set the factor levels for GENE according to the sorted order
+  mutate(GENE = factor(GENE, levels = unique(GENE)))
+
+# Update the original data frame:
+# - Create a column for the absolute value of deltapsi.
+# - Ensure that GENE is a factor with levels set by the summary.
+# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
+cytoskeleton_df <- cytoskeleton_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    GENE = factor(GENE, levels = levels(cytoskeleton_df_summary$GENE)),
+    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  )
+
+# Create the publication-ready plot:
+p <- ggplot() +
+  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
+  geom_bar(
+    data = cytoskeleton_df_summary, 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Overlay individual data points with jitter, mapping shape by the 'impact' column
+  geom_jitter(
+    data = cytoskeleton_df,
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter to reduce overplotting
+    size = 2.5, 
+    alpha = 0.6,     # adjust transparency
+    color = "black"  # point border color
+  ) +
+  # Use a pleasing color palette for the bars (from RColorBrewer)
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Publication-quality theme settings
+  theme_bw(base_size = 14) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Cytoskeleton related Genes"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+print(p)
+
+
+```
+
+
+```{r cytoskeleton, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+event_names <- cytoskeleton_df$EVENT[cytoskeleton_df$impact=="ORF"]
+pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
+
+# Add GENE names to the EVENT column
+pladb_events_shared <- pladb_events_shared %>%
+  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
+
+# Reshape data for plotting
+pladb_events_shared <- pladb_events_shared %>%
+  pivot_longer(
+    cols = 7:15,
+    names_to = "Condition",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Group = case_when(
+      grepl("038|039|040", Condition) ~ "Control",
+      grepl("041|042|043", Condition) ~ "Pladb1mM",
+      grepl("044|045|046", Condition) ~ "Pladb10mM"
+    )
+  )
+
+pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
+# Plot with updated EVENT names
+ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
+  geom_boxplot(size = 1,show.legend = FALSE) +
+  labs(
+    title = "ORF Disrupted Events Cytoskeleton Related",
+    x = "",
+    y = "PSI"
+  ) +
+  theme_minimal() +
+  facet_wrap(~EVENT)
+```
+
+
+## Chromosome related 
+
+```{r chromsome genes plot}
+set.seed(44)
+metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
+metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
+metascape_allgenes_1mmvscontrol <- read_excel("metascape_allgenes_1mmvscontrol.xlsx")
+metascape_allgenes_10mmvs1mm <- read_excel("metascape_allgenes_10mmvs1mm.xlsx")
+
+
+chromosome_genes<-unique(c(
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0006974 DNA damage response`=="1.0" | metascape_alltocontrol$`GO:0051298 centrosome duplication`=="1.0" | metascape_alltocontrol$`GO:2000779 regulation of double-strand br`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0051298 centrosome duplication`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0006974 DNA damage response`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0006282 regulation of DNA repair`=="1.0")],
+  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0048232 male gamete generation`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0051276 chromosome organization`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0006281 DNA repair`=="1.0")]
+  ))
+
+combined_df <- select(bind_rows(
+  exons_10mm = differential_pladb10mm_exons,
+  exons_1mm = differential_pladb1mm_exons,
+  introns_10mm = differential_pladb10mm_introns,
+  introns_1mm = differential_pladb1mm_introns,
+  .id = "source"  # This will be the new column indicating the origin
+), -X)
+
+chromosome_df<-filter(combined_df, GENE %in% chromosome_genes)
+chromosome_df$protein_impact<-protein_impact$ONTO[match(chromosome_df$EVENT, protein_impact$EventID)]
+
+
+
+# Prepare the summary data frame, ensuring proper sorting and factor ordering
+chromosome_df_summary <- chromosome_df %>%
+  # Remove duplicate rows for the same gene and event (if applicable)
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # count unique events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  # Set the factor levels for GENE according to the sorted order
+  mutate(GENE = factor(GENE, levels = unique(GENE)))
+
+# Update the original data frame:
+# - Create a column for the absolute value of deltapsi.
+# - Ensure that GENE is a factor with levels set by the summary.
+# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
+chromosome_df <- chromosome_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    GENE = factor(GENE, levels = levels(chromosome_df_summary$GENE)),
+    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  )
+
+# Create the publication-ready plot:
+p <- ggplot() +
+  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
+  geom_bar(
+    data = chromosome_df_summary, 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Overlay individual data points with jitter, mapping shape by the 'impact' column
+  geom_jitter(
+    data = chromosome_df,
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter to reduce overplotting
+    size = 2.5, 
+    alpha = 0.6,     # adjust transparency
+    color = "black"  # point border color
+  ) +
+  # Use a pleasing color palette for the bars (from RColorBrewer)
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Publication-quality theme settings
+  theme_bw(base_size = 14) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Chromosome related Genes"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+print(p)
+
+
+```
+
+```{r chromosome, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+event_names <- chromosome_df$EVENT[chromosome_df$impact=="ORF"]
+pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
+
+# Add GENE names to the EVENT column
+pladb_events_shared <- pladb_events_shared %>%
+  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
+
+# Reshape data for plotting
+pladb_events_shared <- pladb_events_shared %>%
+  pivot_longer(
+    cols = 7:15,
+    names_to = "Condition",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Group = case_when(
+      grepl("038|039|040", Condition) ~ "Control",
+      grepl("041|042|043", Condition) ~ "Pladb1mM",
+      grepl("044|045|046", Condition) ~ "Pladb10mM"
+    )
+  )
+
+pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
+# Plot with updated EVENT names
+ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
+  geom_boxplot(size = 1,show.legend = FALSE) +
+  labs(
+    title = "ORF Disrupted Events Chromosome Related",
+    x = "",
+    y = "PSI"
+  ) +
+  theme_minimal() +
+  facet_wrap(~EVENT)
+```
+
+
+## Spliceosome related 
+
+```{r spliceosome genes plot}
+set.seed(44)
+metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
+metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
+metascape_allgenes_1mmvscontrol <- read_excel("metascape_allgenes_1mmvscontrol.xlsx")
+metascape_allgenes_10mmvs1mm <- read_excel("metascape_allgenes_10mmvs1mm.xlsx")
+
+
+splicesome_genes<-unique(c(
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0000245 spliceosomal complex assembly`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0000245 spliceosomal complex assembly`=="1.0")],
+  metascape_allgenes_1mmvscontrol$MyList[which(metascape_allgenes_1mmvscontrol$`GO:0000245 spliceosomal complex assembly`=="1.0")]
+  ))
+
+combined_df <- select(bind_rows(
+  exons_10mm = differential_pladb10mm_exons,
+  exons_1mm = differential_pladb1mm_exons,
+  introns_10mm = differential_pladb10mm_introns,
+  introns_1mm = differential_pladb1mm_introns,
+  .id = "source"  # This will be the new column indicating the origin
+), -X)
+
+spliceosome_df<-filter(combined_df, GENE %in% splicesome_genes)
+spliceosome_df$protein_impact<-protein_impact$ONTO[match(spliceosome_df$EVENT, protein_impact$EventID)]
+
+
+
+# Prepare the summary data frame, ensuring proper sorting and factor ordering
+spliceosome_df_summary <- spliceosome_df %>%
+  # Remove duplicate rows for the same gene and event (if applicable)
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # count unique events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  # Set the factor levels for GENE according to the sorted order
+  mutate(GENE = factor(GENE, levels = unique(GENE)))
+
+# Update the original data frame:
+# - Create a column for the absolute value of deltapsi.
+# - Ensure that GENE is a factor with levels set by the summary.
+# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
+spliceosome_df <- spliceosome_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    GENE = factor(GENE, levels = levels(spliceosome_df_summary$GENE)),
+    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  )
+
+# Create the publication-ready plot:
+p <- ggplot() +
+  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
+  geom_bar(
+    data = spliceosome_df_summary, 
+    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
+    stat = "identity", 
+    width = 0.7, 
+    alpha = 0.8
+  ) +
+  # Overlay individual data points with jitter, mapping shape by the 'impact' column
+  geom_jitter(
+    data = spliceosome_df,
+    aes(x = GENE, y = absDelta, shape = impact),
+    width = 0.15,    # small horizontal jitter to reduce overplotting
+    size = 2.5, 
+    alpha = 0.6,     # adjust transparency
+    color = "black"  # point border color
+  ) +
+  # Use a pleasing color palette for the bars (from RColorBrewer)
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
+  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
+  # Publication-quality theme settings
+  theme_bw(base_size = 14) +
+  labs(
+    x = "Gene ID",
+    y = "|dPSI|",
+    title = "Spliceosome related Genes"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+print(p)
+
+
+```
+
+```{r spliceosome, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+event_names <- spliceosome_df$EVENT[spliceosome_df$impact=="ORF"]
+pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
+
+# Add GENE names to the EVENT column
+pladb_events_shared <- pladb_events_shared %>%
+  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
+
+# Reshape data for plotting
+pladb_events_shared <- pladb_events_shared %>%
+  pivot_longer(
+    cols = 7:15,
+    names_to = "Condition",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Group = case_when(
+      grepl("038|039|040", Condition) ~ "Control",
+      grepl("041|042|043", Condition) ~ "Pladb1mM",
+      grepl("044|045|046", Condition) ~ "Pladb10mM"
+    )
+  )
+
+pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
+# Plot with updated EVENT names
+ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
+  geom_boxplot(size = 1,show.legend = FALSE) +
+  labs(
+    title = "ORF Disrupted Events Spliceosome Related",
+    x = "",
+    y = "PSI"
+  ) +
+  theme_minimal() +
+  facet_wrap(~EVENT)
+```
+
+
+## Table
+
+The *source* columns refers to whether it has been found differentially spliced in the 10mM vs control, or 1mM vs control.
+
+```{r cell cycle df}
+
+combined_df$protein_impact<-protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+datatable(
+  combined_df,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
 ```
 
 # System Settings
