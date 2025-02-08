@@ -163,8 +163,7 @@ library("ComplexHeatmap")
 library("enrichR")
 library("colorRamp2")
 library("dendextend")
-install.packages("kableExtra", dependencies = TRUE, quiet = TRUE)
-library(kableExtra)
+
 # Register Google fonts
 showtext_auto()
 font_add_google("Roboto", "roboto")
@@ -1819,9 +1818,7 @@ compare_table <- compare_table %>%
     "Overlapping"=overlapping
   )
 
-compare_table %>%
-  kable("html", caption = "Table comparing both analysis. Number of significant events, and overlapping") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = FALSE)
+datatable(compare_table)
 ```
 
 
