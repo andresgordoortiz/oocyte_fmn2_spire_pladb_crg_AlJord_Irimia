@@ -163,7 +163,7 @@ library("ComplexHeatmap")
 library("enrichR")
 library("colorRamp2")
 library("dendextend")
-install.packages("kableExtra")
+install.packages("kableExtra", dependencies = TRUE, quiet = TRUE)
 library(kableExtra)
 # Register Google fonts
 showtext_auto()
