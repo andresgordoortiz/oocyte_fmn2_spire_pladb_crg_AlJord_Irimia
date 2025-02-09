@@ -843,7 +843,7 @@ fmndko_pdiff_exons <- prepareTableVolcanoFDR(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
-  nsim = 100,
+  nsim = 1000,
   seed = TRUE,
   CoverageWeight = FALSE
 )
@@ -860,7 +860,7 @@ spire_pdiff_exons <- prepareTableVolcanoFDR(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
-  nsim = 100,
+  nsim = 1000,
   seed = TRUE,
   CoverageWeight = FALSE
 )
@@ -1182,7 +1182,7 @@ fmndko_pdiff_introns <- prepareTableVolcanoFDR(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
-  nsim = 100,
+  nsim = 1000,
   seed = TRUE,
   CoverageWeight = FALSE
 )
@@ -1199,7 +1199,7 @@ spire_pdiff_introns <- prepareTableVolcanoFDR(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
-  nsim=100,
+  nsim=1000,
   seed = TRUE,
   CoverageWeight = FALSE
 )
@@ -1513,7 +1513,7 @@ fmndko_pdiff_alt <- prepareTableVolcanoFDR(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
-  nsim=100,
+  nsim=1000,
   seed = TRUE,
   CoverageWeight = FALSE
 )
@@ -1530,7 +1530,7 @@ spire_pdiff_alt <- prepareTableVolcanoFDR(
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
-  nsim=100,
+  nsim=1000,
   seed = TRUE,
   CoverageWeight = FALSE
 )
