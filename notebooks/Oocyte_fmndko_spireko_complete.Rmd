@@ -1,132 +1,95 @@
 ---
-title: 'Oocyte Alternative Splicing Analysis'
-Subtitle: "FMN2KO & SPIRE1/2KO"
+title: "Oocyte Alternative Splicing Analysis"
+subtitle: "FMN2 & SPIRE1/2 KO"
 author: "Andrés Gordo Ortiz @Al Jord Lab CRG"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_document:
-    code_folding: hide
-    code_download: false
-    df_print: paged
     theme: flatly
-    highlight: tango
     toc: true
     toc_float:
       collapsed: false
       smooth_scroll: true
+    code_folding: hide
+    code_download: false
+    df_print: paged
     number_sections: true
 
 editor_options:
   markdown:
     wrap: 72
 
-
 header-includes:
   - '<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">'
   - '<style>
-        #logos {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
+        /* Base styling */
+        body {
+          font-family: "Roboto", sans-serif;
+          color: #333;
+          background-color: #ffffff;
+          margin: 0;
+          padding: 20px;
         }
-        #logos img {
-            height: 80px;
-            margin: 0 15px;
+        .container {
+          max-width: 960px;
+          margin: auto;
+        }
+        
+        /* Headings */
+        h1, h2, h3, h4, h5, h6 {
+          color: #2C3E50;
+          text-align: center;
+          font-weight: 700;
+          margin: 0.5em 0;
+        }
+        h1 { font-size: 2.5em; }
+        h2 { font-size: 2em; }
+        h3 { font-size: 1.75em; }
+        
+        /* Text styling */
+        p {
+          line-height: 1.6;
+          margin-bottom: 1em;
+          text-align: justify;
+        }
+        .subtitle, .author, .date {
+          text-align: center;
+          color: #2C3E50;
+          margin-bottom: 0.5em;
+        }
+        
+        /* Links */
+        a {
+          color: #0275d8;
+          text-decoration: none;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+        
+        /* Tables */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 10px;
+        }
+        th {
+          background-color: #2C3E50;
+          color: #fff;
+        }
+        tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        tr:hover {
+          background-color: #f1f1f1;
         }
      </style>'
 ---
 
-
-
-```{css, echo=FALSE}
-/* Minimal and clean custom CSS */
-body {
-  font-family: 'Roboto', sans-serif;
-  color: #333; /* Neutral dark gray for body text */
-  background-color: #f9f9f9; /* Light background */
-  margin: 0;
-  padding: 0;
-  width: 100%; /* Full width */
-}
-
-.container {
-  max-width: 100%; /* Use full width of the screen */
-  padding: 20px; /* Optional: add padding for better readability */
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Roboto', sans-serif;
-  font-weight: bold;
-}
-
-/* Header Colors */
-h1 {
-  font-size: 2.5em;
-  color: #5E14C4; /* Main headers in purple */
-}
-
-h2 {
-  font-size: 2em;
-  color: #4A10A1; /* Darker purple for secondary headers */
-}
-
-h3 {
-  font-size: 1.75em;
-  color: #3B0D7E; /* Even darker purple for tertiary headers */
-}
-
-p {
-  text-align: justify;
-  line-height: 1.6;
-  margin: 0 0 1em;
-}
-
-/* Styling for subtitle, authors, and date */
-.subtitle, .author, .date {
-  color: #5E14C4;
-  font-size: 1.25em;
-  text-align: center;
-  margin-bottom: 0.5em;
-}
-
-/* Link styling */
-a {
-  color: #5E14C4;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* Table styling */
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 20px 0;
-}
-
-table th, table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-}
-
-table th {
-  background-color: #5E14C4;
-  color: white;
-}
-
-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-table tr:hover {
-  background-color: #f1f1f1;
-}
-
-
-```
 
 
 
@@ -181,7 +144,7 @@ The upstream analysis is performed on the CRG cluster using the Bash command lin
   - Downloading `*.fastq.gz` files of these studies:
     - **FMN2 DKO Oocytes**
     - **SPIRE1/2 DKO Oocytes**
-  - Merging technical replicates for superior sequencing depth. RNA Splicing analysis ussually requires a minimum of 50 million reads per biological sample.
+  - Merging technical replicates for superior sequencing depth. RNA Splicing analysis usually requires a minimum of 50 million reads per biological sample.
 
 2. **Alignment**:
    - Aligning the sequences to the latest mouse genome release (mm10) using **Bowtie2** through the [Vast-Tools align function](https://link.springer.com/protocol/10.1007/978-1-0716-2521-7_7).
@@ -199,7 +162,7 @@ The upstream analysis is performed on the CRG cluster using the Bash command lin
 
 ## Part 2: Statistical Analysis
 
-State-of-Art splicing analysis tools such as the [betAS package](https://rnajournal.cshlp.org/content/30/4/337) employ a combination of statistical testing and simulations on the *beta* distribution to calculate the delta PSI (the difference in splicing between two conditions) and the False Discovery rate (FDR, or adjusted p-value) respectively. This is computationally demanding for such a large dataset. For that reason we focused first on analysing *alternative* splicing events (that is, events with a PSI different that *0* or *100*--not always active, not always inactive) which constitute ~25% of all events in both *FMN2* and *Spire* studies. With that first analysis done (which can be accessed completely in the file `alternative_splicing_fmn2_spire.html`) we fine-tuned the code and used the complete dataset. As expected, almost all significant events found in the smaller subset are found using it fully (*see Table x*). The specific steps taken for these analysis were.
+State-of-Art splicing analysis tools such as the [betAS package](https://rnajournal.cshlp.org/content/30/4/337) employ a combination of statistical testing and simulations on the *beta* distribution to calculate the delta PSI (the difference in splicing between two conditions) and the False Discovery rate (FDR, or adjusted p-value) respectively. This is computationally demanding for such a large dataset. For that reason we focused first on analyzing *alternative* splicing events (that is, events with a PSI different that *0* or *100*--not always active, not always inactive) which constitute ~25% of all events in both *FMN2* and *Spire* studies. With that first analysis done (which can be accessed completely in the file `alternative_splicing_fmn2_spire.html`) we fine-tuned the code and used the complete dataset (using both constitutive and alternative events). As expected, almost all significant events found in the smaller subset are found using it fully (see *Comparing both analysis* section below). The specific steps taken for these analysis were.
 
 
 1. **Statistical Testing**:
@@ -211,6 +174,7 @@ State-of-Art splicing analysis tools such as the [betAS package](https://rnajour
      - FDR <= 0.01
      - |dPSI| >= 0.1 (out of 1. That is, at least a 10% increase or decrease in PSI)
 
+All the code history can be accessed through its [GitHub Repository](https://github.com/andresgordoortiz/24crg_adel_manu_oocyte_splicing)
 
 ---
 
@@ -331,6 +295,8 @@ combined_plot <- plot_proportion / plot_absolute +
   plot_layout(heights = c(1, 0.5)) &
   theme(plot.margin = margin(5,5, 0, 5))
 
+ggsave("events_mapped.svg", plot = combined_plot, width = 10, height = 6, units = "in", dpi = 300)
+
 # Display combined plot
 combined_plot
 ```
@@ -406,17 +372,19 @@ pct_above <- round(mean(spire_exons_df$difference > 0) * 100, 1)
 # ---- Plot -------------------------------------------------------------------
 
 plot_psi_distribution <- ggplot(
-  spire_exons_df[abs(spire_exons_df$difference) > 0,], 
-  aes(y = ..density.., x = difference, fill = group)
+  spire_exons_df[abs(spire_exons_df$difference) > 0, ], 
+  aes(x = difference, fill = group)
 ) +
-  geom_histogram(bins = 200, position = "identity", alpha = 0.9) +
+  geom_histogram(aes(y = ..density..), bins = 200, 
+                 position = "identity", alpha = 0.9) +
   labs(
-    title = "PSI Difference Distribution by Exon Group",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", format(symmetry_test$p.value, digits = 3)),
+    title = "PSI Difference Distribution of Exons in Spire",
+    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
+                     format(symmetry_test$p.value, digits = 3)),
     x = "ΔPSI (KO - Control)",
     y = "Density",
     fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())  # Display quantiles in caption
+    caption = paste0("Created by AG on ", Sys.Date())
   ) +
   theme_minimal(base_family = "sans") +
   theme(
@@ -429,15 +397,22 @@ plot_psi_distribution <- ggplot(
     strip.text = element_text(size = 14, face = "bold"),
     panel.spacing = unit(1.5, "lines")
   ) +
-  # Set the x-axis breaks
   scale_x_continuous(
     breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
   ) +
-  # Annotate the percentages on the left and right sides of the plot
-  annotate("text", x=-65, y=0.2, hjust=0, vjust=0, label = paste0("dPSI<0: ",pct_below, "%"), color = "blue", size = 7) +
-  annotate("text", x=65, y=0.2, hjust=1, vjust=0,
-           label = paste0("dPSI>0: ",pct_above, "%"), color = "red", size = 7) +
+  # Annotate the percentages with polished label boxes
+  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
+           label = sprintf("dPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+           label.size = 0.5) +
+  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
+           label = sprintf("dPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
+           label.size = 0.5) +
   scale_fill_brewer(palette = "Set1")
+
+# Save and display the plot
+ggsave("spire_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 
 print(plot_psi_distribution)
 
@@ -445,7 +420,7 @@ print(plot_psi_distribution)
 
 
 
-### FMNDKO
+### FMN2
 
 ```{r inclusionumber of exons fmndko}
 # ---- Prepare Data -----------------------------------------------------------
@@ -476,17 +451,19 @@ pct_above <- round(mean(fmndko_exons_df$difference > 0) * 100, 1)
 # ---- Plot -------------------------------------------------------------------
 
 plot_psi_distribution <- ggplot(
-  fmndko_exons_df[abs(fmndko_exons_df$difference) > 0,], 
-  aes(y = ..density.., x = difference, fill = group)
+  fmndko_exons_df[abs(fmndko_exons_df$difference) > 0, ], 
+  aes(x = difference, fill = group)
 ) +
-  geom_histogram(bins = 200, position = "identity", alpha = 0.9) +
+  geom_histogram(aes(y = ..density..), bins = 200, 
+                 position = "identity", alpha = 0.9) +
   labs(
-    title = "PSI Difference Distribution by Exon Group",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", format(symmetry_test$p.value, digits = 3)),
+    title = "PSI Difference Distribution of Exons in FMN2",
+    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
+                     format(symmetry_test$p.value, digits = 3)),
     x = "ΔPSI (KO - Control)",
     y = "Density",
     fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())  # Display quantiles in caption
+    caption = paste0("Created by AG on ", Sys.Date())
   ) +
   theme_minimal(base_family = "sans") +
   theme(
@@ -499,16 +476,22 @@ plot_psi_distribution <- ggplot(
     strip.text = element_text(size = 14, face = "bold"),
     panel.spacing = unit(1.5, "lines")
   ) +
-  # Set the x-axis breaks
   scale_x_continuous(
     breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
   ) +
-  # Annotate the percentages on the left and right sides of the plot
-  annotate("text", x=-65, y=0.1, hjust=0, vjust=0, label = paste0("dPSI<0: ",pct_below, "%"), color = "blue", size = 7) +
-  annotate("text", x=65, y=0.1, hjust=1, vjust=0,
-           label = paste0("dPSI>0: ",pct_above, "%"), color = "red", size = 7) +
+  # Annotate the percentages with polished label boxes
+  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
+           label = sprintf("dPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+           label.size = 0.5) +
+  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
+           label = sprintf("dPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
+           label.size = 0.5) +
   scale_fill_brewer(palette = "Set1")
 
+# Save and display the plot
+ggsave("fmn2_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 print(plot_psi_distribution)
 
 ```
@@ -546,17 +529,19 @@ pct_above <- round(mean(spire_introns_df$difference > 0) * 100, 1)
 # ---- Plot -------------------------------------------------------------------
 
 plot_psi_distribution <- ggplot(
-  spire_introns_df[abs(spire_introns_df$difference) > 0,], 
-  aes(y = ..density.., x = difference, fill = group)
+  spire_introns_df[abs(spire_introns_df$difference) > 0, ], 
+  aes(x = difference, fill = group)
 ) +
-  geom_histogram(bins = 200, position = "identity", alpha = 0.9) +
+  geom_histogram(aes(y = ..density..), bins = 200, 
+                 position = "identity", alpha = 0.9) +
   labs(
-    title = "PSI Difference Distribution by Exon Group",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", format(symmetry_test$p.value, digits = 3)),
+    title = "PSI Difference Distribution of Introns in Spire",
+    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
+                     format(symmetry_test$p.value, digits = 3)),
     x = "ΔPSI (KO - Control)",
     y = "Density",
     fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())  # Display quantiles in caption
+    caption = paste0("Created by AG on ", Sys.Date())
   ) +
   theme_minimal(base_family = "sans") +
   theme(
@@ -569,21 +554,29 @@ plot_psi_distribution <- ggplot(
     strip.text = element_text(size = 14, face = "bold"),
     panel.spacing = unit(1.5, "lines")
   ) +
-  # Set the x-axis breaks
   scale_x_continuous(
     breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
   ) +
-  # Annotate the percentages on the left and right sides of the plot
-  annotate("text", x=-65, y=0.2, hjust=0, vjust=0, label = paste0("dPSI<0: ",pct_below, "%"), color = "blue", size = 7) +
-  annotate("text", x=65, y=0.2, hjust=1, vjust=0,
-           label = paste0("dPSI>0: ",pct_above, "%"), color = "red", size = 7) +
+  # Annotate the percentages with polished label boxes
+  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
+           label = sprintf("dPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+           label.size = 0.5) +
+  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
+           label = sprintf("dPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
+           label.size = 0.5) +
   scale_fill_brewer(palette = "Set1")
+
+# Save and display the plot
+ggsave("spire_introns_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 
 print(plot_psi_distribution)
 
+
 ```
 
-### FMNDKO
+### FMN2
 
 ```{r inclusionumber of introns fmndko}
 # ---- Prepare Data -----------------------------------------------------------
@@ -614,17 +607,19 @@ pct_above <- round(mean(fmndko_introns_df$difference > 0) * 100, 1)
 # ---- Plot -------------------------------------------------------------------
 
 plot_psi_distribution <- ggplot(
-  fmndko_introns_df[abs(fmndko_introns_df$difference) > 0,], 
-  aes(y = ..density.., x = difference, fill = group)
+  fmndko_introns_df[abs(fmndko_introns_df$difference) > 0, ], 
+  aes(x = difference, fill = group)
 ) +
-  geom_histogram(bins = 200, position = "identity", alpha = 0.9) +
+  geom_histogram(aes(y = ..density..), bins = 200, 
+                 position = "identity", alpha = 0.9) +
   labs(
-    title = "PSI Difference Distribution by Exon Group",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", format(symmetry_test$p.value, digits = 3)),
+    title = "PSI Difference Distribution of Introns in FMN2",
+    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
+                     format(symmetry_test$p.value, digits = 3)),
     x = "ΔPSI (KO - Control)",
     y = "Density",
     fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())  # Display quantiles in caption
+    caption = paste0("Created by AG on ", Sys.Date())
   ) +
   theme_minimal(base_family = "sans") +
   theme(
@@ -637,17 +632,25 @@ plot_psi_distribution <- ggplot(
     strip.text = element_text(size = 14, face = "bold"),
     panel.spacing = unit(1.5, "lines")
   ) +
-  # Set the x-axis breaks
   scale_x_continuous(
     breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
   ) +
-  # Annotate the percentages on the left and right sides of the plot
-  annotate("text", x=-65, y=0.1, hjust=0, vjust=0, label = paste0("dPSI<0: ",pct_below, "%"), color = "blue", size = 7) +
-  annotate("text", x=65, y=0.1, hjust=1, vjust=0,
-           label = paste0("dPSI>0: ",pct_above, "%"), color = "red", size = 7) +
+  # Annotate the percentages with polished label boxes
+  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
+           label = sprintf("dPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+           label.size = 0.5) +
+  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
+           label = sprintf("dPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
+           label.size = 0.5) +
   scale_fill_brewer(palette = "Set1")
 
+# Save and display the plot
+ggsave("fmn2_introns_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
+
 print(plot_psi_distribution)
+
 ```
 
 
@@ -656,7 +659,7 @@ print(plot_psi_distribution)
 # PCA Plot { .tabset}
 
 
-## SpireDKO
+## Spire
 
 ```{r pca calculation spire}
 # Subset and scale data
@@ -706,7 +709,7 @@ pca_plot
 ```
 
 
-## FMN2DKO
+## FMN2
 
 ```{r pca calculation fmndko}
 # Subset and scale data
@@ -758,7 +761,7 @@ pca_plot
 
 
 
-## Exon Lists
+# Exon Lists
 
 ```{r aux_featuregroup}
 # Extract unique groups and sample IDs
@@ -824,7 +827,7 @@ colsGroupB_spire <- convertCols(spire_exons$PSI, samplesB_spire)
 set.seed(42) #Setting seed for downstream simulations of the beta distribution
 ```
 
-### Calculations
+## Calculations
 
 ```{r pdiff calculation exons}
 
@@ -869,17 +872,15 @@ shared_exons<-differential_spire_exons$EVENT[differential_spire_exons$EVENT %in%
 
 write.csv(fmndko_pdiff_exons,"fmndko_pdiff_exons.csv")
 write.csv(spire_pdiff_exons,"spire_pdiff_exons.csv")
-
-
 ```
 
 
 
 
-### Volcano Plots { .tabset}
+## Volcano Plots { .tabset}
 
 
-#### FMN2DKO
+### FMN2
 
 ```{r fmndko fdr volcano exons}
 
@@ -901,36 +902,43 @@ fmndko_pdiff_exons$Significant <- ifelse(
 fmndko_pdiff_exons$negLogpvalue <- -log10(fmndko_pdiff_exons$FDR)
 
 
+
+
 # Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
-    color = ifelse(Shared == "Shared", "Shared", Significant),
-    alpha = ifelse(Shared == "Shared", "Shared", Significant),
-    size = ifelse(Shared == "Shared", "Shared", Significant)
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
   )) +
   scale_color_manual(values = c(
-    "Shared" = "yellow",
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
-    "Overrepresented" = 2,
-    "Underrepresented" = 2,
-    "Not Significant" = 1
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
   )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Delta PSI",
+    x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2DKO Exons",
-    subtitle = "Shared events are highlighted in golden"
+    title = "Volcano Plot of FMN2 Exons",
+    subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -946,18 +954,17 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) 
     legend.title = element_blank(),  # Remove legend title
     panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
     panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
-  ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
 
-# Display the plot
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_fmndko_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+
 volcano_plot
-
-
-
 ```
 
-#### Spire2
+### Spire
 
 ```{r spire fdr volcano exons}
 spire_pdiff_exons<-na.omit(spire_pdiff_exons)
@@ -977,36 +984,40 @@ spire_pdiff_exons$Significant <- ifelse(
 spire_pdiff_exons$negLogpvalue <- -log10(spire_pdiff_exons$FDR)
 
 
-# Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
-    color = ifelse(Shared == "Shared", "Shared", Significant),
-    alpha = ifelse(Shared == "Shared", "Shared", Significant),
-    size = ifelse(Shared == "Shared", "Shared", Significant)
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
   )) +
   scale_color_manual(values = c(
-    "Shared" = "yellow",
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
-    "Overrepresented" = 2,
-    "Underrepresented" = 2,
-    "Not Significant" = 1
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
   )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Delta PSI",
+    x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
     title = "Volcano Plot of Spire Exons",
-    subtitle = "Shared events are highlighted in golden"
+    subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1022,23 +1033,26 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi, y = negLogpvalue)) +
     legend.title = element_blank(),  # Remove legend title
     panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
     panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
-  ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
 
-# Display the plot
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_spire_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+
 volcano_plot
 
 
 ```
 
 
-### Individual Combination Tables { .tabset}
+## Individual Combination Tables { .tabset}
 
-These tables show the exons that show FDR <= 0.1 in the pairwise comparison of each condition. 
+These tables show the introns with FDR <= 0.05 and |dPSI|>=0.1 in the pairwise comparison of each condition. 
 
 
-#### FMN2DKO
+
+### FMN2
 
 ```{r fmndko combination table exons}
 # Render DataTable with enhancements
@@ -1092,7 +1106,7 @@ datatable(
 
 ```
 
-#### Spire2
+### Spire
 
 
 ```{r spire combination table exons}
@@ -1149,9 +1163,9 @@ datatable(
 
 
 
-## Intron Lists
+# Intron Lists
 
-### Calculations
+## Calculations
 
 ```{r pdiff calculation introns}
 
@@ -1204,9 +1218,10 @@ write.csv(spire_pdiff_introns,"spire_pdiff_introns.csv")
 
 
 
-### Volcano Plots { .tabset}
+## Volcano Plots { .tabset}
 
 
+### FMN2
 
 ```{r fmndko volcano introns}
 fmndko_pdiff_introns<-na.omit(fmndko_pdiff_introns)
@@ -1229,33 +1244,38 @@ fmndko_pdiff_introns$negLogpvalue <- -log10(fmndko_pdiff_introns$FDR)
 # Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
-    color = ifelse(Shared == "Shared", "Shared", Significant),
-    alpha = ifelse(Shared == "Shared", "Shared", Significant),
-    size = ifelse(Shared == "Shared", "Shared", Significant)
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
   )) +
   scale_color_manual(values = c(
-    "Shared" = "yellow",
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
-    "Overrepresented" = 2,
-    "Underrepresented" = 2,
-    "Not Significant" = 1
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
   )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Delta PSI",
+    x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2DKO Introns",
-    subtitle = "Shared events are highlighted in golden"
+    title = "Volcano Plot of FMN2 Introns",
+    subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1271,19 +1291,17 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)
     legend.title = element_blank(),  # Remove legend title
     panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
     panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
-  ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
 
-# Display the plot
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_fmndko_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+
 volcano_plot
-
-
-
-
 ```
 
-#### Spire2
+### Spire
 
 ```{r spire volcano introns}
 spire_pdiff_introns<-na.omit(spire_pdiff_introns)
@@ -1305,33 +1323,38 @@ spire_pdiff_introns$negLogpvalue <- -log10(spire_pdiff_introns$FDR)
 # Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
-    color = ifelse(Shared == "Shared", "Shared", Significant),
-    alpha = ifelse(Shared == "Shared", "Shared", Significant),
-    size = ifelse(Shared == "Shared", "Shared", Significant)
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
   )) +
   scale_color_manual(values = c(
-    "Shared" = "yellow",
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
-    "Overrepresented" = 2,
-    "Underrepresented" = 2,
-    "Not Significant" = 1
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
   )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Delta PSI",
+    x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
     title = "Volcano Plot of Spire Introns",
-    subtitle = "Shared events are highlighted in golden"
+    subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1347,23 +1370,21 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi, y = negLogpvalue))
     legend.title = element_blank(),  # Remove legend title
     panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
     panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
-  ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
 
-# Display the plot
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_spire_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+
 volcano_plot
-
-
-
-
 ```
 
-### Individual Combination Tables { .tabset}
+## Individual Combination Tables { .tabset}
 
-These tables show the introns that show FDR <= 0.1 in the pairwise comparison of each condition. 
+These tables show the introns with FDR <= 0.05 and |dPSI|>=0.1 in the pairwise comparison of each condition. 
 
-#### FMN2DKO
+### FMN2
 
 
 
@@ -1419,7 +1440,7 @@ datatable(
 
 ```
 
-#### Spire2
+### Spire
 
 
 ```{r spire combination table introns}
@@ -1474,9 +1495,9 @@ datatable(
 ```
 
 
-## Alternative Splicing List
+# Alternative 5´ & 3´
 
-### Calculations
+## Calculations
 
 ```{r pdiff calculation alt}
 
@@ -1519,17 +1540,17 @@ differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$FDR <=0.05 & 
 
 shared_alt<-differential_spire_alt$EVENT[differential_spire_alt$EVENT %in% differential_fmndko_alt$EVENT]
 
-write.csv(fmndko_pdiff_alt,"fmndko_pdiff_alt")
+write.csv(fmndko_pdiff_alt,"fmndko_pdiff_alt.csv")
 write.csv(spire_pdiff_alt,"spire_pdiff_alt.csv")
 ```
 
 
 
 
-### Volcano Plots { .tabset}
+## Volcano Plots { .tabset}
 
 
-#### FMN2DKO
+### FMN2
 
 ```{r fmndko  volcano alt}
 fmndko_pdiff_alt<-na.omit(fmndko_pdiff_alt)
@@ -1551,33 +1572,38 @@ fmndko_pdiff_alt$negLogpvalue <- -log10(fmndko_pdiff_alt$FDR)
 # Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
-    color = ifelse(Shared == "Shared", "Shared", Significant),
-    alpha = ifelse(Shared == "Shared", "Shared", Significant),
-    size = ifelse(Shared == "Shared", "Shared", Significant)
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
   )) +
   scale_color_manual(values = c(
-    "Shared" = "yellow",
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 3,  # Larger size for shared exons
-    "Overrepresented" = 2,
-    "Underrepresented" = 2,
-    "Not Significant" = 1
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
   )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Delta PSI",
+    x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2DKO Alternative 5´/3´",
-    subtitle = "Shared events are highlighted in golden"
+    title = "Volcano Plot of FMN2 Alt 5´ 3´",
+    subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1593,18 +1619,17 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
     legend.title = element_blank(),  # Remove legend title
     panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
     panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
-  ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
 
-# Display the plot
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_fmndko_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+
 volcano_plot
-
-
-
 ```
 
-#### Spire2
+### Spire
 
 ```{r spire fdr volcano alt}
 spire_pdiff_alt<-na.omit(spire_pdiff_alt)
@@ -1626,33 +1651,38 @@ spire_pdiff_alt$negLogpvalue <- -log10(spire_pdiff_alt$FDR)
 # Updated volcano plot with improved fonts and axis styling
 volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
   geom_point(aes(
-    color = ifelse(Shared == "Shared", "Shared", Significant),
-    alpha = ifelse(Shared == "Shared", "Shared", Significant),
-    size = ifelse(Shared == "Shared", "Shared", Significant)
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
   )) +
   scale_color_manual(values = c(
-    "Shared" = "yellow",
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
-    "Shared" = 1.0,  # Fully opaque for shared exons
     "Overrepresented" = 0.6,
     "Underrepresented" = 0.6,
     "Not Significant" = 0.3
   )) +
   scale_size_manual(values = c(
-    "Shared" = 4,  # Larger size for shared exons
-    "Overrepresented" = 2,
-    "Underrepresented" = 2,
-    "Not Significant" = 1
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
   )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Delta PSI",
+    x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of Spire Alternative 5´/3´",
-    subtitle = "Shared events are highlighted in golden"
+    title = "Volcano Plot of Spire Alt 5´ 3´",
+    subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
   theme(
@@ -1668,22 +1698,22 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi, y = negLogpvalue)) +
     legend.title = element_blank(),  # Remove legend title
     panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
     panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add border to plot area
-  ) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA))  # Extend y-axis dynamically
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
 
-# Display the plot
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_spire_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+
 volcano_plot
-
-
-
 ```
 
-### Individual Combination Tables { .tabset}
+## Individual Combination Tables { .tabset}
 
-These tables show the Alt5 or Alt3 that show FDR <= 0.1 in the pairwise comparison of each condition. 
+These tables show the introns with FDR <= 0.05 and |dPSI|>=0.1 in the pairwise comparison of each condition. 
 
-#### FMN2DKO
+
+### FMN2
 
 
 ```{r fmndko combination table alt}
@@ -1738,7 +1768,7 @@ datatable(
 
 ```
 
-#### Spire2
+### Spire
 
 
 
@@ -1794,10 +1824,143 @@ datatable(
 
 ```
 
-## Comparing both Analysis
+# All Event Types Volcano Plots { .tabset}
 
-The following table compares the results of the two analyses: the one using the complete dataset (this report) or the simpler one, only using alternative events. The more complete analysis finds more significant (FDR <= 0.05 & |dPSI| >= 0.1) splicing events. It also preserves the majority of those found by the simpler analysis. 
 
+## FMN2
+
+```{r fmndko all volcano }
+
+mega_volcano<-rbind(fmndko_pdiff_alt,fmndko_pdiff_exons,fmndko_pdiff_introns)
+# Updated volcano plot with improved fonts and axis styling
+volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi, y = negLogpvalue)) +
+  geom_point(aes(
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
+  )) +
+  scale_color_manual(values = c(
+    "Overrepresented" = "#E00E73",
+    "Underrepresented" = "#3E2672",
+    "Not Significant" = "gray"
+  )) +
+  scale_alpha_manual(values = c(
+    "Overrepresented" = 0.6,
+    "Underrepresented" = 0.6,
+    "Not Significant" = 0.3
+  )) +
+  scale_size_manual(values = c(
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
+  )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
+  labs(
+    x = "Delta PSI (KO - WT)",
+    y = expression(-log[10](FDR)),
+    title = "Volcano Plot of FMN2 All Events",
+    subtitle = "Significant events are highlighted"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 18, face = "bold", color = "black"
+    ),  # Centered and bold title
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 14, face = "italic", color = "gray30"
+    ),  # Italicized subtitle
+    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
+    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
+    legend.text = element_text(size = 12),  # Larger legend text
+    legend.title = element_blank(),  # Remove legend title
+    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
+
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_fmndko_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("volcano_spire_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 120)
+
+volcano_plot
+```
+
+## Spire
+
+```{r spire fdr volcano all}
+mega_volcano<-rbind(spire_pdiff_alt,spire_pdiff_exons,spire_pdiff_introns)
+# Updated volcano plot with improved fonts and axis styling
+volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi, y = negLogpvalue)) +
+  geom_point(aes(
+    color =  Significant,
+    alpha = Significant,
+    size = Significant
+  )) +
+  scale_color_manual(values = c(
+    "Overrepresented" = "#E00E73",
+    "Underrepresented" = "#3E2672",
+    "Not Significant" = "gray"
+  )) +
+  scale_alpha_manual(values = c(
+    "Overrepresented" = 0.6,
+    "Underrepresented" = 0.6,
+    "Not Significant" = 0.3
+  )) +
+  scale_size_manual(values = c(
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
+  )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 2),
+    expand = c(0, 0)
+  ) +
+  labs(
+    x = "Delta PSI (KO - WT)",
+    y = expression(-log[10](FDR)),
+    title = "Volcano Plot of Spire All Events",
+    subtitle = "Significant events are highlighted"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 18, face = "bold", color = "black"
+    ),  # Centered and bold title
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 14, face = "italic", color = "gray30"
+    ),  # Italicized subtitle
+    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
+    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
+    legend.text = element_text(size = 12),  # Larger legend text
+    legend.title = element_blank(),  # Remove legend title
+    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.border = element_blank(),  # Remove non-axis frames
+    axis.line = element_line(color = "black")  # Keep only axis lines
+  )
+
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_spire_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("volcano_spire_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 120)
+
+volcano_plot
+```
+
+# Comparing both Analysis
+
+The following table compares the results of the two analyses: the one using the complete dataset (this report) or the simpler one, only using alternative events. The more complete analysis finds more significant (FDR <= 0.05 & |dPSI| >= 0.1) splicing events. It also preserves all of those found by the simpler analysis. 
 
 ```{r comparison}
 old_spire_exons<-filter(read.csv("versionA_lists/exon_spire.csv")[,-1], FDR<=0.05, abs(deltapsi)>=0.1)
@@ -1821,17 +1984,123 @@ compare_table <- compare_table %>%
 datatable(compare_table)
 ```
 
+# Basic Stats on Found Events
 
-## Enrichment Analysis with EnrichR { .tabset}
+## Events-level stats
+
+```{r basic stats}
+
+# Define study-specific data
+fmndko_exons <- data.frame(EVENT = differential_fmndko_exons$EVENT, Type = "Exons", Study = "FMN2")
+fmndko_introns <- data.frame(EVENT = differential_fmndko_introns$EVENT, Type = "Introns", Study = "FMN2")
+fmndko_alt <- data.frame(EVENT = differential_fmndko_alt$EVENT, Type = "Alt", Study = "FMN2")
+
+spire_exons <- data.frame(EVENT = differential_spire_exons$EVENT, Type = "Exons", Study = "Spire")
+spire_introns <- data.frame(EVENT = differential_spire_introns$EVENT, Type = "Introns", Study = "Spire")
+spire_alt <- data.frame(EVENT = differential_spire_alt$EVENT, Type = "Alt", Study = "Spire")
+
+# Combine all events into one dataframe
+all_events <- bind_rows(fmndko_exons, fmndko_introns, fmndko_alt, spire_exons, spire_introns, spire_alt)
+
+# Determine whether the event appears in both studies
+event_counts <- all_events %>%
+  group_by(EVENT, Type) %>%
+  summarize(Appearance = ifelse(n() > 1, "Both Studies", "Single Study"), .groups = "drop")
+
+# Merge back to the original dataset
+all_events <- all_events %>%
+  left_join(event_counts, by = c("EVENT", "Type"))
+
+# Create the bar plot
+p <- ggplot(all_events, aes(x = Study, fill = Appearance)) +
+  geom_bar(position = "stack") +
+  facet_wrap(~Type) +
+  theme_minimal(base_size = 16, base_family = "sans") +
+  scale_fill_manual(values = c("Both Studies" = "#4E79A7", "Single Study" = "#F28E2B")) +  # Nicer colors
+  labs(
+    title = "Comparison of Differentially Spliced Events in FMN2 and Spire",
+    x = "Study",
+    y = "Count of Events",
+    fill = "Event Presence"
+  ) +
+  theme(
+    legend.position = "top",
+    strip.text = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12, face = "bold"),
+    panel.grid = element_blank(),  # Remove grid lines
+    panel.background = element_blank(),  # Remove background color
+    axis.line = element_line(color = "black") 
+      # Add axis lines for clarity
+  )
+
+ggsave("basic_stats_events.svg", p, width = 12, height = 6, units = "in", dpi = 300)
+
+# Display the plot
+print(p)
+
+```
+
+## Gene-level stats
+
+```{r, basic gene stats}
+# Define study-specific data
+fmndko_stats <- data.frame(GENE = unique(c(differential_fmndko_exons$GENE,differential_fmndko_introns$GENE,differential_fmndko_alt$GENE)), Study = "FMN2")
+
+spire_stats <- data.frame(GENE = unique(c(differential_spire_exons$GENE,differential_spire_introns$GENE,differential_spire_alt$GENE)),  Study = "Spire")
 
 
-### FMN2DKO { .tabset}
+# Combine all genes into one dataframe
+all_genes <- bind_rows(fmndko_stats, spire_stats)
+
+# Determine whether the gene appears in both studies
+gene_counts <- all_genes %>%
+  group_by(GENE) %>%
+  summarize(Appearance = ifelse(n() > 1, "Both Studies", "Single Study"), .groups = "drop")
+
+shared_genes<-gene_counts$GENE[gene_counts$Appearance=="Both Studies"]
+
+# Merge back to the original dataset
+all_genes <- all_genes %>%
+  left_join(gene_counts, by = c("GENE"))
+
+# Create the bar plot
+p <- ggplot(all_genes, aes(x = Study, fill = Appearance)) +
+  geom_bar(position = "stack") +
+  theme_minimal(base_size = 16, base_family = "sans") +
+  scale_fill_manual(values = c("Both Studies" = "#4E79A7", "Single Study" = "#F28E2B")) +  # Nicer colors
+  labs(
+    title = "Comparison of Differentially Spliced Genes in FMN2 and Spire",
+    x = "Study",
+    y = "Count of Genes",
+    fill = "Gene Presence"
+  ) +
+  theme(
+    legend.position = "top",
+    strip.text = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12, face = "bold"),
+    panel.grid = element_blank(),  # Remove grid lines
+    panel.background = element_blank(),  # Remove background color
+    axis.line = element_line(color = "black")  # Add axis lines for clarity
+  )
+
+
+ggsave("basic_stats_genes.svg", p, width = 10, height = 6, units = "in", dpi = 300)
+# Display the plot
+print(p)
+
+```
+
+
+# Enrichment Analysis with EnrichR { .tabset}
+
+The following ontology analysis uses all significant events regardless of type.
+
+### FMN2 { .tabset}
 
 ```{r fmndko enrichr}
-
-enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE,)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-
+enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
@@ -1873,6 +2142,13 @@ datatable(
 
 ```{r fmndko molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
 datatable(
   enrichdata[[3]],
   options = list(
@@ -1942,696 +2218,289 @@ datatable(
 ```
 
 
+
 # Gene-centric Analysis { .tabset}
 
+The following analysis identifies the number of significant events a given gene has. This number of *hits* serves as a proxy of how heavily influenced by splicing a given gene has been. The table shows how many genes classified by the number of significant events I have found, alongside the proportion of ORF disruption for each group. The plot then shows the list of genes, with at least 3 *hits*, in the x-axis, their average |dPSI| in the y-axis, and the shape of the points shows whether that given event is ORF-disrupted.
 
-## FMNDKO
+## FMN2
 
-```{r gene-centric plot}
+```{r gene-centric plot fmn2 prep}
+# Set seed for reproducibility
 set.seed(44)
+
+# -------------------------------
+# 0. Read protein impact data and combine your events
+# -------------------------------
 protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
-                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-# -------------------------------
-# 1. Combine data and add protein impact
-# -------------------------------
+                             header = TRUE, stringsAsFactors = FALSE, 
+                             fill = TRUE, quote = "")
+
+# Combine exon and intron event data (with a column "source" indicating the origin)
 combined_df <- bind_rows(
   exons  = differential_fmndko_exons,
-  introns   = differential_fmndko_introns,
-  .id = "source"   # new column indicating the origin
-) 
+  introns = differential_fmndko_introns,
+  alt = differential_fmndko_alt,
+  .id = "source"
+)
 
-# Match the protein impact values
+# Add protein impact info by matching on event IDs
 combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
 
-# select only unqiue values in GENE
-combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE)
+# Keep one row per EVENT (if duplicates exist)
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE) %>%
+  filter(!GENE == "")
+
 # -------------------------------
-# 2. Create per-gene summary data
+# 1. Create per-gene summary statistics
 # -------------------------------
 combined_df_summary <- combined_df %>%
   distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
   group_by(GENE) %>%
   summarise(
     nEvents   = n(),                                        # number of events per gene
-    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute deltapsi
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute |dPSI|
     sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
   ) %>%
-  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort so that genes with more events come first
-  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set the ordering for the x-axis
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort: genes with more events first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set ordering for later plotting
 
 # -------------------------------
-# 3. Update original data and join summary info
+# 2. Add ORF information to gene-level summary
+#    (We consider a gene “ORF disrupted” if any of its events has impact labeled as "ORF")
 # -------------------------------
+# First, mark each event as ORF or Non-ORF
 combined_df <- combined_df %>%
   mutate(
     absDelta = abs(deltapsi),
     impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
-  ) %>%
-  left_join(combined_df_summary %>% select(GENE, nEvents), by = "GENE") %>%
-  mutate(GENE = factor(GENE, levels = levels(combined_df_summary$GENE)))
+  ) 
+
+# Compute per-gene flag: Does the gene have at least one ORF event?
+gene_ORF_flag <- combined_df %>%
+  group_by(GENE) %>%
+  summarise(has_ORF = any(impact == "ORF"))
+
+# Now merge with the gene summary
+combined_df_summary <- combined_df_summary %>%
+  left_join(gene_ORF_flag, by = "GENE")
 
 # -------------------------------
-# 4. Create custom facet strip labels (optional)
+# 3. Create a summary table (datatable) grouped by number of events per gene
+#    Showing for each nEvents the number of genes and the proportion that are ORF disrupted
 # -------------------------------
-facet_labels <- combined_df_summary %>%
-  group_by(nEvents) %>%
-  summarise(n_genes = n()) %>%
-  mutate(label = paste0(nEvents, " events (", n_genes, " genes)")) %>%
-  deframe()  # a named vector mapping nEvents -> "n events (x genes)"
-
-# -------------------------------
-# 5. Create a mapping for x-axis labels: blank out gene names for nEvents==1 or 2
-# -------------------------------
-gene_labels <- combined_df_summary %>%
-  mutate(gene_label = ifelse(nEvents %in% c(1, 2), "", as.character(GENE))) %>%
-  select(GENE, gene_label) %>%
-  deframe()
-
-# -------------------------------
-# 6. Create annotation data for facets with nEvents 1 and 2
-# -------------------------------
-annotation_df <- combined_df_summary %>%
-  filter(nEvents %in% c(1, 2)) %>%
+table_summary <- combined_df_summary %>%
   group_by(nEvents) %>%
   summarise(
-    n_genes      = n(),
-    max_meanDelta= max(meanDelta)
-  ) %>%
-  # Here we compute an approximate x-location (center of the facet)
-  # Note: In a free_x facet the bars are placed at positions 1,2,..., so (n_genes+1)/2 is roughly centered.
+    n_genes  = n(),
+    prop_ORF = paste0(round(mean(has_ORF), 3)*100, "%")  # proportion of genes with at least one ORF event
+  )
+
+
+table_summary <- table_summary %>%
+  rename(
+    "Number of Significant Events" = nEvents,
+    "Number of Genes" = n_genes,
+    "Proportion of ORF" = prop_ORF
+  )
+
+# (Optional) If you want an interactive table, use DT:
+datatable(table_summary, 
+          rownames = FALSE,
+          caption = 'Summary of Genes by Number of significant Events')
+```
+
+```{r fmn2 gene-centric plot, fig.width=24, fig.height=10}
+# -------------------------------
+# Filter for genes with >2 events and compute SD
+# -------------------------------
+df_summary_gt2 <- combined_df_summary %>%
+  filter(nEvents > 2) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%
   mutate(
-    x = (n_genes + 1) / 2,
-    y = max_meanDelta * 1.05  # position the label slightly above the tallest bar in that facet
+    GENE = factor(GENE, levels = unique(GENE))
   )
 
 # -------------------------------
-# 7. Build the plot
+# Build the publication-ready plot:
+# - Bars show the mean |dPSI| per gene.
+# - Upper error bars show mean + SD.
 # -------------------------------
-p <- ggplot() +
-  # Bar plot: summary values (mean absolute deltapsi) per gene
-  geom_bar(
-    data = combined_df_summary[-which(combined_df_summary$GENE==""),], 
-    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
-    stat = "identity", 
-    width = 0.7, 
-    alpha = 0.8
-  ) +
-  # Jitter: individual event values, with shape by protein impact
-  geom_jitter(
-    data = combined_df[-which(combined_df$GENE==""),],
-    aes(x = GENE, y = absDelta, shape = impact),
-    width = 0.15,    # small horizontal jitter
-    size = 2.5, 
-    alpha = 0.6,
-    color = "black"
-  ) +
-  # Add a text annotation in facets where nEvents==1 or 2 showing the number of genes
-  geom_text(
-    data = annotation_df,
-    aes(x = x, y = y, label = paste(n_genes, "genes")),
-    inherit.aes = FALSE,
-    size = 5,
-    color = "black"
-  ) +
-  # Use a color palette for the bars and manually define the shapes
+
+p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents))) +
+  # Bar plot for mean |dPSI|
+  geom_bar(stat = "identity", width = 0.7, alpha = 0.8) +
+  # Upper error bar: from meanDelta to meanDelta + SD
+  geom_errorbar(aes(ymin = meanDelta, ymax = meanDelta + sdDelta),
+                width = 0.2, color = "black", alpha = 0.6) +
+  # Define fill colors (using a color palette) and label for the legend
   scale_fill_brewer(palette = "Set2", name = "Number of Events") +
-  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
-  # Apply the custom x-axis labels (gene names only appear for genes with >2 events)
-  scale_x_discrete(labels = gene_labels) +
+  # Improved axis and plot annotations
   labs(
     x = "Gene ID",
-    y = "|dPSI|",
-    title="FMNDKO",
-    subtitle = "Mean |dPSI| of genes grouped by the number significant Splicing Events"
+    y = "Mean |dPSI|",
+    title = "Genes with >2 Differential Splicing Events in FMN2",
+    subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
   ) +
-  theme_bw(base_size = 14) +
+  # Use a clean, publication-ready theme with custom font settings
+  theme_classic(base_size = 16, base_family = "sans") +
   theme(
-    # Rotate x-axis labels (for facets that show them)
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-    plot.title   = element_text(hjust = 0.5),
-    # Improved facet strip aesthetics:
-    strip.background = element_rect(fill = "lightblue", color = "black"),
-    strip.text       = element_text(face = "bold"),
-    panel.background = element_blank(),
-    panel.grid.major = element_blank(), 
-    panel.grid.minor = element_blank()
-  ) +
-  # Facet the plot by the number of events (with free x-axis scales)
-  facet_wrap(~ nEvents, scales = "free_x", labeller = labeller(nEvents = facet_labels))
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    plot.margin = margin(10, 10, 10, 20) # Ensure enough space
+  )
+
+# -------------------------------
+# Save the plot as an SVG
+# -------------------------------
+ggsave("fmn2_splicing_events_plot.svg", plot = p2, width = 24, height = 10, dpi = 300)
 
 # Display the plot
-print(p)
-
-
+print(p2)
 ```
+
 
 ## Spire
 
-```{r gene-centric plot spire}
+```{r gene-centric plot spire prep}
+# Set seed for reproducibility
 set.seed(44)
-protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
-                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-# -------------------------------
-# 1. Combine data and add protein impact
-# -------------------------------
+
+
+
+# Combine exon and intron event data (with a column "source" indicating the origin)
 combined_df <- bind_rows(
   exons  = differential_spire_exons,
-  introns   = differential_spire_introns,
-  .id = "source"   # new column indicating the origin
-) 
+  introns = differential_spire_introns,
+  alt = differential_spire_alt,
+  .id = "source"
+)
 
-# Match the protein impact values
+# Add protein impact info by matching on event IDs
 combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
 
-# select only unqiue values in GENE
-combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE)
+# Keep one row per EVENT (if duplicates exist)
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE) %>%
+  filter(!GENE == "")
+
 # -------------------------------
-# 2. Create per-gene summary data
+# 1. Create per-gene summary statistics
 # -------------------------------
 combined_df_summary <- combined_df %>%
   distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
   group_by(GENE) %>%
   summarise(
     nEvents   = n(),                                        # number of events per gene
-    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute deltapsi
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute |dPSI|
     sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
   ) %>%
-  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort so that genes with more events come first
-  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set the ordering for the x-axis
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort: genes with more events first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set ordering for later plotting
 
 # -------------------------------
-# 3. Update original data and join summary info
+# 2. Add ORF information to gene-level summary
+#    (We consider a gene “ORF disrupted” if any of its events has impact labeled as "ORF")
 # -------------------------------
+# First, mark each event as ORF or Non-ORF
 combined_df <- combined_df %>%
   mutate(
     absDelta = abs(deltapsi),
     impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
-  ) %>%
-  left_join(combined_df_summary %>% select(GENE, nEvents), by = "GENE") %>%
-  mutate(GENE = factor(GENE, levels = levels(combined_df_summary$GENE)))
+  ) 
+
+# Compute per-gene flag: Does the gene have at least one ORF event?
+gene_ORF_flag <- combined_df %>%
+  group_by(GENE) %>%
+  summarise(has_ORF = any(impact == "ORF"))
+
+# Now merge with the gene summary
+combined_df_summary <- combined_df_summary %>%
+  left_join(gene_ORF_flag, by = "GENE")
 
 # -------------------------------
-# 4. Create custom facet strip labels (optional)
+# 3. Create a summary table (datatable) grouped by number of events per gene
+#    Showing for each nEvents the number of genes and the proportion that are ORF disrupted
 # -------------------------------
-facet_labels <- combined_df_summary %>%
-  group_by(nEvents) %>%
-  summarise(n_genes = n()) %>%
-  mutate(label = paste0(nEvents, " events (", n_genes, " genes)")) %>%
-  deframe()  # a named vector mapping nEvents -> "n events (x genes)"
-
-# -------------------------------
-# 5. Create a mapping for x-axis labels: blank out gene names for nEvents==1 or 2
-# -------------------------------
-gene_labels <- combined_df_summary %>%
-  mutate(gene_label = ifelse(nEvents %in% c(1, 2), "", as.character(GENE))) %>%
-  select(GENE, gene_label) %>%
-  deframe()
-
-# -------------------------------
-# 6. Create annotation data for facets with nEvents 1 and 2
-# -------------------------------
-annotation_df <- combined_df_summary %>%
-  filter(nEvents %in% c(1, 2)) %>%
+table_summary <- combined_df_summary %>%
   group_by(nEvents) %>%
   summarise(
-    n_genes      = n(),
-    max_meanDelta= max(meanDelta)
-  ) %>%
-  # Here we compute an approximate x-location (center of the facet)
-  # Note: In a free_x facet the bars are placed at positions 1,2,..., so (n_genes+1)/2 is roughly centered.
+    n_genes  = n(),
+    prop_ORF = paste0(round(mean(has_ORF), 3)*100, "%")  # proportion of genes with at least one ORF event
+  )
+
+
+table_summary <- table_summary %>%
+  rename(
+    "Number of Significant Events" = nEvents,
+    "Number of Genes" = n_genes,
+    "Proportion of ORF" = prop_ORF
+  )
+
+# (Optional) If you want an interactive table, use DT:
+datatable(table_summary, 
+          rownames = FALSE,
+          caption = 'Summary of Genes by Number of significant Events')
+```
+
+```{r spire gene-centric plot, fig.width=30, fig.height=12}
+# -------------------------------
+# Filter for genes with >2 events and compute SD
+# -------------------------------
+df_summary_gt2 <- combined_df_summary %>%
+  filter(nEvents > 2) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%
   mutate(
-    x = (n_genes + 1) / 2,
-    y = max_meanDelta * 1.05  # position the label slightly above the tallest bar in that facet
+    GENE = factor(GENE, levels = unique(GENE))
   )
 
 # -------------------------------
-# 7. Build the plot
+# Build the publication-ready plot:
+# - Bars show the mean |dPSI| per gene.
+# - Upper error bars show mean + SD.
 # -------------------------------
-p <- ggplot() +
-  # Bar plot: summary values (mean absolute deltapsi) per gene
-  geom_bar(
-    data = combined_df_summary[-which(combined_df_summary$GENE==""),], 
-    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
-    stat = "identity", 
-    width = 0.7, 
-    alpha = 0.8
-  ) +
-  # Jitter: individual event values, with shape by protein impact
-  geom_jitter(
-    data = combined_df[-which(combined_df$GENE==""),],
-    aes(x = GENE, y = absDelta, shape = impact),
-    width = 0.15,    # small horizontal jitter
-    size = 2.5, 
-    alpha = 0.6,
-    color = "black"
-  ) +
-  # Add a text annotation in facets where nEvents==1 or 2 showing the number of genes
-  geom_text(
-    data = annotation_df,
-    aes(x = x, y = y, label = paste(n_genes, "genes")),
-    inherit.aes = FALSE,
-    size = 5,
-    color = "black"
-  ) +
-  # Use a color palette for the bars and manually define the shapes
+
+p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents))) +
+  # Bar plot for mean |dPSI|
+  geom_bar(stat = "identity", width = 0.7, alpha = 0.8) +
+  # Upper error bar: from meanDelta to meanDelta + SD
+  geom_errorbar(aes(ymin = meanDelta, ymax = meanDelta + sdDelta),
+                width = 0.2, color = "black", alpha = 0.7) +
+  # Define fill colors (using a color palette) and label for the legend
   scale_fill_brewer(palette = "Set2", name = "Number of Events") +
-  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
-  # Apply the custom x-axis labels (gene names only appear for genes with >2 events)
-  scale_x_discrete(labels = gene_labels) +
+  # Improved axis and plot annotations
   labs(
     x = "Gene ID",
-    y = "|dPSI|",
-    title="Spire",
-    subtitle = "Mean |dPSI| of genes grouped by the number significant Splicing Events"
+    y = "Mean |dPSI|",
+    title = "Genes with >2 Differential Splicing Events in Spire",
+    subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
   ) +
-  theme_bw(base_size = 14) +
+  # Use a clean, publication-ready theme with custom font settings
+  theme_classic(base_size = 16, base_family = "sans") +
   theme(
-    # Rotate x-axis labels (for facets that show them)
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-    plot.title   = element_text(hjust = 0.5),
-    # Improved facet strip aesthetics:
-    strip.background = element_rect(fill = "lightblue", color = "black"),
-    strip.text       = element_text(face = "bold"),
-    panel.background = element_blank(),
-    panel.grid.major = element_blank(), 
-    panel.grid.minor = element_blank()
-  ) +
-  # Facet the plot by the number of events (with free x-axis scales)
-  facet_wrap(~ nEvents, scales = "free_x", labeller = labeller(nEvents = facet_labels))
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    plot.margin = margin(10, 10, 10, 20) # Ensure enough space
+  )
+
+# -------------------------------
+# Save the plot as an SVG
+# -------------------------------
+ggsave("spire_splicing_events_plot.svg", plot = p2, width = 30, height = 12, dpi = 300)
 
 # Display the plot
-print(p)
-
-
-```
-
-# Spliceosome Ontology Genes { .tabset}
-
-
-## Spire
-
-```{r, splicesosomo ontology behaviour}
-
-enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE,differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-# Extract and format gene names
-genes_splicing_1 <- enrichdata[[1]] %>%
-  filter(str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
-  pull(Genes) %>%                         # Extract Genes column
-  str_split(";") %>%                      # Split gene names
-  unlist() %>%                            # Flatten list
-  str_to_lower() %>%                      # Convert to lowercase
-  str_replace("^.", toupper) 
-# Capitalize first letter
-genes_splicing_2 <- enrichdata[[2]] %>%
-  filter(str_detect(Term, "splic") | str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
-  pull(Genes) %>%                         # Extract Genes column
-  str_split(";") %>%                      # Split gene names
-  unlist() %>%                            # Flatten list
-  str_to_lower() %>%                      # Convert to lowercase
-  str_replace("^.", toupper) 
-
-genes_splicing<-unique(c(genes_splicing_1,genes_splicing_2))
-
-combined_df <- bind_rows(
-  exons_spire = differential_spire_exons,
-  introns_spire = differential_spire_introns,
-  .id = "source"  # This will be the new column indicating the origin
-)
-splicing_df<-filter(combined_df, GENE %in% genes_splicing)
-splicing_df$protein_impact<-protein_impact$ONTO[match(splicing_df$EVENT, protein_impact$EventID)]
-
-
-
-# Prepare the summary data frame, ensuring proper sorting and factor ordering
-splicing_df_summary <- splicing_df %>%
-  # Remove duplicate rows for the same gene and event (if applicable)
-  distinct(GENE, EVENT, .keep_all = TRUE) %>%
-  group_by(GENE) %>%
-  summarise(
-    nEvents   = n(),                                        # count unique events per gene
-    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
-    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
-  ) %>%
-  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
-  arrange(desc(nEvents), desc(meanDelta)) %>%
-  # Set the factor levels for GENE according to the sorted order
-  mutate(GENE = factor(GENE, levels = unique(GENE)))
-
-# Update the original data frame:
-# - Create a column for the absolute value of deltapsi.
-# - Ensure that GENE is a factor with levels set by the summary.
-# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
-splicing_df <- splicing_df %>%
-  mutate(
-    absDelta = abs(deltapsi),
-    GENE = factor(GENE, levels = levels(splicing_df_summary$GENE)),
-    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
-  )
-
-# Create the publication-ready plot:
-p <- ggplot() +
-  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
-  geom_bar(
-    data = splicing_df_summary, 
-    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
-    stat = "identity", 
-    width = 0.7, 
-    alpha = 0.8
-  ) +
-  # Overlay individual data points with jitter, mapping shape by the 'impact' column
-  geom_jitter(
-    data = splicing_df,
-    aes(x = GENE, y = absDelta, shape = impact),
-    width = 0.15,    # small horizontal jitter to reduce overplotting
-    size = 2.5, 
-    alpha = 0.6,     # adjust transparency
-    color = "black"  # point border color
-  ) +
-  # Use a pleasing color palette for the bars (from RColorBrewer)
-  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
-  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
-  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
-  # Publication-quality theme settings
-  theme_bw(base_size = 14) +
-  labs(
-    x = "Gene ID",
-    y = "|dPSI|",
-    title = "Splicing related Genes in Spire"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-    plot.title = element_text(hjust = 0.5)
-  )
-
-# Display the plot
-print(p)
-
-
+print(p2)
 ```
 
 
-```{r splicing plots spire, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
-spire_shared<-filter(spire_events$PSI, EVENT %in% splicing_df$EVENT)
-
-# Add GENE names to the EVENT column
-spire_shared <- spire_shared %>%
-  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
-
-spire_shared <- spire_shared %>%
-  pivot_longer(
-    cols = 7:10,  # Only selecting columns 7 to 10
-    names_to = "Condition",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Group = case_when(
-      Condition %in% names(spire_shared)[7:9] ~ "Control",
-      Condition %in% names(spire_shared)[10:12] ~ "spireKO"
-    )
-  )
-
-
-spire_shared$Group<-factor(spire_shared$Group, levels = c("Control","spireKO"))
-# Plot with updated EVENT names
-ggplot(spire_shared, aes(x = Group, y = Value, color = EVENT)) +
-  geom_boxplot(size = 1,show.legend = FALSE) +
-  labs(
-    title = "Events of Splicing Proteins Spire",
-    x = "",
-    y = "PSI"
-  ) +
-  theme_minimal() +
-  facet_wrap(~EVENT)
-```
-
-
-
-## FMNDKO
-
-```{r splicing fmndko}
-
-enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE,differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-# Extract and format gene names
-genes_splicing_1 <- enrichdata[[1]] %>%
-  filter(str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
-  pull(Genes) %>%                         # Extract Genes column
-  str_split(";") %>%                      # Split gene names
-  unlist() %>%                            # Flatten list
-  str_to_lower() %>%                      # Convert to lowercase
-  str_replace("^.", toupper) 
-# Capitalize first letter
-genes_splicing_2 <- enrichdata[[2]] %>%
-  filter(str_detect(Term, "splic") | str_detect(Term, "Splic")) %>%  # Select rows with 'splic' in Term
-  pull(Genes) %>%                         # Extract Genes column
-  str_split(";") %>%                      # Split gene names
-  unlist() %>%                            # Flatten list
-  str_to_lower() %>%                      # Convert to lowercase
-  str_replace("^.", toupper) 
-
-genes_splicing<-unique(c(genes_splicing_1,genes_splicing_2))
-
-combined_df <- bind_rows(
-  exons_fmndko = differential_fmndko_exons,
-  introns_fmndko = differential_fmndko_introns,
-  .id = "source"  # This will be the new column indicating the origin
-)
-splicing_df<-filter(combined_df, GENE %in% genes_splicing)
-splicing_df$protein_impact<-protein_impact$ONTO[match(splicing_df$EVENT, protein_impact$EventID)]
-
-
-
-# Prepare the summary data frame, ensuring proper sorting and factor ordering
-splicing_df_summary <- splicing_df %>%
-  # Remove duplicate rows for the same gene and event (if applicable)
-  distinct(GENE, EVENT, .keep_all = TRUE) %>%
-  group_by(GENE) %>%
-  summarise(
-    nEvents   = n(),                                        # count unique events per gene
-    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean of absolute deltapsi
-    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
-  ) %>%
-  # First sort by the number of events (desc), then by mean absolute deltapsi (desc)
-  arrange(desc(nEvents), desc(meanDelta)) %>%
-  # Set the factor levels for GENE according to the sorted order
-  mutate(GENE = factor(GENE, levels = unique(GENE)))
-
-# Update the original data frame:
-# - Create a column for the absolute value of deltapsi.
-# - Ensure that GENE is a factor with levels set by the summary.
-# - Create a new column 'impact' that indicates whether protein_impact contains "ORF".
-splicing_df <- splicing_df %>%
-  mutate(
-    absDelta = abs(deltapsi),
-    GENE = factor(GENE, levels = levels(splicing_df_summary$GENE)),
-    impact = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
-  )
-
-# Create the publication-ready plot:
-p <- ggplot() +
-  # Bar plot showing mean absolute deltapsi per gene, colored by the number of events
-  geom_bar(
-    data = splicing_df_summary, 
-    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
-    stat = "identity", 
-    width = 0.7, 
-    alpha = 0.8
-  ) +
-  # Overlay individual data points with jitter, mapping shape by the 'impact' column
-  geom_jitter(
-    data = splicing_df,
-    aes(x = GENE, y = absDelta, shape = impact),
-    width = 0.15,    # small horizontal jitter to reduce overplotting
-    size = 2.5, 
-    alpha = 0.6,     # adjust transparency
-    color = "black"  # point border color
-  ) +
-  # Use a pleasing color palette for the bars (from RColorBrewer)
-  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
-  # Manually set the shapes: for example, 16 (circle) for Non-ORF and 17 (triangle) for ORF
-  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
-  # Publication-quality theme settings
-  theme_bw(base_size = 14) +
-  labs(
-    x = "Gene ID",
-    y = "|dPSI|",
-    title = "Splicing related Genes in FMNDKO"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-    plot.title = element_text(hjust = 0.5)
-  )
-
-# Display the plot
-print(p)
-
-
-```
-
-```{r splicing plots, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
-fmndko_shared<-filter(fmndko_events$PSI, EVENT %in% splicing_df$EVENT)
-
-# Add GENE names to the EVENT column
-fmndko_shared <- fmndko_shared %>%
-  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
-
-fmndko_shared <- fmndko_shared %>%
-  pivot_longer(
-    cols = 7:10,  # Only selecting columns 7 to 10
-    names_to = "Condition",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Group = case_when(
-      Condition %in% names(fmndko_shared)[7:8] ~ "Control",
-      Condition %in% names(fmndko_shared)[9:10] ~ "fmndko"
-    )
-  )
-
-
-fmndko_shared$Group<-factor(fmndko_shared$Group, levels = c("Control","fmndko"))
-# Plot with updated EVENT names
-ggplot(fmndko_shared, aes(x = Group, y = Value, color = EVENT)) +
-  geom_boxplot(size = 1,show.legend = FALSE) +
-  labs(
-    title = "Events of Splicing Proteins FMNDKO",
-    x = "",
-    y = "PSI"
-  ) +
-  theme_minimal() +
-  facet_wrap(~EVENT)
-```
-
-
-# Nuclear Speckle Protein Splicing Correlation { .tabset}
-
-Nuclear speckles genes were obtained from the Human Protein Atlas
-Differentially spliced events were filtered to obtain those proteins localizing within speckles. I performed pearson correlation between those selected events. In adittion to the FDR threshold, they also need to have a |dPSI|>=0.1.
-
-## Spire
-
-```{r nuclear spckeles data hadnling spire}
-set.seed(43)
-speckles_proteins<-read_tsv("nuclear_speckles_protein_human_atlas.tsv")
-
-spire_speckle_prots <- spire_events$PSI %>%
-  filter((EVENT %in% differential_spire_exons$EVENT[
-            tolower(differential_spire_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
-            abs(differential_spire_exons$deltapsi) >= 0.1]) |
-         (EVENT %in% differential_spire_introns$EVENT[
-            tolower(differential_spire_introns$GENE) %in% tolower(speckles_proteins$Gene) & 
-            abs(differential_spire_introns$deltapsi) >= 0.1]) |
-         (EVENT %in% differential_spire_alt$EVENT[
-            tolower(differential_spire_alt$GENE) %in% tolower(speckles_proteins$Gene) & 
-            abs(differential_spire_alt$deltapsi) >= 0.1]))
-
-
-
-
-rownames(spire_speckle_prots)<-spire_speckle_prots$EVENT
-
-spire_speckle_prots_t <- t(spire_speckle_prots[,7:12])
-
-# Calculate correlation between genes
-cor_matrix <- cor(spire_speckle_prots_t)
-
-heatmap <- Heatmap(cor_matrix,
-                   name = "Correlation",
-                   clustering_distance_rows = "euclidean",  # Row clustering method
-                   clustering_method_rows = "complete",     # Clustering method for rows
-                   show_row_dend = TRUE,                    # Show row dendrogram
-                   show_column_dend = TRUE,                 # Show column dendrogram
-                   column_title = "Correlation Heatmap",    # Title for the heatmap
-                   row_title = "Variables",                 # Title for rows
-                   column_title_gp = gpar(fontsize = 14),   # Title formatting
-                   row_title_gp = gpar(fontsize = 14)       # Row title formatting
-)
-
-# Draw the heatmap
-draw(heatmap)
-
-```
-
-```{r table speckles spire}
-# Render DataTable with enhancements
-
-datatable(
-  spire_speckle_prots,
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-
-
-## FMNDKO
-
-```{r nuclear spckeles data hadnling fmndko}
-set.seed(43)
-
-fmndko_speckle_prots <- fmndko_events$PSI %>%
-  filter((EVENT %in% differential_fmndko_exons$EVENT[
-            tolower(differential_fmndko_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
-            abs(differential_fmndko_exons$deltapsi) >= 0.1]) |
-         (EVENT %in% differential_fmndko_introns$EVENT[
-            tolower(differential_fmndko_introns$GENE) %in% tolower(speckles_proteins$Gene) & 
-            abs(differential_fmndko_introns$deltapsi) >= 0.1]) |
-         (EVENT %in% differential_fmndko_alt$EVENT[
-            tolower(differential_fmndko_alt$GENE) %in% tolower(speckles_proteins$Gene) & 
-            abs(differential_fmndko_alt$deltapsi) >= 0.1]))
-
-
-
-
-rownames(fmndko_speckle_prots)<-fmndko_speckle_prots$EVENT
-
-fmndko_speckle_prots_t <- t(fmndko_speckle_prots[,7:10])
-
-# Calculate correlation between genes
-cor_matrix <- cor(fmndko_speckle_prots_t)
-
-heatmap <- Heatmap(cor_matrix,
-                   name = "Correlation",
-                   clustering_distance_rows = "euclidean",  # Row clustering method
-                   clustering_method_rows = "complete",     # Clustering method for rows
-                   show_row_dend = TRUE,                    # Show row dendrogram
-                   show_column_dend = TRUE,                 # Show column dendrogram
-                   column_title = "Correlation Heatmap",    # Title for the heatmap
-                   row_title = "Variables",                 # Title for rows
-                   column_title_gp = gpar(fontsize = 14),   # Title formatting
-                   row_title_gp = gpar(fontsize = 14)       # Row title formatting
-)
-
-# Draw the heatmap
-draw(heatmap)
-
-```
-
-```{r table speckles fmndko}
-# Render DataTable with enhancements
-
-
-datatable(
-  fmndko_speckle_prots,
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
 
 # Splicing Dynamics Heatmap Spire
 
-From now, onwards, only events with |dPSI|>=0.1 are considered.
 
 ```{r heatmap pre-prep, results='hide', fig.show='hide'}
 
@@ -2771,7 +2640,7 @@ right_annotation <- rowAnnotation(
 
 ### Heatmap showcasing the PSI of every candidate EX and IN
 
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
+**Note**: Gene ontology of *Cellular Component* and *Molecular Function* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
 
 ```{r heatmap_plot, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
@@ -2800,7 +2669,7 @@ ht <- Heatmap(
     title = "PSI Value",
     title_gp = gpar(fontsize = 30),
     labels_gp = gpar(fontsize = 30),
-    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_position = c(20, 30),  # Move the legend closer to the center (x, y coordinates)
     legend_direction = "vertical" # Align the legend horizontally
   )
 )
@@ -2971,7 +2840,7 @@ datatable(
 ))
 ```
 
-# Splicing Dynamics Heatmap FMNDKO
+# Splicing Dynamics Heatmap FMN2
 
 ```{r heatmap prep fmndko, results='hide', fig.show='hide'}
 set.seed(44)
@@ -3134,9 +3003,9 @@ ht <- Heatmap(
   column_gap = unit(4, "mm"), # Adjust the gap size between columns
   heatmap_legend_param = list(
     title = "PSI Value",
-    title_gp = gpar(fontsize = 30),
+    title_gp = gpar(fontsize = 20),
     labels_gp = gpar(fontsize = 30),
-    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_position = c(20, 30),  # Move the legend closer to the center (x, y coordinates)
     legend_direction = "vertical" # Align the legend horizontally
   )
 )
@@ -3303,8 +3172,6 @@ datatable(
   extensions = "Buttons"                  # Enable export buttons
 ))
 ```
-
-
 
 # System Settings
 
