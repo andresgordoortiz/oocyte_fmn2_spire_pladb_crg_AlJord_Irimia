@@ -1,125 +1,95 @@
 ---
-title: 'Oocyte Alternative Splicing Analysis'
-Subtitle: "Pladienolide B"
+title: "Oocyte Alternative Splicing Analysis"
+subtitle: "PladB Treatment"
 author: "Andrés Gordo Ortiz @Al Jord Lab CRG"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_document:
-    code_folding: hide
-    code_download: false
-    df_print: paged
     theme: flatly
-    highlight: tango
     toc: true
     toc_float:
       collapsed: false
       smooth_scroll: true
+    code_folding: hide
+    code_download: false
+    df_print: paged
     number_sections: true
 
 editor_options:
   markdown:
     wrap: 72
 
-
 header-includes:
   - '<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">'
   - '<style>
-        #logos {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
+        /* Base styling */
+        body {
+          font-family: "Roboto", sans-serif;
+          color: #333;
+          background-color: #ffffff;
+          margin: 0;
+          padding: 20px;
         }
-        #logos img {
-            height: 80px;
-            margin: 0 15px;
+        .container {
+          max-width: 960px;
+          margin: auto;
+        }
+        
+        /* Headings */
+        h1, h2, h3, h4, h5, h6 {
+          color: #2C3E50;
+          text-align: center;
+          font-weight: 700;
+          margin: 0.5em 0;
+        }
+        h1 { font-size: 2.5em; }
+        h2 { font-size: 2em; }
+        h3 { font-size: 1.75em; }
+        
+        /* Text styling */
+        p {
+          line-height: 1.6;
+          margin-bottom: 1em;
+          text-align: justify;
+        }
+        .subtitle, .author, .date {
+          text-align: center;
+          color: #2C3E50;
+          margin-bottom: 0.5em;
+        }
+        
+        /* Links */
+        a {
+          color: #0275d8;
+          text-decoration: none;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+        
+        /* Tables */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 10px;
+        }
+        th {
+          background-color: #2C3E50;
+          color: #fff;
+        }
+        tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        tr:hover {
+          background-color: #f1f1f1;
         }
      </style>'
 ---
 
-
-
-```{css, echo=FALSE}
-/* Minimal and clean custom CSS */
-body {
-  font-family: 'Roboto', sans-serif;
-  color: #333; /* Neutral dark gray for body text */
-  background-color: #f9f9f9; /* Light background */
-  margin: 0;
-  padding: 0;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Roboto', sans-serif;
-  font-weight: bold;
-}
-
-/* Header Colors */
-h1 {
-  font-size: 2.5em;
-  color: #5E14C4; /* Main headers in purple */
-}
-
-h2 {
-  font-size: 2em;
-  color: #4A10A1; /* Darker purple for secondary headers */
-}
-
-h3 {
-  font-size: 1.75em;
-  color: #3B0D7E; /* Even darker purple for tertiary headers */
-}
-
-p {
-  text-align: justify;
-  line-height: 1.6;
-  margin: 0 0 1em;
-}
-
-/* Styling for subtitle, authors, and date */
-.subtitle, .author, .date {
-  color: #5E14C4;
-  font-size: 1.25em;
-  text-align: center;
-  margin-bottom: 0.5em;
-}
-
-/* Link styling */
-a {
-  color: #5E14C4;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* Table styling */
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 20px 0;
-}
-
-table th, table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-}
-
-table th {
-  background-color: #5E14C4;
-  color: white;
-}
-
-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-table tr:hover {
-  background-color: #f1f1f1;
-}
-
-```
 
 
 
