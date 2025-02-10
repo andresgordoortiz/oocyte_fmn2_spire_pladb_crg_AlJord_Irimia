@@ -171,7 +171,7 @@ State-of-Art splicing analysis tools such as the [betAS package](https://rnajour
      - **delta Percentage Spliced-in (dPSI)**
 
 2. **Filtering Criteria**: Significant events are defined by
-     - FDR <= 0.01
+     - FDR <= 0.05
      - |dPSI| >= 0.1 (out of 1. That is, at least a 10% increase or decrease in PSI)
 
 All the code history can be accessed through its [GitHub Repository](https://github.com/andresgordoortiz/24crg_adel_manu_oocyte_splicing)
