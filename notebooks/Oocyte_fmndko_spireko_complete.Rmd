@@ -2004,6 +2004,7 @@ datatable(
 ```{r fmndko all volcano }
 
 mega_volcano<-rbind(fmndko_pdiff_alt,fmndko_pdiff_exons,fmndko_pdiff_introns)
+
 max_y <- 2
 
 # Pre-process the data:
@@ -2012,7 +2013,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-spire_pdiff_alt <- spire_pdiff_alt %>%
+mega_volcano <- mega_volcano %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -2021,15 +2022,15 @@ spire_pdiff_alt <- spire_pdiff_alt %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
+volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(spire_pdiff_alt, !is_capped),
+  geom_point(data = filter(mega_volcano, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(spire_pdiff_alt, is_capped),
+  geom_point(data = filter(mega_volcano, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -2065,7 +2066,7 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
   labs(
     x = "Delta PSI (KO - WT)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of Spire Alt 5´ 3´",
+    title = "Volcano Plot of FMN2 All Events",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -2097,13 +2098,39 @@ volcano_plot
 
 ```{r spire fdr volcano all}
 mega_volcano<-rbind(spire_pdiff_alt,spire_pdiff_exons,spire_pdiff_introns)
-# Updated volcano plot with improved fonts and axis styling
-volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi, y = negLogpvalue)) +
-  geom_point(aes(
-    color =  Significant,
-    alpha = Significant,
-    size = Significant
-  )) +
+max_y <- 2
+
+# Pre-process the data:
+#  - Create plot_y: if negLogpvalue is infinite (FDR == 0) or > max_y, use max_y.
+#  - Flag these points in is_capped.
+#  - For capped points only, create a new y-value (plot_y_jitter)
+#    that subtracts a small random offset so they don't completely overlap.
+set.seed(123)  # for reproducibility of the jitter
+mega_volcano <- mega_volcano %>%
+  mutate(
+    plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
+    is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
+    # Apply a small downward jitter (up to -0.1) only to capped points
+    plot_y_jitter = ifelse(is_capped, max_y - runif(n(), 0, 0.1), plot_y)
+  )
+
+# Build the volcano plot:
+volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
+  # Layer for non-capped points (displayed at their true y-values)
+  geom_point(data = filter(mega_volcano, !is_capped),
+             aes(y = plot_y, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant)) +
+  # Layer for capped points: keep them as circles, but use jittered y-values
+  geom_point(data = filter(mega_volcano, is_capped),
+             aes(y = plot_y_jitter, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant),
+             stroke = 0.5,
+             show.legend = FALSE) +  
+  # Define the color scales
   scale_color_manual(values = c(
     "Overrepresented" = "#E00E73",
     "Underrepresented" = "#3E2672",
@@ -2123,9 +2150,11 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi, y = negLogpvalue)) +
     limits = c(-1, 1),
     breaks = seq(-1, 1, by = 0.5)
   ) +
+  # Keep the y-axis fixed from 0 to max_y. Also, modify the top label to show "≥2"
   scale_y_continuous(
-    limits = c(0, 2),
-    expand = c(0, 0)
+    limits = c(0, max_y),
+    expand = c(0, 0),
+    labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
     x = "Delta PSI (KO - WT)",
@@ -2133,22 +2162,22 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi, y = negLogpvalue)) +
     title = "Volcano Plot of Spire All Events",
     subtitle = "Significant events are highlighted"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  # Set base font
+  theme_minimal(base_size = 14, base_family = "Arial") +  
   theme(
     plot.title = element_text(
       hjust = 0.5, size = 18, face = "bold", color = "black"
-    ),  # Centered and bold title
+    ),
     plot.subtitle = element_text(
       hjust = 0.5, size = 14, face = "italic", color = "gray30"
-    ),  # Italicized subtitle
-    axis.text = element_text(size = 12, color = "black"),  # Axis text styling
-    axis.title = element_text(size = 14, face = "bold", color = "black"),  # Axis title styling
-    legend.text = element_text(size = 12),  # Larger legend text
-    legend.title = element_blank(),  # Remove legend title
-    panel.grid.major = element_line(color = "gray90"),  # Subtle grid lines
-    panel.grid.minor = element_blank(),  # Remove minor grid lines
-    panel.border = element_blank(),  # Remove non-axis frames
-    axis.line = element_line(color = "black")  # Keep only axis lines
+    ),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
   )
 
 # Save as SVG with dimensions 606 x 396
