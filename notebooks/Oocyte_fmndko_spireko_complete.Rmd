@@ -2454,14 +2454,14 @@ datatable(
 
 ### Exons { .tabset}
 
-```{r fmndko enrichr}
+```{r fmndko enrichr ex}
 enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
 #### GO Biological Process
 
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
+```{r fmndko bioprocess ex, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 
 datatable(
@@ -2478,7 +2478,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+```{r fmndko cellcomponent ex, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 
 datatable(
@@ -2495,7 +2495,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r fmndko molfunction, fig.width=10, fig.height=8}
+```{r fmndko molfunctionn ex, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 
 rna_fmndko_genes <- unlist(strsplit(
@@ -2519,14 +2519,14 @@ datatable(
 
 ### Introns { .tabset}
 
-```{r fmndko enrichr}
+```{r fmndko enrichr in}
 enrichdata<-enrichr(unique(c(differential_fmndko_introns$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
 #### GO Biological Process
 
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
+```{r fmndko bioprocess in, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 
 datatable(
@@ -2543,7 +2543,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+```{r fmndko cellcomponent in, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 
 datatable(
@@ -2560,7 +2560,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r fmndko molfunction, fig.width=10, fig.height=8}
+```{r fmndko molfunction in, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 
 rna_fmndko_genes <- unlist(strsplit(
@@ -2584,14 +2584,14 @@ datatable(
 
 ### Alternative 5´ & 3´ { .tabset}
 
-```{r fmndko enrichr}
+```{r fmndko enrichr alt}
 enrichdata<-enrichr(unique(c(differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
 #### GO Biological Process
 
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
+```{r fmndko bioprocess alt, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 
 datatable(
@@ -2608,7 +2608,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+```{r fmndko cellcomponent alt, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 
 datatable(
@@ -2625,7 +2625,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r fmndko molfunction, fig.width=10, fig.height=8}
+```{r fmndko molfunction alt, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 
 rna_fmndko_genes <- unlist(strsplit(
@@ -2650,14 +2650,14 @@ datatable(
 
 ### Exons { .tabset}
 
-```{r fmndko enrichr}
+```{r spire enrichr 2}
 enrichdata<-enrichr(unique(c(differential_spire_exons$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
 #### GO Biological Process
 
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
+```{r spre bioprocess ex, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 
 datatable(
@@ -2674,7 +2674,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+```{r spire  cellcomponent ex, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 
 datatable(
@@ -2691,7 +2691,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r fmndko molfunction, fig.width=10, fig.height=8}
+```{r spire  molfunction ex, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 
 rna_fmndko_genes <- unlist(strsplit(
@@ -2715,14 +2715,14 @@ datatable(
 
 ### Introns { .tabset}
 
-```{r fmndko enrichr}
+```{r spire enrichr int}
 enrichdata<-enrichr(unique(c(differential_spire_introns$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
 #### GO Biological Process
 
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
+```{r spire bioprocess int, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 
 datatable(
@@ -2739,7 +2739,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+```{r spire cellcomponent int, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 
 datatable(
@@ -2756,7 +2756,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r fmndko molfunction, fig.width=10, fig.height=8}
+```{r spire molfunction int, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 
 rna_fmndko_genes <- unlist(strsplit(
@@ -2780,14 +2780,14 @@ datatable(
 
 ### Alternative 5´ & 3´ { .tabset}
 
-```{r fmndko enrichr}
+```{r spire enrichr alt}
 enrichdata<-enrichr(unique(c(differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
 #### GO Biological Process
 
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
+```{r spire bioprocess alt, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 
 datatable(
@@ -2804,7 +2804,7 @@ datatable(
 
 #### GO Cellular Component
 
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+```{r spire cellcomponent alt, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 
 datatable(
@@ -2821,7 +2821,7 @@ datatable(
 
 #### GO Molecular Function
 
-```{r fmndko molfunction, fig.width=10, fig.height=8}
+```{r spire molfunction alt, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 
 rna_fmndko_genes <- unlist(strsplit(
