@@ -343,7 +343,7 @@ These plots show the distribution of the splicing change (dPSI) comparing the KO
 
 ### Spire
 
-```{r inclusionumber of exons spire}
+```{r inclusionumber of exons spire, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove any NA rows (adjust as needed)
 spire_exons_df <- na.omit(spire_exons$PSI)
@@ -422,7 +422,7 @@ print(plot_psi_distribution)
 
 ### FMN2
 
-```{r inclusionumber of exons fmndko}
+```{r inclusionumber of exons fmndko, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove any NA rows (adjust as needed)
 fmndko_exons_df <- na.omit(fmndko_exons$PSI)
@@ -500,7 +500,7 @@ print(plot_psi_distribution)
 
 ### Spire
 
-```{r inclusionumber of introns spire}
+```{r inclusionumber of introns spire, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove any NA rows (adjust as needed)
 spire_introns_df <- na.omit(spire_introns$PSI)
@@ -578,7 +578,7 @@ print(plot_psi_distribution)
 
 ### FMN2
 
-```{r inclusionumber of introns fmndko}
+```{r inclusionumber of introns fmndko, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove any NA rows (adjust as needed)
 fmndko_introns_df <- na.omit(fmndko_introns$PSI)
@@ -2322,14 +2322,140 @@ print(p)
 ```
 
 
-# Enrichment Analysis with EnrichR { .tabset}
+# Enrichment Analysis with EnrichR of All Events { .tabset}
 
 The following ontology analysis uses all significant events regardless of type.
 
-### FMN2 { .tabset}
+## FMN2 { .tabset}
 
 ```{r fmndko enrichr}
 enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+
+### GO Biological Process
+
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### GO Cellular Component
+
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### GO Molecular Function
+
+```{r fmndko molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+## Spire { .tabset}
+
+```{r spire enrichr}
+enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+
+
+```
+
+### GO Biological Process
+
+```{r spire bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### GO Cellular Component
+
+```{r spire cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### GO Molecular Function
+
+```{r spire molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+
+# Enrichment Analysis with EnrichR of Specific Types { .tabset}
+
+
+## FMN2 { .tabset}
+
+### Exons { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
 
@@ -2390,18 +2516,19 @@ datatable(
 ))
 ```
 
-### Spire { .tabset}
 
-```{r spire enrichr}
-enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+### Introns { .tabset}
 
-
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(differential_fmndko_introns$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
+
 
 #### GO Biological Process
 
-```{r spire bioprocess, fig.width=10, fig.height=8}
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
+
 datatable(
   enrichdata[[1]],
   options = list(
@@ -2416,8 +2543,9 @@ datatable(
 
 #### GO Cellular Component
 
-```{r spire cellcomponent, fig.width=10, fig.height=8}
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
+
 datatable(
   enrichdata[[2]],
   options = list(
@@ -2432,8 +2560,15 @@ datatable(
 
 #### GO Molecular Function
 
-```{r spire molfunction, fig.width=10, fig.height=8}
+```{r fmndko molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
 datatable(
   enrichdata[[3]],
   options = list(
@@ -2446,6 +2581,266 @@ datatable(
 ))
 ```
 
+
+### Alternative 5´ & 3´ { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+
+#### GO Biological Process
+
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Cellular Component
+
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+## Spire { .tabset}
+
+### Exons { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(differential_spire_exons$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+
+#### GO Biological Process
+
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Cellular Component
+
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+
+### Introns { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(differential_spire_introns$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+
+#### GO Biological Process
+
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Cellular Component
+
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+
+### Alternative 5´ & 3´ { .tabset}
+
+```{r fmndko enrichr}
+enrichdata<-enrichr(unique(c(differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+```
+
+
+#### GO Biological Process
+
+```{r fmndko bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Cellular Component
+
+```{r fmndko cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+#### GO Molecular Function
+
+```{r fmndko molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+
+rna_fmndko_genes <- unlist(strsplit(
+  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
+  split = ";"
+))
+
+
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
 
 
 # Gene-centric Analysis { .tabset}
