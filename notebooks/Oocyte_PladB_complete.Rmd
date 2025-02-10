@@ -2719,15 +2719,146 @@ ggsave("volcano_10mm_control_all_events.png", plot = volcano_plot, width = 606/7
 volcano_plot
 ```
 
-## Enrichment Analysis with EnrichR { .tabset}
 
-### Gene Ontology of all genes differentially spliced under any dose compared to control.
+# Basic Stats on Found Events
+
+## Events-level stats
+
+```{r basic stats, fig.width=12, fig.height=6}
+
+# Define study-specific data
+pladb_exons_10 <- data.frame(EVENT = differential_pladb10mm_exons$EVENT, Type = "Exons", Study = "10mM vs Control")
+pladb_exons_1 <- data.frame(EVENT = differential_pladb1mm_exons$EVENT, Type = "Exons", Study = "1mM vs Control")
+pladb_exons_10_1 <- data.frame(EVENT = differential_pladb10mm_1mm_exons$EVENT, Type = "Exons", Study = "10mM vs 1mM")
+
+pladb_introns_10 <- data.frame(EVENT = differential_pladb10mm_introns$EVENT, Type = "Introns", Study = "10mM vs Control")
+pladb_introns_1 <- data.frame(EVENT = differential_pladb1mm_introns$EVENT, Type = "Introns", Study = "1mM vs Control")
+pladb_introns_10_1 <- data.frame(EVENT = differential_pladb10mm_1mm_introns$EVENT, Type = "Introns", Study = "10mM vs 1mM")
+
+pladb_alt_10 <- data.frame(EVENT = differential_pladb10mm_alt$EVENT, Type = "Alt", Study = "10mM vs Control")
+pladb_alt_1 <- data.frame(EVENT = differential_pladb1mm_alt$EVENT, Type = "Alt", Study = "1mM vs Control")
+pladb_alt_10_1 <- data.frame(EVENT = differential_pladb10mm_1mm_alt$EVENT, Type = "Alt", Study = "10mM vs 1mM")
+
+
+# Combine all events into one dataframe
+all_events <- bind_rows(pladb_exons_10, pladb_exons_1, pladb_exons_10_1, pladb_introns_10, pladb_introns_1, pladb_introns_10_1,pladb_alt_10, pladb_alt_1, pladb_alt_10_1)
+
+# Determine the number of studies each event appears in
+event_counts <- all_events %>%
+  group_by(EVENT, Type) %>%
+  summarize(Appearance_Count = n(), .groups = "drop") %>%
+  mutate(Appearance = case_when(
+    Appearance_Count == 3 ~ "All Three Studies",
+    Appearance_Count == 2 ~ "Two Studies",
+    TRUE ~ "Single Study"
+  ))
+
+# Merge back to the original dataset
+all_events <- all_events %>%
+  left_join(event_counts, by = c("EVENT", "Type"))
+
+# Create the bar plot
+p <- ggplot(all_events, aes(x = Study, fill = Appearance)) +
+  geom_bar(position = "stack") +
+  facet_wrap(~Type) +
+  theme_minimal(base_size = 16, base_family = "sans") +
+  scale_fill_manual(values = c(
+    "All Three Studies" = "#117733",
+    "Two Studies" = "#4E79A7",
+    "Single Study" = "#F28E2B"
+  )) +  # Nicer colors
+  labs(
+    title = "Comparison of Differentially Spliced Events in PladB",
+    x = "Study",
+    y = "Count of Events",
+    fill = "Event Presence"
+  ) +
+  theme(
+    legend.position = "top",
+    strip.text = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12, face = "bold"),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(color = "black")
+  )
+
+# Save the plot
+ggsave("updated_stats_events_pladb.svg", p, width = 12, height = 6, units = "in", dpi = 300)
+
+# Display the plot
+print(p)
+
+
+```
+
+## Gene-level stats
+
+```{r, basic gene stats, fig.width=12, fig.height=8}
+# Define study-specific data
+pladb_genes_10 <- data.frame(GENE = unique(c(differential_pladb10mm_exons$GENE,differential_pladb10mm_introns$GENE,differential_pladb10mm_alt$GENE)), Study = "10mM vs Control")
+pladb_genes_1 <- data.frame(GENE = unique(c(differential_pladb1mm_exons$GENE,differential_pladb1mm_introns$GENE,differential_pladb1mm_alt$GENE)), Study = "1mM vs Control")
+pladb_genes_10_1 <- data.frame(GENE = unique(c(differential_pladb10mm_1mm_exons$GENE,differential_pladb10mm_1mm_introns$GENE,differential_pladb10mm_1mm_alt$GENE)), Study = "10mM vs 1mM")
+# Combine all genes into one dataframe
+all_genes <- bind_rows(pladb_genes_10, pladb_genes_1,pladb_genes_10_1)
+
+# Determine the number of studies each gene appears in
+gene_counts <- all_genes %>%
+  group_by(GENE) %>%
+  summarize(Appearance_Count = n(), .groups = "drop") %>%
+  mutate(Appearance = case_when(
+    Appearance_Count == 3 ~ "All Three Studies",
+    Appearance_Count == 2 ~ "Two Studies",
+    TRUE ~ "Single Study"
+  ))
+
+# Merge back to the original dataset
+all_genes <- all_genes %>%
+  left_join(gene_counts, by = "GENE")
+
+# Create the bar plot
+p <- ggplot(all_genes, aes(x = Study, fill = Appearance)) +
+  geom_bar(position = "stack") +
+  theme_minimal(base_size = 16, base_family = "sans") +
+  scale_fill_manual(values = c(
+    "All Three Studies" = "#117733",
+    "Two Studies" = "#4E79A7",
+    "Single Study" = "#F28E2B"
+  )) +  # Improved color scheme
+  labs(
+    title = "Comparison of Differentially Spliced Genes in PladB",
+    x = "Study",
+    y = "Count of Genes",
+    fill = "Gene Presence"
+  ) +
+  theme(
+    legend.position = "top",
+    strip.text = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12, face = "bold"),
+    panel.grid = element_blank(),  
+    panel.background = element_blank(),  
+    axis.line = element_line(color = "black")  
+  )
+
+# Save the plot
+ggsave("updated_stats_genes_pladb.svg", p, width = 12, height = 8, units = "in", dpi = 300)
+
+# Display the plot
+print(p)
+
+```
+
+
+# Enrichment Analysis with EnrichR { .tabset}
+
+## Gene Ontology of all genes differentially spliced under any dose compared to control.
 
 ```{r pladb enrichr alt}
 enrichdata<-enrichr(unique(c(differential_pladb10mm_exons$GENE,differential_pladb1mm_exons$GENE,differential_pladb10mm_introns$GENE,differential_pladb1mm_introns$GENE,differential_pladb10mm_alt$GENE,differential_pladb1mm_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
-#### GO Biological Process
+### GO Biological Process
 
 ```{r pladb bioprocessn alt, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[1]])
@@ -2743,7 +2874,7 @@ datatable(
 ))
 ```
 
-#### GO Cellular Component
+### GO Cellular Component
 
 ```{r pladb cellcomponent alt, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[2]])
@@ -2759,7 +2890,7 @@ datatable(
 ))
 ```
 
-#### GO Molecular Function
+### GO Molecular Function
 
 ```{r pladb molfunction alt, fig.width=15, fig.height=8}
 plotEnrich(enrichdata[[3]])
@@ -2775,13 +2906,13 @@ datatable(
 ))
 ```
 
-### PladB 10mM vs 1mM { .tabset}
+## PladB 10mM vs 1mM { .tabset}
 
 ```{r pladb enrichr 10mm 1mm}
 enrichdata<-enrichr(unique(c(differential_pladb10mm_1mm_introns$GENE, differential_pladb10mm_1mm_exons$GENE,differential_pladb10mm_1mm_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 ```
 
-#### GO Biological Process
+### GO Biological Process
 
 ```{r pladb bioprocess 10mm 1mm, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
@@ -2797,7 +2928,7 @@ datatable(
 ))
 ```
 
-#### GO Cellular Component
+### GO Cellular Component
 
 ```{r pladb cellcomponent 10mm 1mm, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
@@ -2813,7 +2944,7 @@ datatable(
 ))
 ```
 
-#### GO Molecular Function
+### GO Molecular Function
 
 ```{r pladb molfunction 10mm 1mm, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
@@ -2829,147 +2960,429 @@ datatable(
 ))
 ```
 
-# Gene-centric Analysis
+# Gene-centric Analysis { .tabset}
 
-```{r gene-centric plot}
+The following analysis identifies the number of significant events a given gene has. This number of *hits* serves as a proxy of how heavily influenced by splicing a given gene has been. The table shows how many genes classified by the number of significant events I have found, alongside the proportion of ORF disruption for each group. The plot then shows the list of genes, with at least 3 *hits*, in the x-axis, their average |dPSI| in the y-axis, and the shape of the points shows whether that given event is ORF-disrupted.
+
+## 10 mM vs Control
+
+```{r gene-centric plot 10mm prep}
+# Set seed for reproducibility
 set.seed(44)
-protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
-                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-# -------------------------------
-# 1. Combine data and add protein impact
-# -------------------------------
-combined_df <- bind_rows(
-  exons_10mm  = differential_pladb10mm_exons,
-  exons_1mm   = differential_pladb1mm_exons,
-  introns_10mm= differential_pladb10mm_introns,
-  introns_1mm = differential_pladb1mm_introns,
-  .id = "source"   # new column indicating the origin
-) %>% 
-  select(-X)
 
-# Match the protein impact values
+# -------------------------------
+# 0. Read protein impact data and combine your events
+# -------------------------------
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, 
+                             fill = TRUE, quote = "")
+
+# Combine exon and intron event data (with a column "source" indicating the origin)
+combined_df <- bind_rows(
+  exons  = differential_pladb10mm_exons,
+  introns = differential_pladb10mm_introns,
+  alt = differential_pladb10mm_alt,
+  .id = "source"
+)
+
+# Add protein impact info by matching on event IDs
 combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
 
-# select only unqiue values in GENE
-combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE)
+# Keep one row per EVENT (if duplicates exist)
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE) %>%
+  filter(!GENE == "")
+
 # -------------------------------
-# 2. Create per-gene summary data
+# 1. Create per-gene summary statistics
 # -------------------------------
 combined_df_summary <- combined_df %>%
   distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
   group_by(GENE) %>%
   summarise(
     nEvents   = n(),                                        # number of events per gene
-    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute deltapsi
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute |dPSI|
     sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
   ) %>%
-  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort so that genes with more events come first
-  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set the ordering for the x-axis
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort: genes with more events first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set ordering for later plotting
 
 # -------------------------------
-# 3. Update original data and join summary info
+# 2. Add ORF information to gene-level summary
+#    (We consider a gene “ORF disrupted” if any of its events has impact labeled as "ORF")
 # -------------------------------
+# First, mark each event as ORF or Non-ORF
 combined_df <- combined_df %>%
   mutate(
     absDelta = abs(deltapsi),
     impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
-  ) %>%
-  left_join(combined_df_summary %>% select(GENE, nEvents), by = "GENE") %>%
-  mutate(GENE = factor(GENE, levels = levels(combined_df_summary$GENE)))
+  ) 
+
+# Compute per-gene flag: Does the gene have at least one ORF event?
+gene_ORF_flag <- combined_df %>%
+  group_by(GENE) %>%
+  summarise(has_ORF = any(impact == "ORF"))
+
+# Now merge with the gene summary
+combined_df_summary <- combined_df_summary %>%
+  left_join(gene_ORF_flag, by = "GENE")
 
 # -------------------------------
-# 4. Create custom facet strip labels (optional)
+# 3. Create a summary table (datatable) grouped by number of events per gene
+#    Showing for each nEvents the number of genes and the proportion that are ORF disrupted
 # -------------------------------
-facet_labels <- combined_df_summary %>%
-  group_by(nEvents) %>%
-  summarise(n_genes = n()) %>%
-  mutate(label = paste0(nEvents, " events (", n_genes, " genes)")) %>%
-  deframe()  # a named vector mapping nEvents -> "n events (x genes)"
-
-# -------------------------------
-# 5. Create a mapping for x-axis labels: blank out gene names for nEvents==1 or 2
-# -------------------------------
-gene_labels <- combined_df_summary %>%
-  mutate(gene_label = ifelse(nEvents %in% c(1, 2), "", as.character(GENE))) %>%
-  select(GENE, gene_label) %>%
-  deframe()
-
-# -------------------------------
-# 6. Create annotation data for facets with nEvents 1 and 2
-# -------------------------------
-annotation_df <- combined_df_summary %>%
-  filter(nEvents %in% c(1, 2)) %>%
+table_summary <- combined_df_summary %>%
   group_by(nEvents) %>%
   summarise(
-    n_genes      = n(),
-    max_meanDelta= max(meanDelta)
-  ) %>%
-  # Here we compute an approximate x-location (center of the facet)
-  # Note: In a free_x facet the bars are placed at positions 1,2,..., so (n_genes+1)/2 is roughly centered.
+    n_genes  = n(),
+    prop_ORF = paste0(round(mean(has_ORF), 3)*100, "%")  # proportion of genes with at least one ORF event
+  )
+
+
+table_summary <- table_summary %>%
+  rename(
+    "Number of Significant Events" = nEvents,
+    "Number of Genes" = n_genes,
+    "Proportion of ORF" = prop_ORF
+  )
+
+# (Optional) If you want an interactive table, use DT:
+datatable(table_summary, 
+          rownames = FALSE,
+          caption = 'Summary of Genes by Number of significant Events')
+```
+
+```{r 10mm gene-centric plot, fig.width=24, fig.height=10}
+# -------------------------------
+# Filter for genes with >2 events and compute SD
+# -------------------------------
+df_summary_gt2 <- combined_df_summary %>%
+  filter(nEvents > 2) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%
   mutate(
-    x = (n_genes + 1) / 2,
-    y = max_meanDelta * 1.05  # position the label slightly above the tallest bar in that facet
+    GENE = factor(GENE, levels = unique(GENE))
   )
 
 # -------------------------------
-# 7. Build the plot
+# Build the publication-ready plot:
+# - Bars show the mean |dPSI| per gene.
+# - Upper error bars show mean + SD.
 # -------------------------------
-p <- ggplot() +
-  # Bar plot: summary values (mean absolute deltapsi) per gene
-  geom_bar(
-    data = combined_df_summary[-which(combined_df_summary$GENE==""),], 
-    aes(x = GENE, y = meanDelta, fill = factor(nEvents)),
-    stat = "identity", 
-    width = 0.7, 
-    alpha = 0.8
-  ) +
-  # Jitter: individual event values, with shape by protein impact
-  geom_jitter(
-    data = combined_df[-which(combined_df$GENE==""),],
-    aes(x = GENE, y = absDelta, shape = impact),
-    width = 0.15,    # small horizontal jitter
-    size = 2.5, 
-    alpha = 0.6,
-    color = "black"
-  ) +
-  # Add a text annotation in facets where nEvents==1 or 2 showing the number of genes
-  geom_text(
-    data = annotation_df,
-    aes(x = x, y = y, label = paste(n_genes, "genes")),
-    inherit.aes = FALSE,
-    size = 5,
-    color = "black"
-  ) +
-  # Use a color palette for the bars and manually define the shapes
+
+p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents))) +
+  # Bar plot for mean |dPSI|
+  geom_bar(stat = "identity", width = 0.7, alpha = 0.8) +
+  # Upper error bar: from meanDelta to meanDelta + SD
+  geom_errorbar(aes(ymin = meanDelta, ymax = meanDelta + sdDelta),
+                width = 0.2, color = "black", alpha = 0.6) +
+  # Define fill colors (using a color palette) and label for the legend
   scale_fill_brewer(palette = "Set2", name = "Number of Events") +
-  scale_shape_manual(values = c("Non-ORF" = 16, "ORF" = 17), name = "Protein Impact") +
-  # Apply the custom x-axis labels (gene names only appear for genes with >2 events)
-  scale_x_discrete(labels = gene_labels) +
+  # Improved axis and plot annotations
   labs(
     x = "Gene ID",
-    y = "|dPSI|",
-    title = "Mean |dPSI| of genes grouped by the number significant Splicing Events"
+    y = "Mean |dPSI|",
+    title = "Genes with >2 Differential Splicing Events in PladB 10mM vs Control",
+    subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
   ) +
-  theme_bw(base_size = 14) +
+  # Use a clean, publication-ready theme with custom font settings
+  theme_classic(base_size = 16, base_family = "sans") +
   theme(
-    # Rotate x-axis labels (for facets that show them)
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-    plot.title   = element_text(hjust = 0.5),
-    # Improved facet strip aesthetics:
-    strip.background = element_rect(fill = "lightblue", color = "black"),
-    strip.text       = element_text(face = "bold"),
-    panel.background = element_blank(),
-    panel.grid.major = element_blank(), 
-    panel.grid.minor = element_blank()
-  ) +
-  # Facet the plot by the number of events (with free x-axis scales)
-  facet_wrap(~ nEvents, scales = "free_x", labeller = labeller(nEvents = facet_labels))
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    plot.margin = margin(10, 10, 10, 20) # Ensure enough space
+  )
+
+# -------------------------------
+# Save the plot as an SVG
+# -------------------------------
+ggsave("10mm_control_splicing_events_plot.svg", plot = p2, width = 24, height = 10, dpi = 300)
 
 # Display the plot
-print(p)
-
-
+print(p2)
 ```
+
+
+## 1 mM vs Control
+
+```{r gene-centric plot 1mm prep}
+# Set seed for reproducibility
+set.seed(44)
+
+# -------------------------------
+# 0. Read protein impact data and combine your events
+# -------------------------------
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, 
+                             fill = TRUE, quote = "")
+
+# Combine exon and intron event data (with a column "source" indicating the origin)
+combined_df <- bind_rows(
+  exons  = differential_pladb1mm_exons,
+  introns = differential_pladb1mm_introns,
+  alt = differential_pladb1mm_alt,
+  .id = "source"
+)
+
+# Add protein impact info by matching on event IDs
+combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+# Keep one row per EVENT (if duplicates exist)
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE) %>%
+  filter(!GENE == "")
+
+# -------------------------------
+# 1. Create per-gene summary statistics
+# -------------------------------
+combined_df_summary <- combined_df %>%
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # number of events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute |dPSI|
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort: genes with more events first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set ordering for later plotting
+
+# -------------------------------
+# 2. Add ORF information to gene-level summary
+#    (We consider a gene “ORF disrupted” if any of its events has impact labeled as "ORF")
+# -------------------------------
+# First, mark each event as ORF or Non-ORF
+combined_df <- combined_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  ) 
+
+# Compute per-gene flag: Does the gene have at least one ORF event?
+gene_ORF_flag <- combined_df %>%
+  group_by(GENE) %>%
+  summarise(has_ORF = any(impact == "ORF"))
+
+# Now merge with the gene summary
+combined_df_summary <- combined_df_summary %>%
+  left_join(gene_ORF_flag, by = "GENE")
+
+# -------------------------------
+# 3. Create a summary table (datatable) grouped by number of events per gene
+#    Showing for each nEvents the number of genes and the proportion that are ORF disrupted
+# -------------------------------
+table_summary <- combined_df_summary %>%
+  group_by(nEvents) %>%
+  summarise(
+    n_genes  = n(),
+    prop_ORF = paste0(round(mean(has_ORF), 3)*100, "%")  # proportion of genes with at least one ORF event
+  )
+
+
+table_summary <- table_summary %>%
+  rename(
+    "Number of Significant Events" = nEvents,
+    "Number of Genes" = n_genes,
+    "Proportion of ORF" = prop_ORF
+  )
+
+# (Optional) If you want an interactive table, use DT:
+datatable(table_summary, 
+          rownames = FALSE,
+          caption = 'Summary of Genes by Number of significant Events')
+```
+
+```{r 1mm gene-centric plot, fig.width=24, fig.height=10}
+# -------------------------------
+# Filter for genes with >2 events and compute SD
+# -------------------------------
+df_summary_gt2 <- combined_df_summary %>%
+  filter(nEvents > 2) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  mutate(
+    GENE = factor(GENE, levels = unique(GENE))
+  )
+
+# -------------------------------
+# Build the publication-ready plot:
+# - Bars show the mean |dPSI| per gene.
+# - Upper error bars show mean + SD.
+# -------------------------------
+
+p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents))) +
+  # Bar plot for mean |dPSI|
+  geom_bar(stat = "identity", width = 0.7, alpha = 0.8) +
+  # Upper error bar: from meanDelta to meanDelta + SD
+  geom_errorbar(aes(ymin = meanDelta, ymax = meanDelta + sdDelta),
+                width = 0.2, color = "black", alpha = 0.6) +
+  # Define fill colors (using a color palette) and label for the legend
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Improved axis and plot annotations
+  labs(
+    x = "Gene ID",
+    y = "Mean |dPSI|",
+    title = "Genes with >2 Differential Splicing Events in PladB 1mM vs Control",
+    subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
+  ) +
+  # Use a clean, publication-ready theme with custom font settings
+  theme_classic(base_size = 16, base_family = "sans") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    plot.margin = margin(10, 10, 10, 20) # Ensure enough space
+  )
+
+# -------------------------------
+# Save the plot as an SVG
+# -------------------------------
+ggsave("1mm_control_splicing_events_plot.svg", plot = p2, width = 24, height = 10, dpi = 300)
+
+# Display the plot
+print(p2)
+```
+
+
+## 10 mM vs 1mM
+
+```{r gene-centric plot 10mm 1mm prep}
+# Set seed for reproducibility
+set.seed(44)
+
+# -------------------------------
+# 0. Read protein impact data and combine your events
+# -------------------------------
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, 
+                             fill = TRUE, quote = "")
+
+# Combine exon and intron event data (with a column "source" indicating the origin)
+combined_df <- bind_rows(
+  exons  = differential_pladb10mm_1mm_exons,
+  introns = differential_pladb10mm_1mm_introns,
+  alt = differential_pladb10mm_1mm_alt,
+  .id = "source"
+)
+
+# Add protein impact info by matching on event IDs
+combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+# Keep one row per EVENT (if duplicates exist)
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE) %>%
+  filter(!GENE == "")
+
+# -------------------------------
+# 1. Create per-gene summary statistics
+# -------------------------------
+combined_df_summary <- combined_df %>%
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # number of events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute |dPSI|
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort: genes with more events first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set ordering for later plotting
+
+# -------------------------------
+# 2. Add ORF information to gene-level summary
+#    (We consider a gene “ORF disrupted” if any of its events has impact labeled as "ORF")
+# -------------------------------
+# First, mark each event as ORF or Non-ORF
+combined_df <- combined_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  ) 
+
+# Compute per-gene flag: Does the gene have at least one ORF event?
+gene_ORF_flag <- combined_df %>%
+  group_by(GENE) %>%
+  summarise(has_ORF = any(impact == "ORF"))
+
+# Now merge with the gene summary
+combined_df_summary <- combined_df_summary %>%
+  left_join(gene_ORF_flag, by = "GENE")
+
+# -------------------------------
+# 3. Create a summary table (datatable) grouped by number of events per gene
+#    Showing for each nEvents the number of genes and the proportion that are ORF disrupted
+# -------------------------------
+table_summary <- combined_df_summary %>%
+  group_by(nEvents) %>%
+  summarise(
+    n_genes  = n(),
+    prop_ORF = paste0(round(mean(has_ORF), 3)*100, "%")  # proportion of genes with at least one ORF event
+  )
+
+
+table_summary <- table_summary %>%
+  rename(
+    "Number of Significant Events" = nEvents,
+    "Number of Genes" = n_genes,
+    "Proportion of ORF" = prop_ORF
+  )
+
+# (Optional) If you want an interactive table, use DT:
+datatable(table_summary, 
+          rownames = FALSE,
+          caption = 'Summary of Genes by Number of significant Events')
+```
+
+```{r 10mm 1mm gene-centric plot, fig.width=24, fig.height=10}
+# -------------------------------
+# Filter for genes with >2 events and compute SD
+# -------------------------------
+df_summary_gt2 <- combined_df_summary %>%
+  filter(nEvents > 2) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  mutate(
+    GENE = factor(GENE, levels = unique(GENE))
+  )
+
+# -------------------------------
+# Build the publication-ready plot:
+# - Bars show the mean |dPSI| per gene.
+# - Upper error bars show mean + SD.
+# -------------------------------
+
+p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents))) +
+  # Bar plot for mean |dPSI|
+  geom_bar(stat = "identity", width = 0.7, alpha = 0.8) +
+  # Upper error bar: from meanDelta to meanDelta + SD
+  geom_errorbar(aes(ymin = meanDelta, ymax = meanDelta + sdDelta),
+                width = 0.2, color = "black", alpha = 0.6) +
+  # Define fill colors (using a color palette) and label for the legend
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Improved axis and plot annotations
+  labs(
+    x = "Gene ID",
+    y = "Mean |dPSI|",
+    title = "Genes with >2 Differential Splicing Events in PladB 10mM vs 1mM",
+    subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
+  ) +
+  # Use a clean, publication-ready theme with custom font settings
+  theme_classic(base_size = 16, base_family = "sans") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    plot.margin = margin(10, 10, 10, 20) # Ensure enough space
+  )
+
+# -------------------------------
+# Save the plot as an SVG
+# -------------------------------
+ggsave("10mm_1mm_control_splicing_events_plot.svg", plot = p2, width = 24, height = 10, dpi = 300)
+
+# Display the plot
+print(p2)
+```
+
 
 # Nuclear Speckle Protein Splicing Correlation
 
@@ -2978,9 +3391,16 @@ Differentially spliced events were filtered to obtain those proteins localizing 
 
 ```{r nuclear spckeles data hadnling spire}
 set.seed(43)
+
+library(readr)
+library(dplyr)
+library(ComplexHeatmap)
+library(grid)  # for gpar()
+
+# Read in the speckles proteins list
 speckles_proteins <- read_tsv("nuclear_speckles_protein_human_atlas.tsv")
 
-# Filter events based on gene names
+# Filter events based on gene names and PSI change threshold
 pladb_speckle_prots <- pladb_events$PSI %>%
   filter(
     (EVENT %in% differential_pladb10mm_exons$EVENT[
@@ -2997,46 +3417,75 @@ pladb_speckle_prots <- pladb_events$PSI %>%
     
     (EVENT %in% differential_pladb1mm_exons$EVENT[
       tolower(differential_pladb1mm_exons$GENE) %in% tolower(speckles_proteins$Gene) & 
-      abs(differential_pladb1mm_exons$deltapsi) >= 0.1])
-  )
-
-# Create a mapping between events and gene names
-event_gene_map <- unique(dplyr::bind_rows(
-  select(differential_pladb10mm_exons, EVENT, GENE),
-  select(differential_pladb10mm_introns, EVENT, GENE),
-  select(differential_pladb1mm_introns, EVENT, GENE),
-  select(differential_pladb1mm_exons, EVENT, GENE)
-))
-
-# Merge to associate genes with the selected events
-pladb_speckle_prots <- pladb_speckle_prots %>%
-  left_join(event_gene_map, by = "EVENT")
+      abs(differential_pladb1mm_exons$deltapsi) >= 0.1]) |
+    
+    # Added alt dataset filter:
+    (EVENT %in% differential_pladb10mm_alt$EVENT[
+      tolower(differential_pladb10mm_alt$GENE) %in% tolower(speckles_proteins$Gene) &
+      abs(differential_pladb10mm_alt$deltapsi) >= 0.1])
+  ) %>%
+  na.omit()
 
 # Update row names to include gene labels
-rownames(pladb_speckle_prots) <- paste(pladb_speckle_prots$EVENT, pladb_speckle_prots$GENE.x, sep = " | ")
+rownames(pladb_speckle_prots) <- paste(pladb_speckle_prots$EVENT, pladb_speckle_prots$GENE, sep = " | ")
 
 # Transpose the filtered matrix for correlation calculation
+# (Assuming columns 7:15 are the numeric PSI values)
 pladb_speckle_prots_t <- t(pladb_speckle_prots[, 7:15])
 
-# Calculate correlation matrix
-cor_matrix <- cor(pladb_speckle_prots_t)
+# Calculate the correlation matrix using pairwise complete observations
+cor_matrix <- cor(pladb_speckle_prots_t, use = "pairwise.complete.obs")
 
-# Create a heatmap with rotated x-axis labels
-heatmap <- Heatmap(cor_matrix,
-                   name = "Correlation",
-                   clustering_distance_rows = "pearson",  # Row clustering method
-                   clustering_method_rows = "complete",     # Clustering method for rows
-                   show_row_dend = TRUE,                    # Show row dendrogram
-                   show_column_dend = TRUE,                 # Show column dendrogram
-                   column_title = "Correlation Heatmap",    # Title for the heatmap
-                   row_title = "Variables",                 # Title for rows
-                   column_title_gp = gpar(fontsize = 14),   # Title formatting
-                   row_title_gp = gpar(fontsize = 14),      # Row title formatting
-                   column_names_rot = 45                    # Rotate column labels by 45 degrees
+# Create an empty matrix to store p-values
+n <- ncol(pladb_speckle_prots_t)
+p_matrix <- matrix(NA, nrow = n, ncol = n)
+colnames(p_matrix) <- colnames(pladb_speckle_prots_t)
+rownames(p_matrix) <- colnames(pladb_speckle_prots_t)
+
+# Compute p-values for each pair using cor.test()
+for (i in 1:n) {
+  for (j in i:n) {
+    x <- pladb_speckle_prots_t[, i]
+    y <- pladb_speckle_prots_t[, j]
+    
+    # Use only complete cases for this pair
+    valid <- complete.cases(x, y)
+    if (sum(valid) > 2) {  # require at least 3 pairs to compute correlation
+      test <- cor.test(x[valid], y[valid])
+      p_matrix[i, j] <- test$p.value
+      p_matrix[j, i] <- test$p.value
+    } else {
+      p_matrix[i, j] <- NA
+      p_matrix[j, i] <- NA
+    }
+  }
+}
+
+# Set the significance threshold (alpha)
+alpha <- 0.05
+
+
+# Create the heatmap (setting na_col to "white" so that NA cells are easily visible)
+heatmap <- Heatmap(
+  cor_matrix,
+  name = "Correlation",
+  clustering_distance_rows = "pearson",   # Row clustering method
+  clustering_method_rows = "complete",      # Clustering method for rows
+  show_row_dend = TRUE,                     # Show row dendrogram
+  show_column_dend = TRUE,                  # Show column dendrogram
+  column_title = "Correlation Heatmap",     # Title for the heatmap
+  row_title = "Variables",                  # Title for rows
+  column_title_gp = gpar(fontsize = 14),     # Title formatting
+  row_title_gp = gpar(fontsize = 14),        # Row title formatting
+  column_names_rot = 45, 
+  column_names_gp =gpar(fontsize = 6),
+  row_names_gp =gpar(fontsize = 6),# Rotate column labels by 45 degrees
+  na_col = "white"                          # Color for non-significant (NA) cells
 )
 
 # Draw the heatmap
 draw(heatmap)
+
 
 ```
 
@@ -3049,7 +3498,7 @@ datatable(
 
 # Splicing Dynamics Heatmap PladB
 
-Only Exons and Introns cassettes, not Alt. From now, onwards, only events with |dPSI|>=0.1 are considered.
+Only Exons and Introns cassettes, not Alt. 
 
 ```{r heatmap prep 2, results='hide', fig.show='hide'}
 set.seed(44)
@@ -3184,7 +3633,7 @@ right_annotation <- rowAnnotation(
 
 ### Heatmap showcasing the PSI of every candidate EX and IN
 
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
+**Note**: Gene ontology of *Cellular Component* and *Molecular Function* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
 
 ```{r heatmap_plot 2, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
