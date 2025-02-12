@@ -476,11 +476,11 @@ print(plot_psi_distribution)
 ```
 
 
-## Does the number of exons of a gene affect Inclusion? { .tabset}
+# Does the number of exons of a gene affect Inclusion? { .tabset}
 
 First I classified the genes according to the number of exons they contain from VASTDB. Then I plotted the dPSI of all exons grouped by that classification.
 
-### Exons 
+## Exons 
 
 
 ```{r inclusionumber of exons pladb, fig.width=12, fig.height=8}
@@ -647,9 +647,9 @@ print(plot_psi_distribution)
 
 
 
-## PCA Plot { .tabset}
+# PCA Plot { .tabset}
 
-### PladB
+## PladB
 
 ```{r pca calculation}
 # Subset and scale data
