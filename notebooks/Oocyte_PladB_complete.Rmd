@@ -800,6 +800,8 @@ pladb_1mm_10mm_pdiff_exons <- prepareTableVolcanoFDR(
 write.csv(pladb_pdiff_exons,"pladb_pdiff_exons.csv")
 write.csv(pladb_1mm_control_pdiff_exons,"pladb_1mm_control_pdiff_exons.csv")
 write.csv(pladb_1mm_10mm_pdiff_exons,"pladb_1mm_10mm_pdiff_exons.csv")
+
+pladb_1mm_10mm_pdiff_alt<-read.csv("pladb_1mm_10mm_pdiff_alt.csv")[,-1]
 ```
 
 
@@ -1556,9 +1558,9 @@ pladb_1mm_control_pdiff_introns$Shared <- ifelse(pladb_1mm_control_pdiff_introns
 
 # Classify significance
 pladb_1mm_control_pdiff_introns$Significant <- ifelse(
-  pladb_1mm_control_pdiff_introns$FDR<=0.01 & pladb_1mm_control_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_control_pdiff_introns$FDR<=0.05 & pladb_1mm_control_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_control_pdiff_introns$FDR<=0.01 & pladb_1mm_control_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_control_pdiff_introns$FDR<=0.05 & pladb_1mm_control_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1666,9 +1668,9 @@ pladb_1mm_10mm_pdiff_introns$Shared <- ifelse(pladb_1mm_10mm_pdiff_introns$EVENT
 
 # Classify significance
 pladb_1mm_10mm_pdiff_introns$Significant <- ifelse(
-  pladb_1mm_10mm_pdiff_introns$FDR<=0.01 & pladb_1mm_10mm_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+  pladb_1mm_10mm_pdiff_introns$FDR<=0.05 & pladb_1mm_10mm_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    pladb_1mm_10mm_pdiff_introns$FDR<=0.01 & pladb_1mm_10mm_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    pladb_1mm_10mm_pdiff_introns$FDR<=0.05 & pladb_1mm_10mm_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
@@ -1765,7 +1767,6 @@ ggsave("volcano_introns_10mm_1mm.svg", plot = volcano_plot, width = 606/72, heig
 volcano_plot
 
 ```
-
 
 
 
@@ -3465,25 +3466,28 @@ for (i in 1:n) {
 alpha <- 0.05
 
 
-# Create the heatmap (setting na_col to "white" so that NA cells are easily visible)
-heatmap <- Heatmap(
-  cor_matrix,
-  name = "Correlation",
-  clustering_distance_rows = "pearson",   # Row clustering method
-  clustering_method_rows = "complete",      # Clustering method for rows
-  show_row_dend = TRUE,                     # Show row dendrogram
-  show_column_dend = TRUE,                  # Show column dendrogram
-  column_title = "Correlation Heatmap",     # Title for the heatmap
-  row_title = "Variables",                  # Title for rows
-  column_title_gp = gpar(fontsize = 14),     # Title formatting
-  row_title_gp = gpar(fontsize = 14),        # Row title formatting
-  column_names_rot = 45, 
-  column_names_gp =gpar(fontsize = 6),
-  row_names_gp =gpar(fontsize = 6),# Rotate column labels by 45 degrees
-  na_col = "white"                          # Color for non-significant (NA) cells
-)
+# Perform hierarchical clustering on rows
+row_dend <- hclust(dist(cor_matrix, method = "euclidean"), method = "complete")
 
-# Draw the heatmap
+# Extract the order from the row dendrogram
+row_order <- row_dend$order
+
+# Apply the same order to the columns
+heatmap <- Heatmap(
+  cor_matrix[row_order, row_order],   # Reorder both rows and columns
+  name = "Correlation",
+  show_row_dend = TRUE,               # Show row dendrogram
+  show_column_dend = FALSE,            # Hide column dendrogram to maintain order
+  column_title = "Correlation Heatmap",
+  row_title = "Variables",
+  column_title_gp = gpar(fontsize = 14),
+  row_title_gp = gpar(fontsize = 14),
+  column_names_rot = 45, 
+  column_names_gp = gpar(fontsize = 5),
+  row_names_gp = gpar(fontsize = 5),
+  na_col = "white"
+)
+he heatmap
 draw(heatmap)
 
 
