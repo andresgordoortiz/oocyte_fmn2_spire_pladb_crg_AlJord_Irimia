@@ -3487,7 +3487,6 @@ heatmap <- Heatmap(
   row_names_gp = gpar(fontsize = 5),
   na_col = "white"
 )
-he heatmap
 draw(heatmap)
 
 
