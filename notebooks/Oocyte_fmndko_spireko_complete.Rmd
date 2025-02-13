@@ -663,7 +663,7 @@ print(plot_psi_distribution)
 
 ```{r pca calculation spire}
 # Subset and scale data
-pca_spire <- spire_data[, c("EVENT",spire_events$Samples)] %>%
+pca_spire <- filterEvents(spire_events, N=10)$PSI[, c("EVENT",spire_events$Samples)] %>%
   na.omit()
 
 rownames(pca_spire)<- pca_spire$EVENT
@@ -713,7 +713,7 @@ pca_plot
 
 ```{r pca calculation fmndko}
 # Subset and scale data
-pca_fmndko <- fmndko_data[, c("EVENT",fmndko_events$Samples)] %>%
+pca_fmndko <- filterEvents(fmndko_events, N=10)$PSI[, c("EVENT",fmndko_events$Samples)] %>%
   na.omit()
 
 rownames(pca_fmndko)<- pca_fmndko$EVENT
