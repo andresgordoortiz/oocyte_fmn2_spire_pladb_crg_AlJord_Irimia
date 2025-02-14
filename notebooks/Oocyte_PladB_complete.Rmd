@@ -182,7 +182,7 @@ All the code history can be accessed through its [GitHub Repository](https://git
 
 ```{r inclusion tables}
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
-pladb_events <- getEvents(pladb_data, tool = "vast-tools") # Extract alternative splicing events
+pladb_events <- filterevents(getEvents(pladb_data, tool = "vast-tools"), N=10) # Extract alternative splicing events
 pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 10)
 pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 10)
 pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 10)
