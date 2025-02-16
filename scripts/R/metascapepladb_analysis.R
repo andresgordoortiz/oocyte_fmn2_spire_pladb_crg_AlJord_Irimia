@@ -6,24 +6,27 @@
 
 ## Cell Cycle related
 
-
-```{r cell cycle genes plot}
 set.seed(44)
-metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
-metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
+metascape_alltocontrol <- read_excel("results/metascape_n10/pladb_all_n10.xlsx")
+metascape_allgenes_10mmvscontrol <- read_excel("results/metascape_n10/pladb_10vscontrol_n10.xlsx")
+metascape_allgenes_1mmvscontrol <- read_excel("results/metascape_n10/pladb_1vscontrol_n10.xlsx")
+metascape_allgenes_10mmvs1mm <- read_excel("results/metascape_n10/pladb_10vs1_n10.xlsx")
 
 cell_cycle_genes<-unique(c(
-  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:1901987 regulation of cell cycle phase`=="1.0" | metascape_alltocontrol$`GO:0051321 meiotic cell cycle`=="1.0")],
-  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0010564 regulation of cell cycle proce`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0061982 meiosis I cell cycle process`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1901976 regulation of cell cycle check`=="1.0")])
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0010564 regulation of cell cycle proce`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0010564 regulation of cell cycle proce`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1903047 mitotic cell cycle process`=="1.0" )],
+  metascape_allgenes_1mmvscontrol$MyList[which(metascape_allgenes_1mmvscontrol$`GO:1901987 regulation of cell cycle phase`=="1.0")])
 )
 
-combined_df <- select(bind_rows(
+combined_df <- bind_rows(
   exons_10mm = differential_pladb10mm_exons,
   exons_1mm = differential_pladb1mm_exons,
   introns_10mm = differential_pladb10mm_introns,
   introns_1mm = differential_pladb1mm_introns,
+  alt_10mm = differential_pladb10mm_alt,
+  alt_1mm = differential_pladb1mm_alt,
   .id = "source"  # This will be the new column indicating the origin
-))
+)
 cell_cycle_df<-filter(combined_df, GENE %in% cell_cycle_genes)
 cell_cycle_df$protein_impact<-protein_impact$ONTO[match(cell_cycle_df$EVENT, protein_impact$EventID)]
 
@@ -94,10 +97,9 @@ p <- ggplot() +
 print(p)
 
 
-```
 
 
-```{r cell cycle, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
+
 event_names <- cell_cycle_df$EVENT[cell_cycle_df$impact=="ORF"]
 pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
 
@@ -131,32 +133,30 @@ ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
   ) +
   theme_minimal() +
   facet_wrap(~EVENT)
-```
 
 ## Cytoskeleton related
 
 
-```{r ctoskeleton genes plot}
 set.seed(44)
-metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
-metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
-metascape_allgenes_1mmvscontrol <- read_excel("metascape_allgenes_1mmvscontrol.xlsx")
-metascape_allgenes_10mmvs1mm <- read_excel("metascape_allgenes_10mmvs1mm.xlsx")
+
 
 
 cytoskeleton_genes<-unique(c(
-  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0034453 microtubule anchoring`=="1.0" | metascape_alltocontrol$`mmu04814 Motor proteins - Mus musculus`=="1.0")],
-  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0034453 microtubule anchoring`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1905274 regulation of modification of`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:1902117 positive regulation of organel`=="1.0")]),
-  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0034454 microtubule anchoring at centr`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0007064 mitotic sister chromatid cohes`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0022027 interkinetic nuclear migration`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0010638 positive regulation of organel`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0034727 piecemeal microautophagy of th`=="1.0","Cep170")]
-)
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0097749 membrane tubulation`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0032465 regulation of cytokinesis`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0010638 positive regulation of organel`=="1.0")],
+  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0022027 interkinetic nuclear migration`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0000226 microtubule cytoskeleton organ`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0010638 positive regulation of organel`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0046599 regulation of centriole replic`=="1.0")],
+  metascape_allgenes_1mmvscontrol$MyList[which(metascape_allgenes_1mmvscontrol$`GO:0051640 organelle localization`=="1.0" | metascape_allgenes_1mmvscontrol$`GO:0051168 nuclear export`=="1.0" | metascape_allgenes_1mmvscontrol$`GO:0030036 actin cytoskeleton organizatio`=="1.0" | metascape_allgenes_1mmvscontrol$`GO:0097749 membrane tubulation`=="1.0")]))
+  
 
-combined_df <- select(bind_rows(
+combined_df <- bind_rows(
   exons_10mm = differential_pladb10mm_exons,
   exons_1mm = differential_pladb1mm_exons,
   introns_10mm = differential_pladb10mm_introns,
   introns_1mm = differential_pladb1mm_introns,
+  alt_10mm = differential_pladb10mm_alt,
+  alt_1mm = differential_pladb1mm_alt,
   .id = "source"  # This will be the new column indicating the origin
-), -X)
+)
 
 cytoskeleton_df<-filter(combined_df, GENE %in% cytoskeleton_genes)
 cytoskeleton_df$protein_impact<-protein_impact$ONTO[match(cytoskeleton_df$EVENT, protein_impact$EventID)]
@@ -228,10 +228,8 @@ p <- ggplot() +
 print(p)
 
 
-```
 
 
-```{r cytoskeleton, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
 event_names <- cytoskeleton_df$EVENT[cytoskeleton_df$impact=="ORF"]
 pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
 
@@ -265,32 +263,17 @@ ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
   ) +
   theme_minimal() +
   facet_wrap(~EVENT)
-```
 
 
-## Chromosome related 
 
-```{r chromsome genes plot}
-set.seed(44)
-metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
-metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
-metascape_allgenes_1mmvscontrol <- read_excel("metascape_allgenes_1mmvscontrol.xlsx")
-metascape_allgenes_10mmvs1mm <- read_excel("metascape_allgenes_10mmvs1mm.xlsx")
+## Chromosome related
 
 
 chromosome_genes<-unique(c(
-  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0006974 DNA damage response`=="1.0" | metascape_alltocontrol$`GO:0051298 centrosome duplication`=="1.0" | metascape_alltocontrol$`GO:2000779 regulation of double-strand br`=="1.0")],
-  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0051298 centrosome duplication`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0006974 DNA damage response`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0006282 regulation of DNA repair`=="1.0")],
-  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0048232 male gamete generation`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0051276 chromosome organization`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0006281 DNA repair`=="1.0")]
-))
-
-combined_df <- select(bind_rows(
-  exons_10mm = differential_pladb10mm_exons,
-  exons_1mm = differential_pladb1mm_exons,
-  introns_10mm = differential_pladb10mm_introns,
-  introns_1mm = differential_pladb1mm_introns,
-  .id = "source"  # This will be the new column indicating the origin
-), -X)
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0051053 negative regulation of DNA met`=="1.0" | metascape_alltocontrol$`GO:0033044 regulation of chromosome organ`=="1.0" | metascape_alltocontrol$`R-MMU-73894 DNA Repair`=="1.0" | metascape_alltocontrol$`GO:0006974 DNA damage response`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`R-MMU-6804115 TP53 regulates transcription o`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0033044 regulation of chromosome organ`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:2000104 negative regulation of DNA-tem`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0051053 negative regulation of DNA met`=="1.0")],
+  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0034502 protein localization to chromo`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0006307 DNA alkylation repair`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0006974 DNA damage response`=="1.0")],
+  metascape_allgenes_1mmvscontrol$MyList[which(metascape_allgenes_1mmvscontrol$`GO:0006271 DNA strand elongation involved`=="1.0" | metascape_allgenes_1mmvscontrol$`GO:0006281 DNA repair`=="1.0" )]))
 
 chromosome_df<-filter(combined_df, GENE %in% chromosome_genes)
 chromosome_df$protein_impact<-protein_impact$ONTO[match(chromosome_df$EVENT, protein_impact$EventID)]
@@ -362,9 +345,6 @@ p <- ggplot() +
 print(p)
 
 
-```
-
-```{r chromosome, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
 event_names <- chromosome_df$EVENT[chromosome_df$impact=="ORF"]
 pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
 
@@ -398,32 +378,18 @@ ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
   ) +
   theme_minimal() +
   facet_wrap(~EVENT)
-```
 
 
-## Spliceosome related 
 
-```{r spliceosome genes plot}
-set.seed(44)
-metascape_alltocontrol <- read_excel("metascape_allgenes_alldosesvscontrol.xlsx")
-metascape_allgenes_10mmvscontrol <- read_excel("metascape_allgenes_10mmvscontrol.xlsx")
-metascape_allgenes_1mmvscontrol <- read_excel("metascape_allgenes_1mmvscontrol.xlsx")
-metascape_allgenes_10mmvs1mm <- read_excel("metascape_allgenes_10mmvs1mm.xlsx")
+## RNA related 
+
 
 
 splicesome_genes<-unique(c(
-  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0000245 spliceosomal complex assembly`=="1.0")],
-  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0000245 spliceosomal complex assembly`=="1.0")],
-  metascape_allgenes_1mmvscontrol$MyList[which(metascape_allgenes_1mmvscontrol$`GO:0000245 spliceosomal complex assembly`=="1.0")]
-))
-
-combined_df <- select(bind_rows(
-  exons_10mm = differential_pladb10mm_exons,
-  exons_1mm = differential_pladb1mm_exons,
-  introns_10mm = differential_pladb10mm_introns,
-  introns_1mm = differential_pladb1mm_introns,
-  .id = "source"  # This will be the new column indicating the origin
-), -X)
+  metascape_alltocontrol$MyList[which(metascape_alltocontrol$`GO:0006366 transcription by RNA polymeras`=="1.0" | metascape_alltocontrol$`R-MMU-3700989 Transcriptional Regulation by`=="1.0" | metascape_alltocontrol$`GO:0000432 positive regulation of transcr`=="1.0" | metascape_alltocontrol$`WP310 mRNA processing`=="1.0")],
+  metascape_allgenes_10mmvscontrol$MyList[which(metascape_allgenes_10mmvscontrol$`GO:0006417 regulation of translation`=="1.0" | metascape_allgenes_10mmvscontrol$`GO:0016071 mRNA metabolic process`=="1.0")],
+  metascape_allgenes_10mmvs1mm$MyList[which(metascape_allgenes_10mmvs1mm$`GO:0006417 regulation of translation`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:0016071 mRNA metabolic process`=="1.0" | metascape_allgenes_10mmvs1mm$`GO:1900368 regulation of post-transcripti`=="1.0")],
+  metascape_allgenes_1mmvscontrol$MyList[which(metascape_allgenes_1mmvscontrol$`GO:0009451 RNA modification`=="1.0" | metascape_allgenes_1mmvscontrol$`WP310 mRNA processing`=="1.0" )]))
 
 spliceosome_df<-filter(combined_df, GENE %in% splicesome_genes)
 spliceosome_df$protein_impact<-protein_impact$ONTO[match(spliceosome_df$EVENT, protein_impact$EventID)]
@@ -484,7 +450,7 @@ p <- ggplot() +
   labs(
     x = "Gene ID",
     y = "|dPSI|",
-    title = "Spliceosome related Genes"
+    title = "RNA related Genes"
   ) +
   theme(
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
@@ -495,9 +461,6 @@ p <- ggplot() +
 print(p)
 
 
-```
-
-```{r spliceosome, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
 event_names <- spliceosome_df$EVENT[spliceosome_df$impact=="ORF"]
 pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
 
@@ -525,31 +488,11 @@ pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control
 ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
   geom_boxplot(size = 1,show.legend = FALSE) +
   labs(
-    title = "ORF Disrupted Events Spliceosome Related",
+    title = "ORF Disrupted Events RNA Related",
     x = "",
     y = "PSI"
   ) +
   theme_minimal() +
   facet_wrap(~EVENT)
-```
 
 
-## Table
-
-The *source* columns refers to whether it has been found differentially spliced in the 10mM vs control, or 1mM vs control.
-
-```{r cell cycle df}
-
-combined_df$protein_impact<-protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
-
-datatable(
-  combined_df,
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-    rownames = FALSE,                       # Disable row names
-    extensions = "Buttons"                  # Enable export buttons
-  ))
-```
