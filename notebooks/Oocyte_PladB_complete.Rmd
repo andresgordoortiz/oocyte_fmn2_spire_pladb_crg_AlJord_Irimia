@@ -751,9 +751,7 @@ colsGroupC_pladb   <- convertCols(pladb_exons$PSI, samplesC_pladb)
 ### Calculations
 
 ```{r pdiff calculation exons}
-pladb_pdiff_exons<-read.csv("tables_10n/pladb_pdiff_exons.csv")[,-1]
-pladb_1mm_control_pdiff_exons<-read.csv("tables_10n/pladb_1mm_control_pdiff_exons.csv")[,-1]
-pladb_1mm_10mm_pdiff_exons<-read.csv("tables_10n/pladb_1mm_10mm_pdiff_exons.csv")[,-1]
+
 
 pladb_pdiff_exons <- prepareTableVolcanoFDR(
   psitable = pladb_exons$PSI,
@@ -1377,9 +1375,6 @@ datatable(
 ### Calculations
 
 ```{r pdiff calculation introns}
-pladb_pdiff_introns<-read.csv("tables_10n/pladb_pdiff_introns.csv")[,-1]
-pladb_1mm_control_pdiff_introns<-read.csv("tables_10n/pladb_1mm_control_pdiff_introns.csv")[,-1]
-pladb_1mm_10mm_pdiff_introns<-read.csv("tables_10n/pladb_1mm_10mm_pdiff_introns.csv")[,-1]
 
 
 pladb_pdiff_introns <- prepareTableVolcanoFDR(
@@ -2006,11 +2001,6 @@ datatable(
 ### Calculations
 
 ```{r pdiff calculation alt}
-
-pladb_pdiff_alt<-read.csv("tables_10n/pladb_pdiff_alt.csv")[,-1]
-pladb_1mm_control_pdiff_alt<-read.csv("tables_10n/pladb_1mm_control_pdiff_alt.csv")[,-1]
-pladb_1mm_10mm_pdiff_introns<-read.csv("tables_10n/pladb_1mm_10mm_pdiff_introns.csv")[,-1]
-
 pladb_pdiff_alt <- prepareTableVolcanoFDR(
   psitable = pladb_alt$PSI,
   qualtable = pladb_alt$Qual,
@@ -4234,50 +4224,6 @@ datatable(
   rownames = FALSE,                       # Disable row names
   extensions = "Buttons"                  # Enable export buttons
 ))
-```
-
-## ORF Disrupted Splicing Events unique to 10mM PladB
-
-These are the mannually curated top splicing events that are unique to 10mM PladB treatment and witch a gene ontology related to cell cycle, chromosomes o spindle.
-
-```{r densities_per_event 3, warning=FALSE, message=FALSE, fig.width=16, fig.height=8}
-event_names <- c("MmuEX0014857", "MmuEX0014855", "MmuINT0153506", 
-          "MmuINT1032175","MmuEX0044981")
-pladb_events_shared<-filter(pladb_events$PSI, EVENT %in% event_names)
-
-# Add GENE names to the EVENT column
-pladb_events_shared <- pladb_events_shared %>%
-  mutate(EVENT = paste0(EVENT, " (", GENE, ")"))
-
-# Reshape data for plotting
-pladb_events_shared <- pladb_events_shared %>%
-  pivot_longer(
-    cols = 7:15,
-    names_to = "Condition",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Group = case_when(
-      grepl("038|039|040", Condition) ~ "Control",
-      grepl("041|042|043", Condition) ~ "Pladb1mM",
-      grepl("044|045|046", Condition) ~ "Pladb10mM"
-    )
-  )
-
-pladb_events_shared$Group<-factor(pladb_events_shared$Group, levels = c("Control","Pladb1mM","Pladb10mM"))
-# Plot with updated EVENT names
-ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
-  geom_boxplot(size = 1) +
-  labs(
-    title = "ORF Disrupted Events unique to 10mM PladB",
-    x = "",
-    y = "PSI"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "right"
-  ) + 
-  facet_wrap(~EVENT)
 ```
 
 
