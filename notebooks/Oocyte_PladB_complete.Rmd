@@ -162,8 +162,7 @@ The upstream analysis is performed on the CRG cluster using the Bash command lin
 
 ## Part 2: Statistical Analysis
 
-State-of-Art splicing analysis tools such as the [betAS package](https://rnajournal.cshlp.org/content/30/4/337) employ a combination of statistical testing and simulations on the *beta* distribution to calculate the delta PSI (the difference in splicing between two conditions) and the False Discovery rate (FDR, or adjusted p-value) respectively. This is computationally demanding for such a large dataset. For that reason we focused first on analyzing *alternative* splicing events (that is, events with a PSI different that *0* or *100*--not always active, not always inactive) which constitute ~25% of all events. With that first analysis done (which can be accessed completely in the file `alternative_splicing_pladb.html`) we fine-tuned the code and used the complete dataset (using both constitutive and alternative events). As expected, almost all significant events found in the smaller subset are found using it fully (see *Comparing both analysis* section below). The specific steps taken for these analysis were.
-
+State-of-Art splicing analysis tools such as the [betAS package](https://rnajournal.cshlp.org/content/30/4/337) employ a combination of statistical testing and simulations on the *beta* distribution to calculate the delta PSI (the difference in splicing between two conditions) and the False Discovery rate (FDR, or adjusted p-value) respectively. The specific steps taken for these analysis were.
 
 1. **Statistical Testing**:
    - Use the [betAS package](https://rnajournal.cshlp.org/content/30/4/337) in R to perform Beta Distribution simulations to obtain:
@@ -182,7 +181,7 @@ All the code history can be accessed through its [GitHub Repository](https://git
 
 ```{r inclusion tables}
 pladb_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/pladb_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
-pladb_events <- filterevents(getEvents(pladb_data, tool = "vast-tools"), N=10) # Extract alternative splicing events
+pladb_events <- filterEvents(getEvents(pladb_data, tool = "vast-tools"), N=10) # Extract alternative splicing events
 pladb_exons <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 10)
 pladb_alt <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 10)
 pladb_introns <- filterEvents(pladb_events, types = c("IR"), N = 10)
@@ -752,6 +751,10 @@ colsGroupC_pladb   <- convertCols(pladb_exons$PSI, samplesC_pladb)
 ### Calculations
 
 ```{r pdiff calculation exons}
+pladb_pdiff_exons<-read.csv("tables_10n/pladb_pdiff_exons.csv")[,-1]
+pladb_1mm_control_pdiff_exons<-read.csv("tables_10n/pladb_1mm_control_pdiff_exons.csv")[,-1]
+pladb_1mm_10mm_pdiff_exons<-read.csv("tables_10n/pladb_1mm_10mm_pdiff_exons.csv")[,-1]
+
 pladb_pdiff_exons <- prepareTableVolcanoFDR(
   psitable = pladb_exons$PSI,
   qualtable = pladb_exons$Qual,
@@ -1374,6 +1377,11 @@ datatable(
 ### Calculations
 
 ```{r pdiff calculation introns}
+pladb_pdiff_introns<-read.csv("tables_10n/pladb_pdiff_introns.csv")[,-1]
+pladb_1mm_control_pdiff_introns<-read.csv("tables_10n/pladb_1mm_control_pdiff_introns.csv")[,-1]
+pladb_1mm_10mm_pdiff_introns<-read.csv("tables_10n/pladb_1mm_10mm_pdiff_introns.csv")[,-1]
+
+
 pladb_pdiff_introns <- prepareTableVolcanoFDR(
   psitable = pladb_introns$PSI,
   qualtable = pladb_introns$Qual,
@@ -1998,6 +2006,11 @@ datatable(
 ### Calculations
 
 ```{r pdiff calculation alt}
+
+pladb_pdiff_alt<-read.csv("tables_10n/pladb_pdiff_alt.csv")[,-1]
+pladb_1mm_control_pdiff_alt<-read.csv("tables_10n/pladb_1mm_control_pdiff_alt.csv")[,-1]
+pladb_1mm_10mm_pdiff_introns<-read.csv("tables_10n/pladb_1mm_10mm_pdiff_introns.csv")[,-1]
+
 pladb_pdiff_alt <- prepareTableVolcanoFDR(
   psitable = pladb_alt$PSI,
   qualtable = pladb_alt$Qual,
@@ -2783,7 +2796,7 @@ p <- ggplot(all_events, aes(x = Study, fill = Appearance)) +
   )
 
 # Save the plot
-ggsave("updated_stats_events_pladb.svg", p, width = 12, height = 6, units = "in", dpi = 300)
+ggsave("stats_events_pladb.svg", p, width = 12, height = 6, units = "in", dpi = 300)
 
 # Display the plot
 print(p)
@@ -2841,7 +2854,7 @@ p <- ggplot(all_genes, aes(x = Study, fill = Appearance)) +
   )
 
 # Save the plot
-ggsave("updated_stats_genes_pladb.svg", p, width = 12, height = 8, units = "in", dpi = 300)
+ggsave("stats_genes_pladb.svg", p, width = 12, height = 8, units = "in", dpi = 300)
 
 # Display the plot
 print(p)
@@ -2903,6 +2916,10 @@ datatable(
   rownames = FALSE,                       # Disable row names
   extensions = "Buttons"                  # Enable export buttons
 ))
+
+rna_genes<-enrichdata[[3]]$Genes[grepl("RNA Binding",enrichdata[[3]]$Term) & enrichdata[[3]]$P.value<=0.05]
+# Separate rna_genes lis tinto separate names (they are separated by ";")
+rna_genes<-unlist(strsplit(rna_genes,";"))
 ```
 
 ## PladB 10mM vs 1mM { .tabset}
@@ -3385,8 +3402,8 @@ print(p2)
 
 # Nuclear Speckle Protein Splicing Correlation
 
-Nuclear speckles genes were obtained from the Human Protein Atlas
-Differentially spliced events were filtered to obtain those proteins localizing within speckles. I performed pearson correlation between those selected events. |dPSI|>=0.1
+Nuclear speckles genes were obtained from the Human Protein Atlas.
+Differentially spliced events were filtered to obtain those proteins experimentally localizing within speckles.
 
 ```{r nuclear spckeles data hadnling spire}
 set.seed(43)
@@ -3495,6 +3512,103 @@ draw(heatmap)
 datatable(
   pladb_speckle_prots              # Enable export buttons
 )
+```
+
+# RNA Binding Protein Splicing Correlation
+
+This plot displays splicing events that are included or excluded in a similar pattern. **Why is this important?** PladB alters the splicing patterns of numerous genes. However, among these genes, could there be other splicing or transcription regulators that might contribute to the observed oocyte phenotype?
+
+```{r rna binding data hadnling spire, fig.width=14, fig.height=10}
+set.seed(43)
+
+
+# Filter events based on gene names and PSI change threshold
+pladb_rna_prots <- pladb_events$PSI %>%
+  filter(
+    (EVENT %in% differential_pladb10mm_exons$EVENT[
+      tolower(differential_pladb10mm_exons$GENE) %in% tolower(rna_genes) & 
+      abs(differential_pladb10mm_exons$deltapsi) >= 0.1]) |
+    
+    (EVENT %in% differential_pladb10mm_introns$EVENT[
+      tolower(differential_pladb10mm_introns$GENE) %in% tolower(rna_genes) & 
+      abs(differential_pladb10mm_introns$deltapsi) >= 0.1]) |
+    
+    (EVENT %in% differential_pladb1mm_introns$EVENT[
+      tolower(differential_pladb1mm_introns$GENE) %in% tolower(rna_genes) & 
+      abs(differential_pladb1mm_introns$deltapsi) >= 0.1]) |
+    
+    (EVENT %in% differential_pladb1mm_exons$EVENT[
+      tolower(differential_pladb1mm_exons$GENE) %in% tolower(rna_genes) & 
+      abs(differential_pladb1mm_exons$deltapsi) >= 0.1]) |
+    
+    # Added alt dataset filter:
+    (EVENT %in% differential_pladb10mm_alt$EVENT[
+      tolower(differential_pladb10mm_alt$GENE) %in% tolower(rna_genes) &
+      abs(differential_pladb10mm_alt$deltapsi) >= 0.1])
+  ) %>%
+  na.omit()
+
+# Update row names to include gene labels
+rownames(pladb_rna_prots) <- paste(pladb_rna_prots$EVENT, pladb_rna_prots$GENE, sep = " | ")
+
+# Transpose the filtered matrix for correlation calculation
+# (Assuming columns 7:15 are the numeric PSI values)
+pladb_rna_prots_t <- t(pladb_rna_prots[, 7:15])
+
+# Calculate the correlation matrix using pairwise complete observations
+cor_matrix <- cor(pladb_rna_prots_t, use = "pairwise.complete.obs")
+
+# Create an empty matrix to store p-values
+n <- ncol(pladb_rna_prots_t)
+p_matrix <- matrix(NA, nrow = n, ncol = n)
+colnames(p_matrix) <- colnames(pladb_rna_prots_t)
+rownames(p_matrix) <- colnames(pladb_rna_prots_t)
+
+# Compute p-values for each pair using cor.test()
+for (i in 1:n) {
+  for (j in i:n) {
+    x <- pladb_rna_prots_t[, i]
+    y <- pladb_rna_prots_t[, j]
+    
+    # Use only complete cases for this pair
+    valid <- complete.cases(x, y)
+    if (sum(valid) > 2) {  # require at least 3 pairs to compute correlation
+      test <- cor.test(x[valid], y[valid])
+      p_matrix[i, j] <- test$p.value
+      p_matrix[j, i] <- test$p.value
+    } else {
+      p_matrix[i, j] <- NA
+      p_matrix[j, i] <- NA
+    }
+  }
+}
+
+# Set the significance threshold (alpha)
+alpha <- 0.05
+
+
+# Perform hierarchical clustering on rows
+row_dend <- hclust(dist(cor_matrix, method = "euclidean"), method = "complete")
+
+# Extract the order from the row dendrogram
+row_order <- row_dend$order
+
+# Apply the same order to the columns
+heatmap <- Heatmap(
+  cor_matrix[row_order, row_order],   # Reorder both rows and columns
+  name = "Correlation",
+  show_row_dend = TRUE,               # Show row dendrogram
+  show_column_dend = FALSE,            # Hide column dendrogram to maintain order
+  column_title = "Correlation Heatmap",
+  row_title = "Variables",
+  column_title_gp = gpar(fontsize = 14),
+  row_title_gp = gpar(fontsize = 14),
+  column_names_rot = 45, 
+  column_names_gp = gpar(fontsize = 6),
+  row_names_gp = gpar(fontsize = 6),
+  na_col = "white"
+)
+draw(heatmap)
 ```
 
 # Splicing Dynamics Heatmap PladB
@@ -4165,288 +4279,6 @@ ggplot(pladb_events_shared, aes(x = Group, y = Value, color = EVENT)) +
   ) + 
   facet_wrap(~EVENT)
 ```
-
-
-# Splicing Dynamics Heatmap PladB
-
-Only Exons and Introns cassettes, not Alt. From now, onwards, only events with |dPSI|>=0.1 are considered.
-
-```{r heatmap prep 3, results='hide', fig.show='hide'}
-set.seed(44)
-
-# Extract all events
-pladb_all <- filterEvents(
-  pladb_events,
-  types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
-  N = 3
-)
-
-# Convert PSI values to a matrix and set row names
-pladb_matrix <- pladb_all$PSI[, 7:15] %>%
-  as.matrix()
-rownames(pladb_matrix) <- pladb_all$PSI$EVENT
-
-# Filter rows based on the final event lists and with abs(deltapsi)>=0.1
-filtered_events <- unique(c(
-  differential_pladb10mm_exons$EVENT[abs(differential_pladb10mm_exons$deltapsi)>=0.1],differential_pladb10mm_introns$EVENT[abs(differential_pladb10mm_introns$deltapsi)>=0.1],differential_pladb1mm_exons$EVENT[abs(differential_pladb1mm_exons$deltapsi)>=0.1],differential_pladb1mm_introns$EVENT[abs(differential_pladb1mm_introns$deltapsi)>=0.1]))
-pladb_matrix <- pladb_matrix[rownames(pladb_matrix) %in% filtered_events, ]
-
-# Arrange columns based on metadata
-colnames(pladb_matrix)<-metadata_pladb$fastq_files
-# Create a dendrogram for the columns
-col_dend <- hclust(dist(t(pladb_matrix))) %>%
-  as.dendrogram() %>%
-  color_branches(k = 3) # Color branches with 3 clusters
-
-# Check if row names contain "EX"
-contains_EX <- grepl("EX", rownames(pladb_matrix))
-
-# Define an improved color gradient for the heatmap
-col_fun <- colorRamp2(
-  c(0, 50, 100),
-  c("purple", "white", "orange")
-)
-
-number_splices<-8
-
-
-
-reference_table<-data.frame(EVENT=c(differential_pladb10mm_exons$EVENT,differential_pladb10mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb10mm_exons$EVENT,differential_pladb1mm_introns$EVENT,differential_pladb1mm_exons$EVENT,differential_pladb1mm_introns$EVENT), GENE=c(differential_pladb10mm_exons$GENE,differential_pladb10mm_introns$GENE,differential_pladb1mm_exons$GENE,differential_pladb10mm_exons$GENE,differential_pladb1mm_introns$GENE,differential_pladb1mm_exons$GENE,differential_pladb1mm_introns$GENE))
-
-
-
-ht<-Heatmap(
-  pladb_matrix, name = "PSI",
-  clustering_distance_rows = "pearson",
-  col = col_fun,
-  cluster_columns  = col_dend,
-  column_title = "Oocytes PladB Samples at Different concentrations of PladB",
-  row_title = "Splicing Events of |dPSI|>=0.1",
-  column_names_rot = 45,
-  column_labels = metadata_pladb$Description,
-  column_dend_reorder = c(1:9),
-  row_km = number_splices,
-  row_dend_reorder = F,
-  rect_gp = gpar(col = "white", lwd = 0.3),
-  column_names_gp = gpar(fontsize = 16),
-  show_row_names = FALSE,
-
-)
-ht = draw(ht); clustered_events<-row_order(ht)
-text_list<-list()
-# Loop through clustered events and assign dynamic names
-for (i in 1:length(clustered_events)) {
-  enrich_events <- enrichr(
-    reference_table$GENE[reference_table$EVENT %in% rownames(pladb_matrix)[clustered_events[[i]]]],
-    databases = c("GO_Biological_Process_2023", "GO_Cellular_Component_2023", "GO_Molecular_Function_2023")
-  )
-
-  # Assign the dynamic name and value
-  text_list[[paste0("text", i)]] <- paste(
-    enrich_events$GO_Cellular_Component_2023$Term[1],
-    enrich_events$GO_Cellular_Component_2023$Term[2],
-    enrich_events$GO_Cellular_Component_2023$Term[3],
-    enrich_events$GO_Molecular_Function_2023$Term[1],
-    enrich_events$GO_Molecular_Function_2023$Term[2],
-    enrich_events$GO_Molecular_Function_2023$Term[3],
-    sep = "; \n"
-  )
-}
-
-protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
-                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-
-events_for_impact<-rownames(pladb_matrix)
-
-final_impact <- data.frame(EventID = rownames(pladb_matrix)) %>%  # Extract row names as EventID
-  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
-  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
-  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
-  mutate(ONTO = case_when(
-    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
-    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
-    TRUE ~ ONTO
-  )) %>%
-  mutate(ONTO = as.numeric(ONTO)) %>%
-  replace_na(list(ONTO = 0))  # Fill missing ONTO values with 0
-
-# Define the left annotation (points) with axis labels
-left_annotation <- rowAnnotation(
-  Impact = anno_points(
-    final_impact$ONTO,
-    width = unit(4, "cm"),  # Adjusted width
-    size = unit(4, "mm"),   # Adjusted size of points
-    axis_param = list(
-      side = "top",
-      at = -2:2, # Numeric values to label
-      labels = c(
-        "Regulatory (5´UTR)",
-        "Alternative Isoform",
-        "Unknown/NonCoding",
-        "ORF disruption upon exclusion",
-        "ORF disruption upon inclusion"
-      ),
-      labels_rot = 45, # Rotation of labels
-      gp = gpar(fontsize = 15) # Text style
-    )
-  )
-)
-
-# Define the right annotation (foo)
-right_annotation <- rowAnnotation(
-  foo = anno_empty(
-    border = FALSE,
-    width = max_text_width(unlist(text_list)) + unit(4, "mm")
-  )
-)
-
-```
-
-### Heatmap showcasing the PSI of every candidate EX and IN
-
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
-
-```{r heatmap_plot 4, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
-set.seed(44)
-
-ht <- Heatmap(
-  pladb_matrix,
-  name = "PSI",
-  clustering_distance_rows = "pearson",
-  col = col_fun,
-  cluster_columns = col_dend,
-  column_title = "Oocytes Samples",
-  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
-  row_title = "Splicing Events of |dPSI| >= 0.1",
-  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
-  column_names_rot = 45,
-  column_labels = metadata_pladb$Description,
-  column_dend_reorder = c(1:9),
-  row_km = number_splices,
-  left_annotation = left_annotation,   # Add the points on the left
-  right_annotation = right_annotation, # Add foo on the right
-  row_dend_reorder = F,
-  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
-  show_row_names = FALSE,
-  row_gap = unit(6, "mm"), # Adjust the gap size between rows
-  column_gap = unit(4, "mm"), # Adjust the gap size between columns
-  heatmap_legend_param = list(
-    title = "PSI Value",
-    title_gp = gpar(fontsize = 30),
-    labels_gp = gpar(fontsize = 30),
-    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
-    legend_direction = "vertical" # Align the legend horizontally
-  )
-)
-
-# Draw the heatmap
-ht <- draw(ht)
-
-# Decorate the "foo" annotation slices (on the right)
-for (i in seq_along(clustered_events)) {
-  decorate_annotation("foo", slice = i, {
-    grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
-    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
-  })
-}
-
-
-```
-
-### Table of Events from Heatmap
-
-**Note**: the *heatmap_cluster* column references to the heatmap row cluster (from top to bottom) that specific event belongs to.
-
-```{r, table heatmap final 2}
-row_order <- unlist(row_order(ht), use.names = F)
-col_order <- unlist(column_order(ht), use.names = F)
-
-
-cluster_index <- unlist(lapply(seq_along(row_order(ht)), function(i) rep(i, length(row_order(ht)[[i]]))))
-
-# Reorder the original matrix based on clustering
-clustered_matrix <- pladb_matrix[row_order, col_order]
-
-final_impact_string<-protein_impact %>%
-  dplyr::filter(EventID %in% events_for_impact) %>%
-  slice(match(EventID, events_for_impact))
-final_impact_string<- final_impact_string[match(rownames(clustered_matrix),final_impact_string$EventID),]
-
-
-heatmap_dataframe<-tibble(EVENT=rownames(clustered_matrix), heatmap_cluster=cluster_index, protein_impact=final_impact_string$ONTO)
-heatmap_dataframe$GENE<-reference_table$GENE[match(heatmap_dataframe$EVENT, reference_table$EVENT)]
-heatmap_dataframe<-dplyr::select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
-
-# Render DataTable with enhancements
-datatable(
-  heatmap_dataframe,
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-
-# 
-
-```
-
-
-### Same Heatmap but averaging PSI values from same condition
-
-```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
-set.seed(44)
-
-pladb_matrix_short <- cbind(
-  rowMeans(pladb_matrix[, 1:3]),
-  rowMeans(pladb_matrix[, 4:6]),
-  rowMeans(pladb_matrix[, 7:9])
-)
-
-# Convert to matrix and print result
-colnames(pladb_matrix_short) <- c("Control", "PladB_1mM", "PladB_10mM")
-
-pladb_matrix_short <- pladb_matrix_short[row_order,]
-
-ht <- Heatmap(
-  pladb_matrix_short,
-  name = "PSI",
-  col = col_fun,
-  column_title = "Oocytes Samples",
-  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
-  row_title = "Splicing Events of |dPSI| >= 0.1",
-  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
-  column_names_rot = 45,
-  column_dend_reorder = c(1:3),
-  cluster_rows = FALSE,   # <-- This disables row clustering
-  cluster_columns = FALSE, # Optionally disable column clustering if desired
-  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
-  show_row_names = FALSE,
-  row_gap = unit(6, "mm"),      # Adjust the gap size between rows
-  left_annotation = left_annotation[row_order],   # Add the points on the left
-  right_annotation = right_annotation[row_order],
-  column_gap = unit(4, "mm"),   # Adjust the gap size between columns
-  heatmap_legend_param = list(
-    title = "PSI Value",
-    title_gp = gpar(fontsize = 30),
-    labels_gp = gpar(fontsize = 30),
-    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
-    legend_direction = "vertical" # Align the legend vertically
-  )
-)
-
-# Draw the heatmap
-ht <- draw(ht)
-
-# Draw the heatmap
-
-
-
-
-```
-
 
 
 # System Settings
