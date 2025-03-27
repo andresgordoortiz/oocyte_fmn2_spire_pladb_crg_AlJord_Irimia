@@ -3336,7 +3336,7 @@ print(p2)
 spire_all <- filterEvents(
   spire_events,
   types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
-  N = 3
+  N = 10
 )
 ```
 
@@ -3608,6 +3608,135 @@ ht <- draw(ht)
 
 ```
 
+```{r protein impact psi spire}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rstatix)      # For pairwise comparisons and p-value adjustment
+library(ggpubr)       # For stat_pvalue_manual if needed
+
+original_columns <- colnames(spire_unique)
+# Prepare the data frame
+spire_df <- as.data.frame(spire_unique) %>% 
+  rownames_to_column("EVENT") %>% 
+  pivot_longer(
+    cols = -EVENT,
+    names_to = "sample",
+    values_to = "value"
+  ) 
+
+# Modify dose based on sample name
+spire_df <- spire_df %>%
+  mutate(
+    variable_order = match(sample, original_columns),
+    group = ceiling(variable_order / 3),
+    condition = case_when(
+      str_detect(sample, "DKO") ~ "KO",
+      str_detect(sample, "Cont") ~ "Control",
+      TRUE ~ NA_character_
+    ),
+    condition = factor(condition, levels = c("Control", "KO"))  # Ensure correct order
+  ) %>%
+  select(-variable_order, -group)
+
+# Assign the protein impact based on matching EventID.
+spire_df$protein_impact <- final_impact_string$ONTO[match(spire_df$EVENT, final_impact_string$EventID)]
+
+# Cluster the protein_impact values into desired groups
+spire_df <- spire_df %>%
+  mutate(
+    protein_impact = case_when(
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon sequence inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon sequence exclusion",
+      grepl("Alternative", protein_impact) ~ "Alternative",
+      grepl("In the CDS", protein_impact) ~ "CDS impacted",
+      grepl("UTR", protein_impact) ~ "UTR",
+      TRUE ~ "Unknown"
+    )
+  ) %>%
+  arrange(EVENT, sample, condition)
+
+# Function to calculate bootstrap confidence intervals
+bootstrap_ci <- function(values, n_bootstrap = 1000, conf_level = 0.95) {
+  boot_samples <- replicate(n_bootstrap, mean(sample(values, replace = TRUE)))
+  quantile(boot_samples, probs = c((1 - conf_level) / 2, 1 - (1 - conf_level) / 2), na.rm=TRUE)
+}
+
+# Perform pairwise paired t-tests within each protein_impact group
+stat_test <- spire_df %>%
+  group_by(protein_impact) %>%
+  pairwise_t_test(
+    value ~ condition,
+    paired = TRUE,
+    p.adjust.method = "none"
+  ) %>%
+  ungroup() %>%
+  filter(p.adj < 0.05) %>%
+  mutate(signif = case_when(
+    p.adj < 0.001 ~ "***",
+    p.adj < 0.01  ~ "**",
+    p.adj < 0.05  ~ "*"
+  ))
+
+# Compute summary statistics with bootstrapped confidence intervals
+summary_df <- spire_df %>%
+  group_by(condition, protein_impact) %>%
+  summarise(
+    mean_value = mean(value),
+    sd_value = sd(value),
+    n = n(),
+    ci_lower = bootstrap_ci(value)[1],
+    ci_upper = bootstrap_ci(value)[2],
+    .groups = "drop"
+  )
+
+# Ensure dose is a factor in stat_test
+stat_test <- stat_test %>%
+  mutate(
+    group1 = factor(group1, levels = levels(spire_df$condition)),
+    group2 = factor(group2, levels = levels(spire_df$condition)),
+    y.position = max(spire_df$value, na.rm = TRUE) * 1.05  # Adjusted dynamically
+  )
+
+# Set the upper y-axis limit dynamically
+max_y <- max(spire_df$value, na.rm = TRUE) * 1.1  
+
+# Plot with refined settings
+impact_psi_plot<-ggplot(summary_df, 
+       aes(x = condition, y = mean_value, group = protein_impact, color = protein_impact, fill = protein_impact)) +
+  geom_point(data = spire_df, aes(x = condition, y = value), color = "grey70", alpha = 0.4, size = 1) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  
+
+
+  # Facet by protein impact
+  facet_wrap(~ protein_impact) +
+
+  # Adjust x and y axes
+  scale_y_continuous(limits = c(0, max_y), expand = expansion(mult = c(0.05, 0.05))) +
+
+  # Clean and minimal theme
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_line(color = "grey85", size = 0.3),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 14),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(size = 12)
+  ) +
+  
+  # Labels
+  labs(x = "Condition", 
+       y = "Mean Value", 
+       color = "Protein Impact", 
+       fill = "Protein Impact")
+
+impact_psi_plot
+```
+
 ### Enrichment of ORF Disrupted Genes { .tabset}
 
 Note that interpretation should be done taking into account whether that specific ORF-disrupting events is being spliced in or out. This just may give an idea of the ontology of disrupted proteins.
@@ -3676,7 +3805,7 @@ set.seed(44)
 fmndko_all <- filterEvents(
   fmndko_events,
   types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
-  N = 3
+  N = 10
 )
 
 fmndko_unique <- fmndko_all$PSI %>% distinct(EVENT, .keep_all = TRUE) 
@@ -3938,6 +4067,144 @@ ht <- draw(ht)
 # Draw the heatmap
 
 
+
+
+```
+
+```{r protein impact psi fmn2}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rstatix)      # For pairwise comparisons and p-value adjustment
+library(ggpubr)       # For stat_pvalue_manual if needed
+
+original_columns <- colnames(fmndko_unique)
+# Prepare the data frame
+fmn_df <- as.data.frame(fmndko_unique) %>% 
+  rownames_to_column("EVENT") %>% 
+  pivot_longer(
+    cols = -EVENT,
+    names_to = "sample",
+    values_to = "value"
+  ) 
+
+# Modify dose based on sample name
+fmn_df <- fmn_df %>%
+  mutate(
+    variable_order = match(sample, original_columns),
+    group = ceiling(variable_order / 3),
+    condition = case_when(
+      str_detect(sample, "82|85") ~ "Control",
+      str_detect(sample, "88|91") ~ "KO",
+      TRUE ~ NA_character_
+    ),
+    condition = factor(condition, levels = c("Control", "KO"))  # Ensure correct order
+  ) %>%
+  select(-variable_order, -group)
+
+# Assign the protein impact based on matching EventID.
+fmn_df$protein_impact <- final_impact_string$ONTO[match(fmn_df$EVENT, final_impact_string$EventID)]
+
+# Cluster the protein_impact values into desired groups
+fmn_df <- fmn_df %>%
+  mutate(
+    protein_impact = case_when(
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon sequence inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon sequence exclusion",
+      grepl("Alternative", protein_impact) ~ "Alternative",
+      grepl("In the CDS", protein_impact) ~ "CDS impacted",
+      grepl("UTR", protein_impact) ~ "UTR",
+      TRUE ~ "Unknown"
+    )
+  ) %>%
+  arrange(EVENT, sample, condition)
+
+# Function to calculate bootstrap confidence intervals
+bootstrap_ci <- function(values, n_bootstrap = 1000, conf_level = 0.95) {
+  boot_samples <- replicate(n_bootstrap, mean(sample(values, replace = TRUE)))
+  quantile(boot_samples, probs = c((1 - conf_level) / 2, 1 - (1 - conf_level) / 2))
+}
+
+# Perform pairwise paired t-tests within each protein_impact group
+stat_test <- fmn_df %>%
+  group_by(protein_impact) %>%
+  pairwise_t_test(
+    value ~ condition,
+    paired = TRUE,
+    p.adjust.method = "none"
+  ) %>%
+  ungroup() %>%
+  filter(p.adj < 0.05) %>%
+  mutate(signif = case_when(
+    p.adj < 0.001 ~ "***",
+    p.adj < 0.01  ~ "**",
+    p.adj < 0.05  ~ "*"
+  ))
+
+# Compute summary statistics with bootstrapped confidence intervals
+summary_df <- fmn_df %>%
+  group_by(condition, protein_impact) %>%
+  summarise(
+    mean_value = mean(value),
+    sd_value = sd(value),
+    n = n(),
+    ci_lower = bootstrap_ci(value)[1],
+    ci_upper = bootstrap_ci(value)[2],
+    .groups = "drop"
+  )
+
+# Ensure dose is a factor in stat_test
+stat_test <- stat_test %>%
+  mutate(
+    group1 = factor(group1, levels = levels(fmn_df$condition)),
+    group2 = factor(group2, levels = levels(fmn_df$condition)),
+    y.position = max(fmn_df$value, na.rm = TRUE) * 1.05  # Adjusted dynamically
+  )
+
+# Set the upper y-axis limit dynamically
+max_y <- max(fmn_df$value, na.rm = TRUE) * 1.1  
+
+# Plot with refined settings
+impact_psi_plot_fmn<-ggplot(summary_df, 
+       aes(x = condition, y = mean_value, group = protein_impact, color = protein_impact, fill = protein_impact)) +
+  geom_point(data = fmn_df, aes(x = condition, y = value), color = "grey70", alpha = 0.4, size = 1) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  
+  # Add significance annotations
+  stat_pvalue_manual(
+    stat_test, 
+    label = "signif",
+    xmin = "group1", 
+    xmax = "group2",
+    y.position = "y.position",
+    tip.length = 0.01,
+    size = 4
+  ) +
+
+  # Facet by protein impact
+  facet_wrap(~ protein_impact) +
+
+  # Adjust x and y axes
+  scale_y_continuous(limits = c(0, max_y), expand = expansion(mult = c(0.05, 0.05))) +
+
+  # Clean and minimal theme
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_line(color = "grey85", size = 0.3),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 14),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(size = 12)
+  ) +
+  
+  # Labels
+  labs(x = "Condition", 
+       y = "Mean Value", 
+       color = "Protein Impact", 
+       fill = "Protein Impact")
 
 
 ```

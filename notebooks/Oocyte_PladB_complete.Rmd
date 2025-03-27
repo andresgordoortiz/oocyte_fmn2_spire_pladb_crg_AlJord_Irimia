@@ -3414,6 +3414,7 @@ rownames(pladb_matrix) <- pladb_all$PSI$EVENT
 # Filter rows based on the final event lists and with abs(deltapsi)>=0.1
 filtered_events <- unique(c(
   differential_pladb10mm_exons$EVENT[abs(differential_pladb10mm_exons$deltapsi)>=0.1],differential_pladb10mm_introns$EVENT[abs(differential_pladb10mm_introns$deltapsi)>=0.1],differential_pladb1mm_exons$EVENT[abs(differential_pladb1mm_exons$deltapsi)>=0.1],differential_pladb1mm_introns$EVENT[abs(differential_pladb1mm_introns$deltapsi)>=0.1]))
+
 pladb_matrix <- pladb_matrix[rownames(pladb_matrix) %in% filtered_events, ]
 
 # Arrange columns based on metadata
@@ -3672,6 +3673,145 @@ ht <- draw(ht)
 
 ```
 
+```{r protein impact psi}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rstatix)      # For pairwise comparisons and p-value adjustment
+library(ggpubr)       # For stat_pvalue_manual if needed
+
+original_columns <- colnames(pladb_matrix)
+
+# Prepare the data frame
+pladb_df <- as.data.frame(pladb_matrix) %>% 
+  rownames_to_column("EVENT") %>% 
+  pivot_longer(
+    cols = -EVENT,
+    names_to = "sample",
+    values_to = "value"
+  ) 
+
+# Modify dose based on sample name
+pladb_df <- pladb_df %>%
+  mutate(
+    variable_order = match(sample, original_columns),
+    group = ceiling(variable_order / 3),
+    dose = case_when(
+      str_detect(sample, "038|039|040") ~ "control",
+      str_detect(sample, "041|042|043") ~ "1uM",
+      str_detect(sample, "044|045|046") ~ "10uM",
+      TRUE ~ NA_character_
+    ),
+    dose = factor(dose, levels = c("control", "1uM", "10uM"))  # Ensure correct order
+  ) %>%
+  select(-variable_order, -group)
+
+# Assign the protein impact based on matching EventID.
+pladb_df$protein_impact <- final_impact_string$ONTO[match(pladb_df$EVENT, final_impact_string$EventID)]
+
+# Cluster the protein_impact values into desired groups
+pladb_df <- pladb_df %>%
+  mutate(
+    protein_impact = case_when(
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon sequence inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon sequence exclusion",
+      grepl("Alternative", protein_impact) ~ "Alternative",
+      grepl("In the CDS", protein_impact) ~ "CDS impacted",
+      grepl("UTR", protein_impact) ~ "UTR",
+      TRUE ~ "Unknown"
+    )
+  ) %>%
+  arrange(EVENT, sample, dose)
+
+# Function to calculate bootstrap confidence intervals
+bootstrap_ci <- function(values, n_bootstrap = 1000, conf_level = 0.95) {
+  boot_samples <- replicate(n_bootstrap, mean(sample(values, replace = TRUE)))
+  quantile(boot_samples, probs = c((1 - conf_level) / 2, 1 - (1 - conf_level) / 2))
+}
+
+# Perform pairwise paired t-tests within each protein_impact group
+stat_test <- pladb_df %>%
+  group_by(protein_impact) %>%
+  pairwise_t_test(
+    value ~ dose,
+    paired = TRUE,
+    p.adjust.method = "none"
+  ) %>%
+  ungroup() %>%
+  filter(p.adj < 0.05) %>%
+  mutate(signif = case_when(
+    p.adj < 0.001 ~ "***",
+    p.adj < 0.01  ~ "**",
+    p.adj < 0.05  ~ "*"
+  ))
+
+# Compute summary statistics with bootstrapped confidence intervals
+summary_df <- pladb_df %>%
+  group_by(dose, protein_impact) %>%
+  summarise(
+    mean_value = mean(value),
+    sd_value = sd(value),
+    n = n(),
+    ci_lower = bootstrap_ci(value)[1],
+    ci_upper = bootstrap_ci(value)[2],
+    .groups = "drop"
+  )
+
+# Ensure dose is a factor in stat_test
+stat_test <- stat_test %>%
+  mutate(
+    group1 = factor(group1, levels = levels(pladb_df$dose)),
+    group2 = factor(group2, levels = levels(pladb_df$dose)),
+    y.position = max(pladb_df$value, na.rm = TRUE) * 1.05  # Adjusted dynamically
+  )
+
+# Set the upper y-axis limit dynamically
+max_y <- max(pladb_df$value, na.rm = TRUE) * 1.1  
+
+# Plot with refined settings
+ggplot(summary_df, 
+       aes(x = dose, y = mean_value, group = protein_impact, color = protein_impact, fill = protein_impact)) +
+  geom_point(data = pladb_df, aes(x = dose, y = value), color = "grey70", alpha = 0.4, size = 1) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  
+  # Add significance annotations
+  stat_pvalue_manual(
+    stat_test, 
+    label = "signif",
+    xmin = "group1", 
+    xmax = "group2",
+    y.position = "y.position",
+    tip.length = 0.01,
+    size = 4
+  ) +
+
+  # Facet by protein impact
+  facet_wrap(~ protein_impact) +
+
+  # Adjust x and y axes
+  scale_y_continuous(limits = c(0, max_y), expand = expansion(mult = c(0.05, 0.05))) +
+
+  # Clean and minimal theme
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_line(color = "grey85", size = 0.3),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 14),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(size = 12)
+  ) +
+  
+  # Labels
+  labs(x = "PladB Dose", 
+       y = "Mean Value", 
+       color = "Protein Impact", 
+       fill = "Protein Impact")
+
+
+```
 
 
 ### Enrichment of ORF Disrupted Genes { .tabset}
