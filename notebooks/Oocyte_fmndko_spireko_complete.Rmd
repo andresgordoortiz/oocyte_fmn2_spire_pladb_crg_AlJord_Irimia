@@ -126,6 +126,7 @@ library("ComplexHeatmap")
 library("enrichR")
 library("colorRamp2")
 library("dendextend")
+library("UpSetR")
 
 # Register Google fonts
 showtext_auto()
@@ -345,316 +346,188 @@ These plots show the distribution of the splicing change (dPSI) comparing the KO
 
 ```{r inclusionumber of exons spire, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
-# Remove any NA rows (adjust as needed)
-spire_exons_df <- na.omit(spire_exons$PSI)
+# Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
+spire_exons_df <- spire_exons$PSI %>% 
+  filter(complete.cases(select(., 7:12)))
 
-# Function to compute the PSI difference for each row (KO - Control)
-compute_difference <- function(df) {
-  avg_KO <- rowMeans(df[, 10:12])
-  avg_control <- rowMeans(df[, 7:9])
-  avg_KO - avg_control
+# Compute the averages and PSI difference for each row
+spire_exons_df <- spire_exons_df %>% 
+  mutate(
+    avg_KO = rowMeans(select(., 10:12)),
+    avg_control = rowMeans(select(., 7:9)),
+    difference = avg_KO - avg_control
+  ) %>% 
+  filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
+  mutate(group = if_else(difference < 0, "Skipped", "Included"))
+
+# ---- Normality Check -----------------------------------------------------------
+# Use a subset of the data if sample size > 5000 for the Shapiro-Wilk test
+set.seed(123)  # For reproducibility
+if(nrow(spire_exons_df) > 5000) {
+  shapiro_sample <- sample(spire_exons_df$difference, 5000)
+  shapiro_test <- shapiro.test(shapiro_sample)
+} else {
+  shapiro_test <- shapiro.test(spire_exons_df$difference)
 }
 
-# Calculate the difference and remove any additional NAs
-spire_exons_df$difference <- compute_difference(spire_exons_df)
-spire_exons_df <- na.omit(spire_exons_df)
+# Choose statistical test based on normality (alpha = 0.05)
+if (shapiro_test$p.value > 0.05) {
+  test_result <- t.test(spire_exons_df$difference, mu = 0)
+  test_used <- "Student's t-test"
+} else {
+  test_result <- wilcox.test(spire_exons_df$difference, mu = 0)
+  test_used <- "Wilcoxon signed-rank test"
+}
 
-# Create a group variable based on whether the difference is below or above zero
-spire_exons_df$group <- ifelse(spire_exons_df$difference < 0, "Skipped", "Included")
-
-# Perform a one-sample Wilcoxon signed-rank test (null hypothesis: median = 0)
-symmetry_test <- wilcox.test(spire_exons_df$difference, mu = 0)
-
-# Compute the percentages (areas under the density curve)
+# Calculate percentages for inclusion and exclusion
 pct_below <- round(mean(spire_exons_df$difference < 0) * 100, 1)
 pct_above <- round(mean(spire_exons_df$difference > 0) * 100, 1)
+n_samples <- nrow(spire_exons_df)
 
 # ---- Plot -------------------------------------------------------------------
 
 plot_psi_distribution <- ggplot(
   spire_exons_df[abs(spire_exons_df$difference) > 0, ], 
-  aes(x = difference, fill = group)
+  aes(x = difference)
 ) +
-  geom_histogram(aes(y = ..density..), bins = 200, 
-                 position = "identity", alpha = 0.9) +
+  geom_histogram(
+    aes(y = ..density.., fill = difference > 0), 
+    bins = 100, position = "identity", alpha = 0.9, color = "black"
+  ) +
   labs(
     title = "PSI Difference Distribution of Exons in Spire",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
-                     format(symmetry_test$p.value, digits = 3)),
+    subtitle = paste(test_used, "p-value:", format(test_result$p.value, digits = 3), "| n:", n_samples),
     x = "ΔPSI (KO - Control)",
     y = "Density",
-    fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())
+    fill = "Splicing Direction"
   ) +
-  theme_minimal(base_family = "sans") +
+  theme_classic(base_family = "sans") +
   theme(
     legend.position = "right",
     axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    axis.text.x = element_text(size = 12),
+    # Remove grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 14, face = "bold")
   ) +
   scale_x_continuous(
     breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
   ) +
+  # Assign colors explicitly to match annotations
+  scale_fill_manual(
+    values = c("#4BA3C3", "#D62839"),
+    labels = c("ΔPSI < 0", "ΔPSI > 0")
+  ) +
   # Annotate the percentages with polished label boxes
   annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
-           label = sprintf("dPSI < 0: %.1f%%", pct_below),
-           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+           label = sprintf("ΔPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "#4BA3C3", size = 5, fontface = "bold",
            label.size = 0.5) +
   annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
-           label = sprintf("dPSI > 0: %.1f%%", pct_above),
-           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
-           label.size = 0.5) +
-  scale_fill_brewer(palette = "Set1")
+           label = sprintf("ΔPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "#D62839", size = 5, fontface = "bold",
+           label.size = 0.5)
 
 # Save and display the plot
-ggsave("spire_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
+ggsave("final_plots/spire_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 
 print(plot_psi_distribution)
 
-```
-
-### Spire by number of exons
-
-```{r inclusionumber of exons spire wrap, fig.width=12, fig.height=8}
-# ---- Prepare Data -----------------------------------------------------------
-# Remove any NA rows (adjust as needed)
-spire_exons_df <- na.omit(spire_exons$PSI)
-
-# Function to compute the PSI difference for each row (KO - Control)
-compute_difference <- function(df) {
-  avg_KO <- rowMeans(df[, 10:12])
-  avg_control <- rowMeans(df[, 7:9])
-  avg_KO - avg_control
-}
-
-# Compute the difference and assign exon group factors
-spire_exons_df$exon_group <- vastdb_exons$exon_group[match(spire_exons_df$EVENT, vastdb_exons$EVENT)]
-spire_exons_df$difference <- compute_difference(spire_exons_df)
-spire_exons_df$exon_group <- factor(spire_exons_df$exon_group, levels = c("1-5", "6-10", "11-20", "21+"))
-
-# Keep only |dPSI| > 0
-spire_exons_filtered <- na.omit(spire_exons_df[abs(spire_exons_df$difference) > 0, ])
-
-# Compute percentages and Wilcoxon test for each exon group
-stats_summary <- spire_exons_filtered %>%
-  group_by(exon_group) %>%
-  summarize(
-    pct_below = round(mean(difference < 0, na.rm = TRUE) * 100, 1),
-    pct_above = round(mean(difference > 0, na.rm = TRUE) * 100, 1),
-    p_value = format(wilcox.test(difference, mu = 0)$p.value, digits = 3)
-  )
-
-# Plot distribution of PSI difference
-plot_psi_distribution <- ggplot(
-  spire_exons_filtered, 
-  aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
-) +
-  geom_histogram(aes(y = ..density..), bins = 200, position = "identity", alpha = 0.9) +
-  facet_wrap(~exon_group, scales = "fixed") +
-  labs(
-    title = "PSI Difference Distribution Grouped by Exon Count per Gene",
-    subtitle = "ΔPSI = KO - WT",
-    x = "ΔPSI (KO - WT)",
-    y = "Density",
-    fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())
-  ) +
-  theme_minimal(base_family = "sans") +
-  theme(
-    legend.position = "right",
-    axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
-  ) +
-  scale_x_continuous(breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)) +
-  scale_fill_brewer(palette = "Set1") +
-  
-  # Annotate percentages
-  geom_text(
-    data = stats_summary, aes(x = -65, y = 0.1, label = sprintf("dPSI < 0: %.1f%%", pct_below)),
-    inherit.aes = FALSE, hjust = 0, vjust = 0, size = 5, fontface = "bold", color = "blue"
-  ) +
-  geom_text(
-    data = stats_summary, aes(x = 65, y = 0.1, label = sprintf("dPSI > 0: %.1f%%", pct_above)),
-    inherit.aes = FALSE, hjust = 1, vjust = 0, size = 5, fontface = "bold", color = "red"
-  ) +
-  
-  # Annotate Wilcoxon p-values
-  geom_text(
-    data = stats_summary, aes(x = 0, y = 0.08, label = sprintf("p = %s", p_value)),
-    inherit.aes = FALSE, hjust = 0.5, vjust = 0, size = 5, fontface = "italic", color = "black"
-  )
-
-# Save and display
-ggsave("number_genes_spire_psi_distribution_exons.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
-print(plot_psi_distribution)
 
 ```
+
+
 
 ### FMN2
 
 ```{r inclusionumber of exons fmndko, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
-# Remove any NA rows (adjust as needed)
-fmndko_exons_df <- na.omit(fmndko_exons$PSI)
 
-# Function to compute the PSI difference for each row (KO - Control)
-compute_difference <- function(df) {
-  avg_KO <- rowMeans(df[, 9:10])
-  avg_control <- rowMeans(df[, 7:8])
-  avg_KO - avg_control
+# Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
+fmndko_exons_df <- fmndko_exons$PSI %>% 
+  filter(complete.cases(select(., 7:10)))
+
+# Compute the averages and PSI difference for each row
+fmndko_exons_df <- fmndko_exons_df %>% 
+  mutate(
+    avg_KO = rowMeans(select(., 9:10)),
+    avg_control = rowMeans(select(., 7:8)),
+    difference = avg_KO - avg_control
+  ) %>% 
+  filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
+  mutate(group = if_else(difference < 0, "Skipped", "Included"))
+
+# ---- Normality Check -----------------------------------------------------------
+# Use a subset of the data if sample size > 5000 for the Shapiro-Wilk test
+set.seed(123)  # For reproducibility
+if(nrow(fmndko_exons_df) > 5000) {
+  shapiro_sample <- sample(fmndko_exons_df$difference, 5000)
+  shapiro_test <- shapiro.test(shapiro_sample)
+} else {
+  shapiro_test <- shapiro.test(fmndko_exons_df$difference)
 }
 
-# Calculate the difference and remove any additional NAs
-fmndko_exons_df$difference <- compute_difference(fmndko_exons_df)
-fmndko_exons_df <- na.omit(fmndko_exons_df)
+# Choose statistical test based on normality (alpha = 0.05)
+if (shapiro_test$p.value > 0.05) {
+  test_result <- t.test(fmndko_exons_df$difference, mu = 0)
+  test_used <- "Student's t-test"
+} else {
+  test_result <- wilcox.test(fmndko_exons_df$difference, mu = 0)
+  test_used <- "Wilcoxon signed-rank test"
+}
 
-# Create a group variable based on whether the difference is below or above zero
-fmndko_exons_df$group <- ifelse(fmndko_exons_df$difference < 0, "Skipped", "Included")
-
-# Perform a one-sample Wilcoxon signed-rank test (null hypothesis: median = 0)
-symmetry_test <- wilcox.test(fmndko_exons_df$difference, mu = 0)
-
-# Compute the percentages (areas under the density curve)
+# Calculate percentages for inclusion and exclusion
 pct_below <- round(mean(fmndko_exons_df$difference < 0) * 100, 1)
 pct_above <- round(mean(fmndko_exons_df$difference > 0) * 100, 1)
+n_samples <- nrow(fmndko_exons_df)
 
 # ---- Plot -------------------------------------------------------------------
+# Optionally, filter out zero differences if they are considered ambiguous
+plot_data <- fmndko_exons_df
 
-plot_psi_distribution <- ggplot(
-  fmndko_exons_df[abs(fmndko_exons_df$difference) > 0, ], 
-  aes(x = difference, fill = group)
-) +
-  geom_histogram(aes(y = ..density..), bins = 200, 
-                 position = "identity", alpha = 0.9) +
+plot_psi_distribution <- ggplot(plot_data, aes(x = difference)) +
+  geom_histogram(
+    aes(y = ..density.., fill = difference > 0), 
+    bins = 100, position = "identity", alpha = 0.9, color = "black"
+  ) +
   labs(
     title = "PSI Difference Distribution of Exons in FMN2",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
-                     format(symmetry_test$p.value, digits = 3)),
+    subtitle = paste(test_used, "p-value:", format(test_result$p.value, digits = 3), "| n:", n_samples),
     x = "ΔPSI (KO - Control)",
     y = "Density",
-    fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())
+    fill = "Splicing Direction"
   ) +
-  theme_minimal(base_family = "sans") +
+  theme_classic(base_family = "sans") +
   theme(
     legend.position = "right",
     axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    axis.text.x = element_text(size = 12),
+    # Remove grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 14, face = "bold")
   ) +
   scale_x_continuous(
-    breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
+    breaks = seq(-100, 100, by = 25)
   ) +
-  # Annotate the percentages with polished label boxes
-  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
-           label = sprintf("dPSI < 0: %.1f%%", pct_below),
-           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+  scale_fill_manual(
+    values = c("#4BA3C3", "#D62839"),  # Blue for dPSI < 0, Red for dPSI > 0
+    labels = c("ΔPSI < 0", "ΔPSI > 0")
+  ) +
+  annotate("label", x = -65, y = 0.1, hjust = 0,
+           label = sprintf("ΔPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "#4BA3C3", size = 7, fontface = "bold",
            label.size = 0.5) +
-  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
-           label = sprintf("dPSI > 0: %.1f%%", pct_above),
-           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
-           label.size = 0.5) +
-  scale_fill_brewer(palette = "Set1")
+  annotate("label", x = 65, y = 0.1, hjust = 1,
+           label = sprintf("ΔPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "#D62839", size = 7, fontface = "bold",
+           label.size = 0.5)
 
 # Save and display the plot
-ggsave("fmn2_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
+ggsave("final_plots/fmn2_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 print(plot_psi_distribution)
 
-```
-
-### FMN2 by number of exons
-
-```{r inclusionumber of exons fmn wrap, fig.width=12, fig.height=8}
-# ---- Prepare Data -----------------------------------------------------------
-# Remove any NA rows (adjust as needed)
-fmndko_exons_df <- na.omit(fmndko_exons$PSI)
-
-# Function to compute the PSI difference for each row (KO - Control)
-compute_difference <- function(df) {
-  avg_KO <- rowMeans(df[, 9:10])
-  avg_control <- rowMeans(df[, 7:8])
-  avg_KO - avg_control
-}
-
-# Compute the difference and assign exon group factors
-fmndko_exons_df$exon_group <- vastdb_exons$exon_group[match(fmndko_exons_df$EVENT, vastdb_exons$EVENT)]
-fmndko_exons_df$difference <- compute_difference(fmndko_exons_df)
-fmndko_exons_df$exon_group <- factor(fmndko_exons_df$exon_group, levels = c("1-5", "6-10", "11-20", "21+"))
-
-# Keep only |dPSI| > 0
-fmndko_exons_filtered <- na.omit(fmndko_exons_df[abs(fmndko_exons_df$difference) > 0, ])
-
-# Compute percentages and Wilcoxon test for each exon group
-stats_summary <- fmndko_exons_filtered %>%
-  group_by(exon_group) %>%
-  summarize(
-    pct_below = round(mean(difference < 0, na.rm = TRUE) * 100, 1),
-    pct_above = round(mean(difference > 0, na.rm = TRUE) * 100, 1),
-    p_value = format(wilcox.test(difference, mu = 0)$p.value, digits = 3)
-  )
-
-# Plot distribution of PSI difference
-plot_psi_distribution <- ggplot(
-  fmndko_exons_filtered, 
-  aes(x = difference, fill = ifelse(difference < 0, "Skipped", "Included"))
-) +
-  geom_histogram(aes(y = ..density..), bins = 200, position = "identity", alpha = 0.9) +
-  facet_wrap(~exon_group, scales = "fixed") +
-  labs(
-    title = "PSI Difference Distribution Grouped by Exon Count per Gene FMN2",
-    subtitle = "ΔPSI = KO - WT",
-    x = "ΔPSI (KO - WT)",
-    y = "Density",
-    fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())
-  ) +
-  theme_minimal(base_family = "sans") +
-  theme(
-    legend.position = "right",
-    axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
-  ) +
-  scale_x_continuous(breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)) +
-  scale_fill_brewer(palette = "Set1") +
-  
-  # Annotate percentages
-  geom_text(
-    data = stats_summary, aes(x = -65, y = 0.1, label = sprintf("dPSI < 0: %.1f%%", pct_below)),
-    inherit.aes = FALSE, hjust = 0, vjust = 0, size = 5, fontface = "bold", color = "blue"
-  ) +
-  geom_text(
-    data = stats_summary, aes(x = 65, y = 0.1, label = sprintf("dPSI > 0: %.1f%%", pct_above)),
-    inherit.aes = FALSE, hjust = 1, vjust = 0, size = 5, fontface = "bold", color = "red"
-  ) +
-  
-  # Annotate Wilcoxon p-values
-  geom_text(
-    data = stats_summary, aes(x = 0, y = 0.08, label = sprintf("p = %s", p_value)),
-    inherit.aes = FALSE, hjust = 0.5, vjust = 0, size = 5, fontface = "italic", color = "black"
-  )
-
-# Save and display
-ggsave("number_genes_fmn2_psi_distribution_exons.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
-print(plot_psi_distribution)
 
 ```
 
@@ -665,158 +538,190 @@ print(plot_psi_distribution)
 
 ```{r inclusionumber of introns spire, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
-# Remove any NA rows (adjust as needed)
-spire_introns_df <- na.omit(spire_introns$PSI)
+# Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
+spire_introns_df <- spire_introns$PSI %>% 
+  filter(complete.cases(select(., 7:12)))
 
-# Function to compute the PSI difference for each row (KO - Control)
-compute_difference <- function(df) {
-  avg_KO <- rowMeans(df[, 10:12])
-  avg_control <- rowMeans(df[, 7:9])
-  avg_KO - avg_control
+# Compute the averages and PSI difference for each row
+spire_introns_df <- spire_introns_df %>% 
+  mutate(
+    avg_KO = rowMeans(select(., 10:12)),
+    avg_control = rowMeans(select(., 7:9)),
+    difference = avg_KO - avg_control
+  ) %>% 
+  filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
+  mutate(group = if_else(difference < 0, "Skipped", "Included"))
+
+# ---- Normality Check -----------------------------------------------------------
+# Use a subset of the data if sample size > 5000 for the Shapiro-Wilk test
+set.seed(123)  # For reproducibility
+if(nrow(spire_introns_df) > 5000) {
+  shapiro_sample <- sample(spire_introns_df$difference, 5000)
+  shapiro_test <- shapiro.test(shapiro_sample)
+} else {
+  shapiro_test <- shapiro.test(spire_introns_df$difference)
 }
 
-# Calculate the difference and remove any additional NAs
-spire_introns_df$difference <- compute_difference(spire_introns_df)
-spire_introns_df <- na.omit(spire_introns_df)
+# Choose statistical test based on normality (alpha = 0.05)
+if (shapiro_test$p.value > 0.05) {
+  test_result <- t.test(spire_introns_df$difference, mu = 0)
+  test_used <- "Student's t-test"
+} else {
+  test_result <- wilcox.test(spire_introns_df$difference, mu = 0)
+  test_used <- "Wilcoxon signed-rank test"
+}
 
-# Create a group variable based on whether the difference is below or above zero
-spire_introns_df$group <- ifelse(spire_introns_df$difference < 0, "Skipped", "Included")
-
-# Perform a one-sample Wilcoxon signed-rank test (null hypothesis: median = 0)
-symmetry_test <- wilcox.test(spire_introns_df$difference, mu = 0)
-
-# Compute the percentages (areas under the density curve)
+# Calculate percentages for inclusion and exclusion
 pct_below <- round(mean(spire_introns_df$difference < 0) * 100, 1)
 pct_above <- round(mean(spire_introns_df$difference > 0) * 100, 1)
+n_samples <- nrow(spire_introns_df)
 
 # ---- Plot -------------------------------------------------------------------
 
 plot_psi_distribution <- ggplot(
   spire_introns_df[abs(spire_introns_df$difference) > 0, ], 
-  aes(x = difference, fill = group)
+  aes(x = difference)
 ) +
-  geom_histogram(aes(y = ..density..), bins = 200, 
-                 position = "identity", alpha = 0.9) +
+  geom_histogram(
+    aes(y = ..density.., fill = difference > 0), 
+    bins = 100, position = "identity", alpha = 0.9, color = "black"
+  ) +
   labs(
     title = "PSI Difference Distribution of Introns in Spire",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
-                     format(symmetry_test$p.value, digits = 3)),
+    subtitle = paste(test_used, "p-value:", format(test_result$p.value, digits = 3), "| n:", n_samples),
     x = "ΔPSI (KO - Control)",
     y = "Density",
-    fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())
+    fill = "Splicing Direction"
   ) +
-  theme_minimal(base_family = "sans") +
+  theme_classic(base_family = "sans") +
   theme(
     legend.position = "right",
     axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    axis.text.x = element_text(size = 12),
+    # Remove grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 14, face = "bold")
   ) +
   scale_x_continuous(
     breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
   ) +
+  # Assign colors explicitly to match annotations
+  scale_fill_manual(
+    values = c("#4BA3C3", "#D62839"),
+    labels = c("ΔPSI < 0", "ΔPSI > 0")
+  ) +
   # Annotate the percentages with polished label boxes
   annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
-           label = sprintf("dPSI < 0: %.1f%%", pct_below),
-           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+           label = sprintf("ΔPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "#4BA3C3", size = 5, fontface = "bold",
            label.size = 0.5) +
   annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
-           label = sprintf("dPSI > 0: %.1f%%", pct_above),
-           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
-           label.size = 0.5) +
-  scale_fill_brewer(palette = "Set1")
+           label = sprintf("ΔPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "#D62839", size = 5, fontface = "bold",
+           label.size = 0.5)
 
 # Save and display the plot
-ggsave("spire_introns_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
+ggsave("final_plots/spire_introns_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 
 print(plot_psi_distribution)
 
 
 ```
+
+
 
 ### FMN2
 
 ```{r inclusionumber of introns fmndko, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
-# Remove any NA rows (adjust as needed)
-fmndko_introns_df <- na.omit(fmndko_introns$PSI)
 
-# Function to compute the PSI difference for each row (KO - Control)
-compute_difference <- function(df) {
-  avg_KO <- rowMeans(df[, 9:10])
-  avg_control <- rowMeans(df[, 7:8])
-  avg_KO - avg_control
+# Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
+fmndko_introns_df <- fmndko_introns$PSI %>% 
+  filter(complete.cases(select(., 7:10)))
+
+# Compute the averages and PSI difference for each row
+fmndko_introns_df <- fmndko_introns_df %>% 
+  mutate(
+    avg_KO = rowMeans(select(., 9:10)),
+    avg_control = rowMeans(select(., 7:8)),
+    difference = avg_KO - avg_control
+  ) %>% 
+  filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
+  mutate(group = if_else(difference < 0, "Skipped", "Included"))
+
+# ---- Normality Check -----------------------------------------------------------
+# Use a subset of the data if sample size > 5000 for the Shapiro-Wilk test
+set.seed(123)  # For reproducibility
+if(nrow(fmndko_introns_df) > 5000) {
+  shapiro_sample <- sample(fmndko_introns_df$difference, 5000)
+  shapiro_test <- shapiro.test(shapiro_sample)
+} else {
+  shapiro_test <- shapiro.test(fmndko_introns_df$difference)
 }
 
-# Calculate the difference and remove any additional NAs
-fmndko_introns_df$difference <- compute_difference(fmndko_introns_df)
-fmndko_introns_df <- na.omit(fmndko_introns_df)
+# Choose statistical test based on normality (alpha = 0.05)
+if (shapiro_test$p.value > 0.05) {
+  test_result <- t.test(fmndko_introns_df$difference, mu = 0)
+  test_used <- "Student's t-test"
+} else {
+  test_result <- wilcox.test(fmndko_introns_df$difference, mu = 0)
+  test_used <- "Wilcoxon signed-rank test"
+}
 
-# Create a group variable based on whether the difference is below or above zero
-fmndko_introns_df$group <- ifelse(fmndko_introns_df$difference < 0, "Skipped", "Included")
-
-# Perform a one-sample Wilcoxon signed-rank test (null hypothesis: median = 0)
-symmetry_test <- wilcox.test(fmndko_introns_df$difference, mu = 0)
-
-# Compute the percentages (areas under the density curve)
+# Calculate percentages for inclusion and exclusion
 pct_below <- round(mean(fmndko_introns_df$difference < 0) * 100, 1)
 pct_above <- round(mean(fmndko_introns_df$difference > 0) * 100, 1)
+n_samples <- nrow(fmndko_introns_df)
 
 # ---- Plot -------------------------------------------------------------------
+# Optionally, filter out zero differences if they are considered ambiguous
+plot_data <- fmndko_introns_df
 
-plot_psi_distribution <- ggplot(
-  fmndko_introns_df[abs(fmndko_introns_df$difference) > 0, ], 
-  aes(x = difference, fill = group)
-) +
-  geom_histogram(aes(y = ..density..), bins = 200, 
-                 position = "identity", alpha = 0.9) +
+plot_psi_distribution <- ggplot(plot_data, aes(x = difference)) +
+  geom_histogram(
+    aes(y = ..density.., fill = difference > 0), 
+    bins = 100, position = "identity", alpha = 0.9, color = "black"
+  ) +
   labs(
     title = "PSI Difference Distribution of Introns in FMN2",
-    subtitle = paste("One-sample Wilcoxon test p-value for Symmetry:", 
-                     format(symmetry_test$p.value, digits = 3)),
+    subtitle = paste(test_used, "p-value:", format(test_result$p.value, digits = 3), "| n:", n_samples),
     x = "ΔPSI (KO - Control)",
     y = "Density",
-    fill = "Splicing Direction",
-    caption = paste0("Created by AG on ", Sys.Date())
+    fill = "Splicing Direction"
   ) +
-  theme_minimal(base_family = "sans") +
+  theme_classic(base_family = "sans") +
   theme(
     legend.position = "right",
     axis.title.x = element_text(margin = margin(t = 10)),
-    axis.text.x = element_text(size = 15),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "gray80", size = 0.5),
-    panel.grid.minor = element_line(color = "gray95", size = 0.3),
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    axis.text.x = element_text(size = 12),
+    # Remove grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 14, face = "bold")
   ) +
   scale_x_continuous(
-    breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
+    breaks = seq(-100, 100, by = 25)
   ) +
-  # Annotate the percentages with polished label boxes
-  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
-           label = sprintf("dPSI < 0: %.1f%%", pct_below),
-           fill = alpha("white", 0.8), color = "blue", size = 7, fontface = "bold",
+  scale_fill_manual(
+    values = c("#4BA3C3", "#D62839"),  # Blue for dPSI < 0, Red for dPSI > 0
+    labels = c("ΔPSI < 0", "ΔPSI > 0")
+  ) +
+  annotate("label", x = -65, y = 0.1, hjust = 0,
+           label = sprintf("ΔPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "#4BA3C3", size = 7, fontface = "bold",
            label.size = 0.5) +
-  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
-           label = sprintf("dPSI > 0: %.1f%%", pct_above),
-           fill = alpha("white", 0.8), color = "red", size = 7, fontface = "bold",
-           label.size = 0.5) +
-  scale_fill_brewer(palette = "Set1")
+  annotate("label", x = 65, y = 0.1, hjust = 1,
+           label = sprintf("ΔPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "#D62839", size = 7, fontface = "bold",
+           label.size = 0.5)
 
 # Save and display the plot
-ggsave("fmn2_introns_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
-
+ggsave("final_plots/fmn2_introns_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 print(plot_psi_distribution)
 
+
 ```
-
-
 
 
 # PCA Plot { .tabset}
@@ -842,30 +747,30 @@ pca_data$condition<-metadata_spire$condition
 ```
 
 ```{r pca plotting spire}
-# Create PCA plot
-pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition), )) +
-  geom_point(size = 6) +
+pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition))) +
+  geom_point(size = 6, alpha = 0.9) +
   labs(
     title = "<b style='font-size:18px;'>PCA of Samples (PSI Data)</b>",
     x = paste("PC1 (", round(100 * summary(pca_result_spire)$importance[2, 1], 1), "%)", sep = ""),
     y = paste("PC2 (", round(100 * summary(pca_result_spire)$importance[2, 2], 1), "%)", sep = ""),
-    caption = paste0("Created by AG on ", Sys.Date()), size=3
+    caption = paste0("Created by AG on ", Sys.Date())
   ) +
-  theme_minimal(base_family = "roboto") +
+  theme_minimal(base_family = "sans") +
   theme(
     plot.title = element_markdown(),
     plot.title.position = "plot",
-    axis.title = element_text(size = 14),
+    axis.title = element_text(size = 14, margin = margin(t = 10)),
     axis.text = element_text(size = 12),
     legend.position = "right",
     legend.title = element_blank(),
-    panel.background = element_rect(fill = "gray98"),
-    panel.grid = element_line(color = "gray90", size = 0.5),
-    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   ) +
-  scale_colour_paletteer_d("MetBrewer::Hokusai3") +
+  scale_color_paletteer_d("MetBrewer::Hokusai3") +
   coord_fixed()
+ggsave("final_plots/pca_spire.svg", pca_plot, width = 5, height = 5, dpi = 300)
+
 
 pca_plot
 
@@ -1100,8 +1005,8 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -1130,7 +1035,7 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi)) +
     title = "Volcano Plot of FMN2 Exons",
     subtitle = "Significant events are highlighted"
   ) +
-  theme_minimal(base_size = 14, base_family = "Arial") +  
+  theme_minimal(base_size = 14, base_family = "sans") +  
   theme(
     plot.title = element_text(
       hjust = 0.5, size = 18, face = "bold", color = "black"
@@ -1150,7 +1055,9 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("final_plots/volcano_fmndko_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("final_plots/volcano_fmndko_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+
 
 volcano_plot
 ```
@@ -1209,8 +1116,8 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -1258,7 +1165,8 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi)) +
   )
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("final_plots/volcano_spire_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("final_plots/volcano_spire_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 
@@ -1496,8 +1404,8 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -1546,7 +1454,8 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("volcano_fmndko_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_fmndko_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
@@ -1604,8 +1513,8 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -1654,7 +1563,8 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("volcano_spire_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_spire_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
@@ -1881,8 +1791,8 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -1931,7 +1841,8 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("volcano_fmndko_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_fmndko_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
@@ -1988,8 +1899,8 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -2039,7 +1950,8 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
+ggsave("volcano_spire_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_spire_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
@@ -2203,8 +2115,8 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -2252,8 +2164,8 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
   )
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
-ggsave("volcano_fmndko_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 120)
+ggsave("volcano_fmndko_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_fmndko_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
 
 volcano_plot
 ```
@@ -2296,8 +2208,8 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
              show.legend = FALSE) +  
   # Define the color scales
   scale_color_manual(values = c(
-    "Overrepresented" = "#E00E73",
-    "Underrepresented" = "#3E2672",
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
     "Not Significant" = "gray"
   )) +
   scale_alpha_manual(values = c(
@@ -2345,8 +2257,8 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
   )
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 72)
-ggsave("volcano_spire_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 120)
+ggsave("volcano_spire_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_spire_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
 
 volcano_plot
 ```
@@ -2357,7 +2269,6 @@ volcano_plot
 ## Events-level stats
 
 ```{r basic stats}
-
 # Define study-specific data
 fmndko_exons <- data.frame(EVENT = differential_fmndko_exons$EVENT, Type = "Exons", Study = "FMN2")
 fmndko_introns <- data.frame(EVENT = differential_fmndko_introns$EVENT, Type = "Introns", Study = "FMN2")
@@ -2366,47 +2277,56 @@ fmndko_alt <- data.frame(EVENT = differential_fmndko_alt$EVENT, Type = "Alt", St
 spire_exons <- data.frame(EVENT = differential_spire_exons$EVENT, Type = "Exons", Study = "Spire")
 spire_introns <- data.frame(EVENT = differential_spire_introns$EVENT, Type = "Introns", Study = "Spire")
 spire_alt <- data.frame(EVENT = differential_spire_alt$EVENT, Type = "Alt", Study = "Spire")
+# Define subsets for each event type
+event_list_exons <- list(
+  FMN2_Exons  = unique(fmndko_exons$EVENT),
+  Spire_Exons = unique(spire_exons$EVENT)
+)
 
-# Combine all events into one dataframe
-all_events <- bind_rows(fmndko_exons, fmndko_introns, fmndko_alt, spire_exons, spire_introns, spire_alt)
+event_list_introns <- list(
+  FMN2_Introns  = unique(fmndko_introns$EVENT),
+  Spire_Introns = unique(spire_introns$EVENT)
+)
 
-# Determine whether the event appears in both studies
-event_counts <- all_events %>%
-  group_by(EVENT, Type) %>%
-  summarize(Appearance = ifelse(n() > 1, "Both Studies", "Single Study"), .groups = "drop")
+event_list_alt <- list(
+  FMN2_Alt  = unique(fmndko_alt$EVENT),
+  Spire_Alt = unique(spire_alt$EVENT)
+)
 
-# Merge back to the original dataset
-all_events <- all_events %>%
-  left_join(event_counts, by = c("EVENT", "Type"))
+# Define colors
+color_exons <- c("#4E79A7", "#4E79A7")  # Blue for exons
+color_introns <- c("#F28E2B", "#F28E2B")  # Orange for introns
+color_alt <- c("#E15759", "#E15759")  # Red for alternative splicing events
 
-# Create the bar plot
-p <- ggplot(all_events, aes(x = Study, fill = Appearance)) +
-  geom_bar(position = "stack") +
-  facet_wrap(~Type) +
-  theme_minimal(base_size = 16, base_family = "sans") +
-  scale_fill_manual(values = c("Both Studies" = "#4E79A7", "Single Study" = "#F28E2B")) +  # Nicer colors
-  labs(
-    title = "Comparison of Differentially Spliced Events in FMN2 and Spire",
-    x = "Study",
-    y = "Count of Events",
-    fill = "Event Presence"
-  ) +
-  theme(
-    legend.position = "top",
-    strip.text = element_text(size = 18, face = "bold"),
-    axis.text = element_text(size = 10),
-    axis.title = element_text(size = 12, face = "bold"),
-    panel.grid = element_blank(),  # Remove grid lines
-    panel.background = element_blank(),  # Remove background color
-    axis.line = element_line(color = "black") 
-      # Add axis lines for clarity
-  )
+# Generate UpSet plots
+p_exons<-upset(fromList(event_list_exons),
+                 nsets = 2,
+                 order.by = "freq",
+                 sets.bar.color = color_exons,
+                 mainbar.y.label = "Exon Overlapping Events",
+                 sets.x.label = "Number of Exon Events",
+                 text.scale = 2)
 
-ggsave("basic_stats_events.svg", p, width = 12, height = 6, units = "in", dpi = 300)
+p_introns <- upset(fromList(event_list_introns),
+                   nsets = 2,
+                   order.by = "freq",
+                   sets.bar.color = color_introns,
+                   mainbar.y.label = "Intron Overlapping Events",
+                   sets.x.label = "Number of Intron Events",
+                   text.scale = 2)
 
-# Display the plot
-print(p)
+p_alt <- upset(fromList(event_list_alt),
+               nsets = 2,
+               order.by = "freq",
+               sets.bar.color = color_alt,
+               mainbar.y.label = "Alt Overlapping Events",
+               sets.x.label = "Number of Alt Events",
+               text.scale = 2)
 
+
+p_exons
+p_introns
+p_alt
 ```
 
 ## Gene-level stats
