@@ -2332,52 +2332,25 @@ p_alt
 ## Gene-level stats
 
 ```{r, basic gene stats}
-# Define study-specific data
-fmndko_stats <- data.frame(GENE = unique(c(differential_fmndko_exons$GENE,differential_fmndko_introns$GENE,differential_fmndko_alt$GENE)), Study = "FMN2")
 
-spire_stats <- data.frame(GENE = unique(c(differential_spire_exons$GENE,differential_spire_introns$GENE,differential_spire_alt$GENE)),  Study = "Spire")
-
-
-# Combine all genes into one dataframe
-all_genes <- bind_rows(fmndko_stats, spire_stats)
-
-# Determine whether the gene appears in both studies
-gene_counts <- all_genes %>%
-  group_by(GENE) %>%
-  summarize(Appearance = ifelse(n() > 1, "Both Studies", "Single Study"), .groups = "drop")
-
-shared_genes<-gene_counts$GENE[gene_counts$Appearance=="Both Studies"]
-
-# Merge back to the original dataset
-all_genes <- all_genes %>%
-  left_join(gene_counts, by = c("GENE"))
-
-# Create the bar plot
-p <- ggplot(all_genes, aes(x = Study, fill = Appearance)) +
-  geom_bar(position = "stack") +
-  theme_minimal(base_size = 16, base_family = "sans") +
-  scale_fill_manual(values = c("Both Studies" = "#4E79A7", "Single Study" = "#F28E2B")) +  # Nicer colors
-  labs(
-    title = "Comparison of Differentially Spliced Genes in FMN2 and Spire",
-    x = "Study",
-    y = "Count of Genes",
-    fill = "Gene Presence"
-  ) +
-  theme(
-    legend.position = "top",
-    strip.text = element_text(size = 18, face = "bold"),
-    axis.text = element_text(size = 10),
-    axis.title = element_text(size = 12, face = "bold"),
-    panel.grid = element_blank(),  # Remove grid lines
-    panel.background = element_blank(),  # Remove background color
-    axis.line = element_line(color = "black")  # Add axis lines for clarity
-  )
+gene_list <- list(
+  FMN2  = unique(c(differential_fmndko_exons$GENE,differential_fmndko_introns$GENE,differential_fmndko_alt$GENE)),
+  Spire = unique(c(differential_spire_exons$GENE,differential_spire_introns$GENE,differential_spire_alt$GENE))
+)
 
 
-ggsave("basic_stats_genes.svg", p, width = 10, height = 6, units = "in", dpi = 300)
-# Display the plot
-print(p)
 
+
+# Generate UpSet plots
+p_genes<-upset(fromList(gene_list),
+                 nsets = 2,
+                 order.by = "freq",
+                 sets.bar.color = "#0099cf",
+                 mainbar.y.label = "Overlapping Genes",
+                 sets.x.label = "Number of Genes",
+                 text.scale = 2)
+
+p_genes
 ```
 
 
@@ -3049,7 +3022,7 @@ table_summary <- table_summary %>%
   rename(
     "Number of Significant Events" = nEvents,
     "Number of Genes" = n_genes,
-    "Proportion of ORF" = prop_ORF
+    "Proportion of ORF-shifted genes" = prop_ORF
   )
 
 # (Optional) If you want an interactive table, use DT:
@@ -3104,7 +3077,7 @@ p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents)
 # -------------------------------
 # Save the plot as an SVG
 # -------------------------------
-ggsave("fmn2_splicing_events_plot.svg", plot = p2, width = 24, height = 10, dpi = 300)
+ggsave("final_plots/fmn2_splicing_events_plot.svg", plot = p2, width = 24, height = 10)
 
 # Display the plot
 print(p2)
@@ -3184,7 +3157,7 @@ table_summary <- table_summary %>%
   rename(
     "Number of Significant Events" = nEvents,
     "Number of Genes" = n_genes,
-    "Proportion of ORF" = prop_ORF
+    "Proportion of ORF-shifted genes" = prop_ORF
   )
 
 # (Optional) If you want an interactive table, use DT:
