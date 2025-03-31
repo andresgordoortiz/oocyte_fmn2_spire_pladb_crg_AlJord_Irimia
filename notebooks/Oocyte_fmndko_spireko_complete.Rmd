@@ -2339,8 +2339,7 @@ gene_list <- list(
 )
 
 
-
-
+shared_genes<-intersect(gene_list$FMN2,gene_list$Spire)
 # Generate UpSet plots
 p_genes<-upset(fromList(gene_list),
                  nsets = 2,
@@ -2356,7 +2355,7 @@ p_genes
 
 # Enrichment Analysis with EnrichR of All Events { .tabset}
 
-The following ontology analysis uses all significant events regardless of type.
+The following ontology analysis uses all significant events regardless of type. No background gene list was used for the following enrichment analysis. For a background-aware ontology analysis, check the *Metascape* analysis.
 
 ## FMN2 { .tabset}
 
@@ -3234,70 +3233,139 @@ spire_all <- filterEvents(
 ```
 
 ```{r heatmap prep, results='hide', fig.show='hide'}
+# Load required libraries
+library(ComplexHeatmap)
+library(circlize)
+library(viridis)    # for viridis palette
+library(dplyr)
+library(grid)
+library(tidyr)      # if needed for replace_na
+library(enrichR)    # assuming enrichr() is from enrichR package
+
 set.seed(44)
 
-spire_unique <- spire_all$PSI %>% distinct(EVENT, .keep_all = TRUE) 
-
-spire_unique<-spire_unique[-which(is.na(spire_unique$EVENT)),]
-# Set rownames and convert to matrix
+# --------------------------
+# Data Preparation
+# --------------------------
+# Get unique splicing events (remove NA events) and convert selected PSI columns to matrix
+spire_unique <- spire_all$PSI %>% distinct(EVENT, .keep_all = TRUE)
+spire_unique <- spire_unique[!is.na(spire_unique$EVENT), ]
 rownames(spire_unique) <- spire_unique$EVENT
 spire_unique <- as.matrix(spire_unique[,7:12])
 
-# Filter rows based on the final event lists and with abs(deltapsi)>=0.1
+# Filter rows based on differential events (|dPSI| >= 0.1)
 filtered_events <- unique(c(
-  differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "EVENT"],
-  differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "EVENT"]
-  ))
+  differential_spire_exons[abs(differential_spire_exons$deltapsi) >= 0.1, "EVENT"],
+  differential_spire_introns[abs(differential_spire_introns$deltapsi) >= 0.1, "EVENT"]
+))
 spire_unique <- spire_unique[rownames(spire_unique) %in% filtered_events, ]
 
-# Create a dendrogram for the columns
+# Create a dendrogram for the columns (using hierarchical clustering on the transposed data)
 col_dend <- hclust(dist(t(spire_unique))) %>%
   as.dendrogram() %>%
-  color_branches(k = 2) # Color branches with 3 clusters
+  color_branches(k = 2)
 
-# Check if row names contain "EX"
-contains_EX <- grepl("EX", rownames(spire_unique))
-
-# Define an improved color gradient for the heatmap
+# Define a color function using a viridis palette.
+# Here we assume the PSI values range from 0 to 100 with a midpoint at 50.
 col_fun <- colorRamp2(
   c(0, 50, 100),
-  c("purple", "white", "orange")
+  viridis(3)
 )
 
-number_splices<-8
+number_splices <- 8
 
+# Create a reference table for enrichment analysis by combining events and genes
+reference_table <- data.frame(
+  EVENT = c(
+    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "EVENT"],
+    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "EVENT"],
+    differential_spire_exons[abs(differential_spire_exons$deltapsi) >= 0.1, "EVENT"],
+    differential_spire_introns[abs(differential_spire_introns$deltapsi) >= 0.1, "EVENT"]
+  ),
+  GENE = c(
+    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "GENE"],
+    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "GENE"],
+    differential_spire_exons[abs(differential_spire_exons$deltapsi) >= 0.1, "GENE"],
+    differential_spire_introns[abs(differential_spire_introns$deltapsi) >= 0.1, "GENE"]
+  )
+)
 
-reference_table<-data.frame(EVENT=c(differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "EVENT"],differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "EVENT"],differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "EVENT"],differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "EVENT"]), GENE=c(differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "GENE"],differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "GENE"],differential_spire_exons[abs(differential_spire_exons$deltapsi)>=0.1, "GENE"],differential_spire_introns[abs(differential_spire_introns$deltapsi)>=0.1, "GENE"]))
-
-
-
-ht<-Heatmap(
+# --------------------------
+# Initial Heatmap and Annotations
+# --------------------------
+# Calculate the initial heatmap to obtain cluster order
+ht <- Heatmap(
   spire_unique, name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
-  cluster_columns  = col_dend,
-  column_title = "Oocytes  Samples at Different concentrations of ",
-  row_title = "Splicing Events of |dPSI|>=0.1",
+  cluster_columns = col_dend,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
   column_names_rot = 45,
-  column_dend_reorder = c(1:6),
+  column_dend_reorder = 1:6,
   row_km = number_splices,
-  row_dend_reorder = F,
-  rect_gp = gpar(col = "white", lwd = 0.3),
-  column_names_gp = gpar(fontsize = 16),
+  row_dend_reorder = FALSE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
   show_row_names = FALSE,
-  na_col = "transparent"
-
+  row_gap = unit(8, "mm"),      # increased gap for white space between rows
+  column_gap = unit(8, "mm"),   # increased gap for white space between columns
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(20, 30),
+    legend_direction = "vertical"
+  )
 )
-ht = draw(ht); clustered_events<-row_order(ht)
-text_list<-list()
-# Loop through clustered events and assign dynamic names
+ht <- draw(ht)
+clustered_events <- row_order(ht)
+
+# Build the left annotation: Protein impact points.
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+events_for_impact <- rownames(spire_unique)
+final_impact <- data.frame(EventID = rownames(spire_unique)) %>%  
+  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
+  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
+  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
+  mutate(ONTO = case_when(
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
+    TRUE ~ ONTO
+  )) %>%
+  mutate(ONTO = as.numeric(ONTO)) %>%
+  replace_na(list(ONTO = 0))
+left_annotation <- rowAnnotation(
+  Impact = anno_points(
+    final_impact$ONTO,
+    width = unit(4, "cm"),
+    size = unit(4, "mm"),
+    axis_param = list(
+      side = "top",
+      at = -2:2,
+      labels = c(
+        "Regulatory (5´UTR)",
+        "Alternative Isoform",
+        "Unknown/NonCoding",
+        "ORF disruption upon exclusion",
+        "ORF disruption upon inclusion"
+      ),
+      labels_rot = 45,
+      gp = gpar(fontsize = 15)
+    )
+  )
+)
+
+# Perform enrichment analysis for each cluster and prepare right annotation text.
+text_list <- list()
 for (i in 1:length(clustered_events)) {
   enrich_events <- enrichr(
     reference_table$GENE[reference_table$EVENT %in% rownames(spire_unique)[clustered_events[[i]]]],
     databases = c("GO_Biological_Process_2023", "GO_Cellular_Component_2023", "GO_Molecular_Function_2023")
   )
-
-  # Assign the dynamic name and value
   text_list[[paste0("text", i)]] <- paste(
     enrich_events$GO_Cellular_Component_2023$Term[1],
     enrich_events$GO_Cellular_Component_2023$Term[2],
@@ -3308,54 +3376,14 @@ for (i in 1:length(clustered_events)) {
     sep = "; \n"
   )
 }
-
-protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
-                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-
-events_for_impact <- rownames(spire_unique)
-
-final_impact <- data.frame(EventID = rownames(spire_unique)) %>%  # Extract row names as EventID
-  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
-  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
-  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
-  mutate(ONTO = case_when(
-    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
-    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
-    TRUE ~ ONTO
-  )) %>%
-  mutate(ONTO = as.numeric(ONTO)) %>%
-  replace_na(list(ONTO = 0))  # Fill missing ONTO values with 0
-
-
-# Define the left annotation (points) with axis labels
-left_annotation <- rowAnnotation(
-  Impact = anno_points(
-    final_impact$ONTO,
-    width = unit(4, "cm"),  # Adjusted width
-    size = unit(4, "mm"),   # Adjusted size of points
-    axis_param = list(
-      side = "top",
-      at = -2:2, # Numeric values to label
-      labels = c(
-        "Regulatory (5´UTR)",
-        "Alternative Isoform",
-        "Unknown/NonCoding",
-        "ORF disruption upon exclusion",
-        "ORF disruption upon inclusion"
-      ),
-      labels_rot = 45, # Rotation of labels
-      gp = gpar(fontsize = 15) # Text style
-    )
-  )
-)
-
-# Define the right annotation (foo)
 right_annotation <- rowAnnotation(
   foo = anno_empty(
     border = FALSE,
     width = max_text_width(unlist(text_list)) + unit(4, "mm")
   )
 )
+
+
 
 ```
 
@@ -3366,46 +3394,42 @@ right_annotation <- rowAnnotation(
 ```{r heatmap_plot, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
+# --------------------------
+# Final Heatmap with Annotations
+# --------------------------
+colnames(spire_unique) <- c("Control 1", "Control 2", "Control 3", "Spire KO 1", "Spire KO 2", "Spire KO 3")
+
 ht <- Heatmap(
-  spire_unique,
-  name = "PSI",
+  spire_unique, name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
   cluster_columns = col_dend,
-  column_title = "Oocytes Samples",
+  column_title = "Oocytes Spire Samples",
   column_title_gp = gpar(fontsize = 18, fontface = "bold"),
   row_title = "Splicing Events of |dPSI| >= 0.1",
   row_title_gp = gpar(fontsize = 28, fontface = "italic"),
-  column_names_rot = 45,
-  column_dend_reorder = c(1:6),
+  column_names_rot = 0,
+  column_dend_reorder = 1:6,
   row_km = number_splices,
-  left_annotation = left_annotation,   # Add the points on the left
-  right_annotation = right_annotation, # Add foo on the right
-  row_dend_reorder = F,
-  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  left_annotation = left_annotation,    # Protein impact annotation on left
+  right_annotation = right_annotation,  # Enrichment annotation on right
+  row_dend_reorder = FALSE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "black"),
   show_row_names = FALSE,
-  row_gap = unit(6, "mm"), # Adjust the gap size between rows
-  column_gap = unit(4, "mm"), # Adjust the gap size between columns
-  heatmap_legend_param = list(
-    title = "PSI Value",
-    title_gp = gpar(fontsize = 30),
-    labels_gp = gpar(fontsize = 30),
-    legend_position = c(20, 30),  # Move the legend closer to the center (x, y coordinates)
-    legend_direction = "vertical" # Align the legend horizontally
-  )
+  row_gap = unit(5, "mm"),      # Increased white space between rows
+  column_gap = unit(5,"mm"),   # Increased white space between columns
+  rect_gp = gpar(col = "white", lwd = 0.1),  # Adjusted white grid visibility
+  
 )
-
-# Draw the heatmap
 ht <- draw(ht)
 
-# Decorate the "foo" annotation slices (on the right)
+# Decorate the right annotation slices with the enrichment text.
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
     grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
   })
 }
-
 ```
 
 ### Table of Events from Heatmap
@@ -3501,7 +3525,12 @@ ht <- draw(ht)
 
 ```
 
-```{r protein impact psi spire}
+
+### Protein Impact on Splicing Events
+
+I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
+
+```{r protein impact psi spire, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}}
 
 library(dplyr)
 library(tidyr)
@@ -3525,7 +3554,7 @@ spire_df <- spire_df %>%
     variable_order = match(sample, original_columns),
     group = ceiling(variable_order / 3),
     condition = case_when(
-      str_detect(sample, "DKO") ~ "KO",
+      str_detect(sample, "KO") ~ "KO",
       str_detect(sample, "Cont") ~ "Control",
       TRUE ~ NA_character_
     ),
@@ -3540,8 +3569,8 @@ spire_df$protein_impact <- final_impact_string$ONTO[match(spire_df$EVENT, final_
 spire_df <- spire_df %>%
   mutate(
     protein_impact = case_when(
-      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon sequence inclusion",
-      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon sequence exclusion",
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
       grepl("Alternative", protein_impact) ~ "Alternative",
       grepl("In the CDS", protein_impact) ~ "CDS impacted",
       grepl("UTR", protein_impact) ~ "UTR",
@@ -3556,22 +3585,6 @@ bootstrap_ci <- function(values, n_bootstrap = 1000, conf_level = 0.95) {
   quantile(boot_samples, probs = c((1 - conf_level) / 2, 1 - (1 - conf_level) / 2), na.rm=TRUE)
 }
 
-# Perform pairwise paired t-tests within each protein_impact group
-stat_test <- spire_df %>%
-  group_by(protein_impact) %>%
-  pairwise_t_test(
-    value ~ condition,
-    paired = TRUE,
-    p.adjust.method = "none"
-  ) %>%
-  ungroup() %>%
-  filter(p.adj < 0.05) %>%
-  mutate(signif = case_when(
-    p.adj < 0.001 ~ "***",
-    p.adj < 0.01  ~ "**",
-    p.adj < 0.05  ~ "*"
-  ))
-
 # Compute summary statistics with bootstrapped confidence intervals
 summary_df <- spire_df %>%
   group_by(condition, protein_impact) %>%
@@ -3584,13 +3597,6 @@ summary_df <- spire_df %>%
     .groups = "drop"
   )
 
-# Ensure dose is a factor in stat_test
-stat_test <- stat_test %>%
-  mutate(
-    group1 = factor(group1, levels = levels(spire_df$condition)),
-    group2 = factor(group2, levels = levels(spire_df$condition)),
-    y.position = max(spire_df$value, na.rm = TRUE) * 1.05  # Adjusted dynamically
-  )
 
 # Set the upper y-axis limit dynamically
 max_y <- max(spire_df$value, na.rm = TRUE) * 1.1  
@@ -3616,152 +3622,163 @@ impact_psi_plot<-ggplot(summary_df,
   theme(
     panel.grid.major = element_line(color = "grey85", size = 0.3),
     panel.grid.minor = element_blank(),
-    strip.text = element_text(face = "bold", size = 14),
+    strip.text = element_text(face = "bold", size = 12),
     axis.title = element_text(face = "bold"),
-    axis.text = element_text(size = 12)
+    axis.text = element_text(size = 10)
   ) +
   
   # Labels
   labs(x = "Condition", 
-       y = "Mean Value", 
+       y = "Mean PSI", 
        color = "Protein Impact", 
        fill = "Protein Impact")
+ggsave("final_plots/protein_impact_plot_spire.svg", impact_psi_plot, width = 12, height = 8)
 
 impact_psi_plot
 ```
 
-### Enrichment of ORF Disrupted Genes { .tabset}
 
-Note that interpretation should be done taking into account whether that specific ORF-disrupting events is being spliced in or out. This just may give an idea of the ontology of disrupted proteins.
-
-```{r orf enrichr}
-enrichdata<-enrichr(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]], databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-
-
-```
-
-#### GO Biological Process
-
-```{r orf bioprocess, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r orf cellcomponent, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[2]])
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r orf molfunction, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[3]])
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
 
 # Splicing Dynamics Heatmap FMN2
 
-```{r heatmap prep fmndko, results='hide', fig.show='hide'}
-set.seed(44)
 
-fmndko_all <- filterEvents(
+```{r heatmap pre-prep fmn2, results='hide', fig.show='hide'}
+
+# Extract all events
+fmndko_all<- filterEvents(
   fmndko_events,
   types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
   N = 10
 )
+```
 
-fmndko_unique <- fmndko_all$PSI %>% distinct(EVENT, .keep_all = TRUE) 
+```{r heatmap prep, results='hide', fig.show='hide'}
 
-fmndko_unique<-fmndko_unique[-which(is.na(fmndko_unique$EVENT)),]
-# Set rownames and convert to matrix
+
+set.seed(44)
+
+# --------------------------
+# Data Preparation
+# --------------------------
+# Get unique splicing events (remove NA events) and convert selected PSI columns to matrix
+fmndko_unique <- fmndko_all$PSI %>% distinct(EVENT, .keep_all = TRUE)
+fmndko_unique <- fmndko_unique[!is.na(fmndko_unique$EVENT), ]
 rownames(fmndko_unique) <- fmndko_unique$EVENT
 fmndko_unique <- as.matrix(fmndko_unique[,7:10])
 
-# Filter rows based on the final event lists and with abs(deltapsi)>=0.1
+# Filter rows based on differential events (|dPSI| >= 0.1)
 filtered_events <- unique(c(
-  differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi)>=0.1, "EVENT"],
-  differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi)>=0.1, "EVENT"]
-  ))
+  differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "EVENT"],
+  differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "EVENT"]
+))
 fmndko_unique <- fmndko_unique[rownames(fmndko_unique) %in% filtered_events, ]
 
-# Arrange columns based on metadata
-# Create a dendrogram for the columns
+# Create a dendrogram for the columns (using hierarchical clustering on the transposed data)
 col_dend <- hclust(dist(t(fmndko_unique))) %>%
   as.dendrogram() %>%
-  color_branches(k = 2) # Color branches with 3 clusters
+  color_branches(k = 2)
 
-# Check if row names contain "EX"
-contains_EX <- grepl("EX", rownames(fmndko_unique))
-
-# Define an improved color gradient for the heatmap
+# Define a color function using a viridis palette.
+# Here we assume the PSI values range from 0 to 100 with a midpoint at 50.
 col_fun <- colorRamp2(
   c(0, 50, 100),
-  c("purple", "white", "orange")
+  viridis(3)
 )
 
-number_splices<-6
+number_splices <- 6
 
+# Create a reference table for enrichment analysis by combining events and genes
+reference_table <- data.frame(
+  EVENT = c(
+    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "EVENT"],
+    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "EVENT"],
+    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "EVENT"],
+    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "EVENT"]
+  ),
+  GENE = c(
+    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "GENE"],
+    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "GENE"],
+    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "GENE"],
+    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "GENE"]
+  )
+)
 
-
-
-ht<-Heatmap(
+# --------------------------
+# Initial Heatmap and Annotations
+# --------------------------
+# Calculate the initial heatmap to obtain cluster order
+ht <- Heatmap(
   fmndko_unique, name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
-  cluster_columns  = col_dend,
-  column_title = "Oocytes  Samples at Different concentrations ",
-  row_title = "Splicing Events of |dPSI|>=0.1",
+  cluster_columns = col_dend,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
   column_names_rot = 45,
-  column_dend_reorder = c(1:4),
+  column_dend_reorder = 1:4,
   row_km = number_splices,
-  row_dend_reorder = F,
-  rect_gp = gpar(col = "white", lwd = 0.3),
-  column_names_gp = gpar(fontsize = 16),
+  row_dend_reorder = FALSE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
   show_row_names = FALSE,
-  na_col = "transparent"
-
+  row_gap = unit(8, "mm"),      # increased gap for white space between rows
+  column_gap = unit(8, "mm"),   # increased gap for white space between columns
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(20, 30),
+    legend_direction = "vertical"
+  )
 )
-ht = draw(ht); clustered_events<-row_order(ht)
-text_list<-list()
-# Loop through clustered events and assign dynamic names
+ht <- draw(ht)
+clustered_events <- row_order(ht)
+
+# Build the left annotation: Protein impact points.
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+events_for_impact <- rownames(fmndko_unique)
+final_impact <- data.frame(EventID = rownames(fmndko_unique)) %>%  
+  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
+  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
+  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
+  mutate(ONTO = case_when(
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
+    TRUE ~ ONTO
+  )) %>%
+  mutate(ONTO = as.numeric(ONTO)) %>%
+  replace_na(list(ONTO = 0))
+left_annotation <- rowAnnotation(
+  Impact = anno_points(
+    final_impact$ONTO,
+    width = unit(4, "cm"),
+    size = unit(4, "mm"),
+    axis_param = list(
+      side = "top",
+      at = -2:2,
+      labels = c(
+        "Regulatory (5´UTR)",
+        "Alternative Isoform",
+        "Unknown/NonCoding",
+        "ORF disruption upon exclusion",
+        "ORF disruption upon inclusion"
+      ),
+      labels_rot = 45,
+      gp = gpar(fontsize = 15)
+    )
+  )
+)
+
+# Perform enrichment analysis for each cluster and prepare right annotation text.
+text_list <- list()
 for (i in 1:length(clustered_events)) {
   enrich_events <- enrichr(
     reference_table$GENE[reference_table$EVENT %in% rownames(fmndko_unique)[clustered_events[[i]]]],
     databases = c("GO_Biological_Process_2023", "GO_Cellular_Component_2023", "GO_Molecular_Function_2023")
   )
-
-  # Assign the dynamic name and value
   text_list[[paste0("text", i)]] <- paste(
     enrich_events$GO_Cellular_Component_2023$Term[1],
     enrich_events$GO_Cellular_Component_2023$Term[2],
@@ -3772,48 +3789,6 @@ for (i in 1:length(clustered_events)) {
     sep = "; \n"
   )
 }
-
-protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
-                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-
-events_for_impact<-rownames(fmndko_unique)
-
-final_impact <- data.frame(EventID = rownames(fmndko_unique)) %>%  # Extract row names as EventID
-  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
-  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
-  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
-  mutate(ONTO = case_when(
-    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
-    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
-    TRUE ~ ONTO
-  )) %>%
-  mutate(ONTO = as.numeric(ONTO)) %>%
-  replace_na(list(ONTO = 0))  # Fill missing ONTO values with 0
-
-
-# Define the left annotation (points) with axis labels
-left_annotation <- rowAnnotation(
-  Impact = anno_points(
-    final_impact$ONTO,
-    width = unit(4, "cm"),  # Adjusted width
-    size = unit(4, "mm"),   # Adjusted size of points
-    axis_param = list(
-      side = "top",
-      at = -2:2, # Numeric values to label
-      labels = c(
-        "Regulatory (5´UTR)",
-        "Alternative Isoform",
-        "Unknown/NonCoding",
-        "ORF disruption upon exclusion",
-        "ORF disruption upon inclusion"
-      ),
-      labels_rot = 45, # Rotation of labels
-      gp = gpar(fontsize = 15) # Text style
-    )
-  )
-)
-
-# Define the right annotation (foo)
 right_annotation <- rowAnnotation(
   foo = anno_empty(
     border = FALSE,
@@ -3821,63 +3796,61 @@ right_annotation <- rowAnnotation(
   )
 )
 
+
+
 ```
+
 
 ### Heatmap showcasing the PSI of every candidate EX and IN
 
-**Note**: Gene ontology of *Cellular Component* and *Biological Process* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
+**Note**: Gene ontology of *Cellular Component* and *Molecular Function* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
 
-```{r heatmap_plot fmndko, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+```{r heatmap_plot fmn2, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
+# --------------------------
+# Final Heatmap with Annotations
+# --------------------------
+colnames(fmndko_unique) <- c("Control 1", "Control 2", "FMN2 KO 1", "FMN2 KO 2")
+
 ht <- Heatmap(
-  fmndko_unique,
-  name = "PSI",
+  fmndko_unique, name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
   cluster_columns = col_dend,
-  column_title = "Oocytes Samples",
-  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  column_title = "Oocytes FMN2 Samples",
+  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
   row_title = "Splicing Events of |dPSI| >= 0.1",
   row_title_gp = gpar(fontsize = 28, fontface = "italic"),
-  column_names_rot = 45,
-  column_labels = metadata_fmn2dko$condition,
-  column_dend_reorder = c(1:4),
+  column_names_rot = 0,
+  column_dend_reorder = 1:4,
   row_km = number_splices,
-  left_annotation = left_annotation,   # Add the points on the left
-  right_annotation = right_annotation, # Add foo on the right
-  row_dend_reorder = F,
-  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  left_annotation = left_annotation,    # Protein impact annotation on left
+  right_annotation = right_annotation,  # Enrichment annotation on right
+  row_dend_reorder = FALSE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "black"),
   show_row_names = FALSE,
-  row_gap = unit(6, "mm"), # Adjust the gap size between rows
-  column_gap = unit(4, "mm"), # Adjust the gap size between columns
-  heatmap_legend_param = list(
-    title = "PSI Value",
-    title_gp = gpar(fontsize = 20),
-    labels_gp = gpar(fontsize = 30),
-    legend_position = c(20, 30),  # Move the legend closer to the center (x, y coordinates)
-    legend_direction = "vertical" # Align the legend horizontally
-  )
+  row_gap = unit(5, "mm"),      # Increased white space between rows
+  column_gap = unit(5,"mm"),   # Increased white space between columns
+  rect_gp = gpar(col = "white", lwd = 0.1),  # Adjusted white grid visibility
+  
 )
-
-# Draw the heatmap
 ht <- draw(ht)
 
-# Decorate the "foo" annotation slices (on the right)
+# Decorate the right annotation slices with the enrichment text.
 for (i in seq_along(clustered_events)) {
   decorate_annotation("foo", slice = i, {
     grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
     grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
   })
 }
-
 ```
 
 ### Table of Events from Heatmap
 
 **Note**: the *heatmap_cluster* column references to the heatmap row cluster (from top to bottom) that specific event belongs to.
 
-```{r, table heatmap final fmndko}
+```{r, table heatmap fmn2 final}
 row_order <- unlist(row_order(ht), use.names = F)
 col_order <- unlist(column_order(ht), use.names = F)
 
@@ -3897,6 +3870,7 @@ heatmap_dataframe<-tibble(EVENT=rownames(clustered_matrix), heatmap_cluster=clus
 heatmap_dataframe$GENE<-reference_table$GENE[match(heatmap_dataframe$EVENT, reference_table$EVENT)]
 heatmap_dataframe<-select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
 
+heatmap_dataframe_spire<-heatmap_dataframe
 # Render DataTable with enhancements
 datatable(
   heatmap_dataframe,
@@ -3912,9 +3886,10 @@ datatable(
 
 ```
 
+
 ### Same Heatmap but averaging PSI values from same condition
 
-```{r heatmap_plot short fmndko, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
 fmndko_unique_short <- cbind(
@@ -3923,7 +3898,7 @@ fmndko_unique_short <- cbind(
 )
 
 # Convert to matrix and print result
-colnames(fmndko_unique_short) <- c("Control", "FMNDKO")
+colnames(fmndko_unique_short) <- c("Control", "FMN2KO")
 
 fmndko_unique_short <- fmndko_unique_short[row_order,]
 
@@ -3957,12 +3932,13 @@ ht <- Heatmap(
 # Draw the heatmap
 ht <- draw(ht)
 
-# Draw the heatmap
-
-
 
 
 ```
+
+### Protein Impact on Splicing Events
+
+I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts events ORF-disrupted upon inclusion being generally excluded (the proteins gain function in the KO samples), and events ORF-disrupted upon exclusion being included (the proteins gain function in the KO samples too).
 
 ```{r protein impact psi fmn2}
 
@@ -3988,8 +3964,8 @@ fmn_df <- fmn_df %>%
     variable_order = match(sample, original_columns),
     group = ceiling(variable_order / 3),
     condition = case_when(
-      str_detect(sample, "82|85") ~ "Control",
-      str_detect(sample, "88|91") ~ "KO",
+      str_detect(sample, "Control") ~ "Control",
+      str_detect(sample, "KO") ~ "KO",
       TRUE ~ NA_character_
     ),
     condition = factor(condition, levels = c("Control", "KO"))  # Ensure correct order
@@ -4003,8 +3979,8 @@ fmn_df$protein_impact <- final_impact_string$ONTO[match(fmn_df$EVENT, final_impa
 fmn_df <- fmn_df %>%
   mutate(
     protein_impact = case_when(
-      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon sequence inclusion",
-      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon sequence exclusion",
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
       grepl("Alternative", protein_impact) ~ "Alternative",
       grepl("In the CDS", protein_impact) ~ "CDS impacted",
       grepl("UTR", protein_impact) ~ "UTR",
@@ -4088,78 +4064,21 @@ impact_psi_plot_fmn<-ggplot(summary_df,
   theme(
     panel.grid.major = element_line(color = "grey85", size = 0.3),
     panel.grid.minor = element_blank(),
-    strip.text = element_text(face = "bold", size = 14),
+    strip.text = element_text(face = "bold", size = 12),
     axis.title = element_text(face = "bold"),
-    axis.text = element_text(size = 12)
+    axis.text = element_text(size = 10)
   ) +
   
   # Labels
   labs(x = "Condition", 
-       y = "Mean Value", 
+       y = "Mean PSI", 
        color = "Protein Impact", 
        fill = "Protein Impact")
 
-
+ggsave("final_plots/protein_impact_plot_fmn2.svg", impact_psi_plot_fmn, width = 12, height = 8)
+impact_psi_plot_fmn
 ```
 
-### Enrichment of ORF Disrupted Genes { .tabset}
-
-Note that interpretation should be done taking into account whether that specific ORF-disrupting events is being spliced in or out. This just may give an idea of the ontology of disrupted proteins.
-
-```{r orf enrichr fmndko}
-enrichdata<-enrichr(unique(reference_table$GENE[reference_table$EVENT %in% final_impact$EventID[final_impact$ONTO %in% c(1,2)]]), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-
-
-```
-
-#### GO Biological Process
-
-```{r orf bioprocess fmndko, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[1]])
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r orf cellcomponent fmndko, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[2]])
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r orf molfunction fmndko, fig.width=15, fig.height=8}
-plotEnrich(enrichdata[[3]])
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
 
 # System Settings
 
