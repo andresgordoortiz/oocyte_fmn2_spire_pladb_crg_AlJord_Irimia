@@ -3475,7 +3475,7 @@ datatable(
 
 ### Same Heatmap but averaging PSI values from same condition
 
-```{r heatmap_plot short, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+```{r heatmap_plot short spire, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
 spire_unique_short <- cbind(
@@ -3530,7 +3530,7 @@ ht <- draw(ht)
 
 I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
 
-```{r protein impact psi spire, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}}
+```{r protein impact psi spire, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 
 library(dplyr)
 library(tidyr)
@@ -3652,7 +3652,7 @@ fmndko_all<- filterEvents(
 )
 ```
 
-```{r heatmap prep, results='hide', fig.show='hide'}
+```{r heatmap prep fmn2, results='hide', fig.show='hide'}
 
 
 set.seed(44)
