@@ -101,40 +101,54 @@ process concatenate_reads {
     echo "Contents of input directory '${raw_dir}':"
     ls -la ${raw_dir}/
 
-    # List files in input directory - try different extensions
-    files=(\$(find ${raw_dir} -type f -name "*.fastq.gz" -o -name "*.fq.gz" -o -name "*.fastq" -o -name "*.fq" | sort))
-    echo "Found \${#files[@]} FASTQ files for processing"
+    # List files in input directory - avoid complex array syntax
+    echo "Finding FASTQ files for processing..."
+    find ${raw_dir} -type f \\( -name "*.fastq.gz" -o -name "*.fq.gz" -o -name "*.fastq" -o -name "*.fq" \\) > fastq_files.txt
+    file_count=\$(wc -l < fastq_files.txt)
+    echo "Found \$file_count FASTQ files for processing"
 
     # Check if we have any files to process
-    if [ \${#files[@]} -eq 0 ]; then
+    if [ \$file_count -eq 0 ]; then
         echo "WARNING: No FASTQ files found in input directory"
         echo "Creating empty placeholder file to satisfy Nextflow output requirement"
         touch empty_placeholder.fastq.gz
     else
-        # Group and concatenate files in sets of 3
-        for ((i=0; i<\${#files[@]}; i+=3)); do
-            if [[ \$i+2 < \${#files[@]} ]]; then
-                file1=\${files[i]}
-                file2=\${files[i+1]}
-                file3=\${files[i+2]}
-                basename1=\$(basename \$file1 | sed -E 's/\.(fastq|fq)(\.gz)?$//')
+        # Sort the files for consistent grouping
+        sort fastq_files.txt > sorted_files.txt
 
+        # Group and concatenate files in sets of 3
+        i=1
+        while [ \$i -le \$file_count ]; do
+            # Calculate indices for each set of 3 files
+            file1=\$(sed -n "\${i}p" sorted_files.txt)
+
+            # Calculate next two indices, but check if they exist
+            next=\$((i+1))
+            nextnext=\$((i+2))
+
+            if [ \$next -le \$file_count ] && [ \$nextnext -le \$file_count ]; then
+                file2=\$(sed -n "\${next}p" sorted_files.txt)
+                file3=\$(sed -n "\${nextnext}p" sorted_files.txt)
+
+                # Get base name for output file
+                basename1=\$(basename \$file1 | sed -E 's/\\.(fastq|fq)(\\.gz)?$//')
                 output_file="\${basename1}_merged.fastq.gz"
                 echo "Merging replicate set \$((i/3+1)) to \$output_file"
 
                 # Handle both gzipped and non-gzipped files
-                cat_cmd=""
                 for file in "\$file1" "\$file2" "\$file3"; do
                     if [[ \$file == *.gz ]]; then
-                        cat_cmd="\$cat_cmd <(gunzip -c \"\$file\")"
+                        gunzip -c "\$file"
                     else
-                        cat_cmd="\$cat_cmd \"\$file\""
+                        cat "\$file"
                     fi
-                done
+                done | gzip > "\$output_file"
 
-                eval "cat \$cat_cmd | gzip > \"\$output_file\""
                 echo "✓ Merged \$(basename \$file1), \$(basename \$file2), and \$(basename \$file3)"
             fi
+
+            # Move to next set of 3 files
+            i=\$((i+3))
         done
     fi
 
