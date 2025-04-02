@@ -131,7 +131,7 @@ process concatenate_reads {
                 file3=\$(sed -n "\${nextnext}p" sorted_files.txt)
 
                 # Get base name for output file
-                basename1=\$(basename \$file1 | sed -E 's/\\.(fastq|fq)(\\.gz)?$//')
+                basename1=\$(basename \$file1 | sed -E 's/\\.(fastq|fq)(\\\.gz)?//')
                 output_file="\${basename1}_merged.fastq.gz"
                 echo "Merging replicate set \$((i/3+1)) to \$output_file"
 
