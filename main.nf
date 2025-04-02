@@ -19,7 +19,7 @@ params.outdir = "nextflow_results"
 params.vastdb_path = "/path/to/vastdb"
 params.script_file = "$projectDir/data/raw/fmndko/fmndko_PRJNA406820.sh"
 params.help = false
-
+params.rmd_file = "$projectDir/scripts/R/notebooks/Oocyte_fmndko_spireko_complete.Rmd"
 
 process download_reads {
     tag "Downloading raw sequencing data"
@@ -177,7 +177,7 @@ process combine_results {
     val vastdb_path
 
     output:
-    path "fmndko_INCLUSION_LEVELS_FULL-mm10.tab", optional: true
+    path "fmndko_INCLUSION_LEVELS_FULL-mm10.tab", optional: true, emit: inclusion_table
 
     script:
     """
@@ -195,7 +195,52 @@ process combine_results {
     """
 }
 
+process run_rmarkdown_report {
+    tag "Generate R analysis report"
+    label 'process_high'
+    publishDir "${params.outdir}/report", mode: 'copy', pattern: '*.html'
 
+    input:
+    path inclusion_table
+
+    output:
+    path "Oocyte_fmndko_spireko_complete.html", optional: true
+
+    script:
+    """
+    # Create notebooks directory
+    mkdir -p notebooks
+
+    # Download protein impact file if needed
+    URL3="https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"
+    FILE3="notebooks/PROT_IMPACT-mm10-v2.3.tab.gz"
+    UNZIPPED_FILE3="\${FILE3%.gz}"
+
+    if [ ! -f "\$UNZIPPED_FILE3" ]; then
+        if [ ! -f "\$FILE3" ]; then
+            echo "\$FILE3 not found. Downloading..."
+            wget "\$URL3" -O "\$FILE3"
+        else
+            echo "\$FILE3 already exists. Skipping download."
+        fi
+        echo "Unzipping \$FILE3..."
+        gunzip -c "\$FILE3" > "\$UNZIPPED_FILE3"
+    else
+        echo "\$UNZIPPED_FILE3 already exists. Skipping download and unzip."
+    fi
+
+    # Copy inclusion table to notebooks directory
+    cp ${inclusion_table} notebooks/
+
+    # Run the RMarkdown report
+    singularity run --bind "\$(pwd)/notebooks:/shared" \\
+      docker://andresgordoortiz/splicing_analysis_r_crg:v1.5 \\
+      bash -c "cd /; Rscript -e \\\"rmarkdown::render('/shared/Oocyte_fmndko_spireko_complete.Rmd')\\\""
+
+    # Move the HTML report from notebooks to current directory
+    cp notebooks/Oocyte_fmndko_spireko_complete.html ./
+    """
+}
 
 // Define workflow with proper dependencies
 workflow {
@@ -225,5 +270,8 @@ workflow {
     vast_out_dir = align_reads(processed_dir, params.vastdb_path)
 
     // Combine results after alignment
-    combine_results(vast_out_dir, params.vastdb_path)
+    inclusion_table = combine_results(vast_out_dir, params.vastdb_path)
+
+    // Run the Rmarkdown report
+    run_rmarkdown_report(inclusion_table)
 }
