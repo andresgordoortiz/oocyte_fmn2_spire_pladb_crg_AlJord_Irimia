@@ -1,8 +1,13 @@
 nextflow.enable.dsl=2
 
+params.vastdb_path = "/path/to/vastdb"  // Should be set by user
+params.script_file = "fmndko_PRJNA406820.sh"  // Script containing URLs or commands
+
 process download_reads {
     tag "$task.name"
 
+    input:
+    path download_script
 
     output:
     path "data/raw/fmndko", emit: raw_dir
@@ -11,13 +16,12 @@ process download_reads {
     """
     mkdir -p data/raw/fmndko
     cd data/raw/fmndko
-    sed "\$((task.index + 1))q;d" fmndko_PRJNA406820.sh | bash
+    sed "\$((task.index + 1))q;d" ${download_script} | bash
     """
 }
 
 process concatenate_reads {
     tag "$task.name"
-
 
     input:
     path raw_dir
@@ -51,7 +55,7 @@ process run_fastqc {
     script:
     """
     mkdir -p data/processed/fmndko/fastqc
-    fastqc -t 8 -o data/processed/fmndko/fastqc data/processed/fmndko/*.{fastq.gz,fq.gz}
+    fastqc -t ${task.cpus} -o data/processed/fmndko/fastqc data/processed/fmndko/*.{fastq.gz,fq.gz}
     """
 }
 
@@ -68,41 +72,51 @@ process align_reads {
     script:
     """
     mkdir -p data/processed/fmndko/vast_out
+
     for file in data/processed/fmndko/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
-        singularity exec --bind ${vastdb_path}:/usr/local/vast-tools/VASTDB \
-            --bind data/processed/fmndko/vast_out:/vast_out \
-            docker://andresgordoortiz/vast-tools:latest vast-tools align \
-            "\$file" -sp mm10 -o /vast_out --IR_version 2 -c 8 -n "\$basename"
+        vast-tools align "\$file" -sp mm10 -o data/processed/fmndko/vast_out --IR_version 2 -c ${task.cpus} -n "\$basename"
     done
     """
 }
 
 process combine_results {
     tag "$task.name"
-
+    publishDir "notebooks/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
 
     input:
     path vast_out_dir
     val vastdb_path
 
+    output:
+    path "fmndko_INCLUSION_LEVELS_FULL-mm10.tab", optional: true
+
     script:
     """
-    singularity exec --bind ${vastdb_path}:/usr/local/vast-tools/VASTDB \
-        --bind \$PWD/data/processed/fmndko:/fmndko \
-        docker://andresgordoortiz/vast-tools:latest bash -c "vast-tools combine /fmndko/vast_out/to_combine -sp mm10 -o /fmndko/vast_out"
-    mkdir -p \$PWD/notebooks/inclusion_tables/
-    mv \$PWD/data/processed/fmndko/vast_out/INCLUSION_LEVELS_FULL* \$PWD/notebooks/inclusion_tables/fmndko_INCLUSION_LEVELS_FULL-mm10.tab
+    vast-tools combine data/processed/fmndko/vast_out/to_combine -sp mm10 -o data/processed/fmndko/vast_out
+
+    # Move inclusion tables to output
+    if [ -f data/processed/fmndko/vast_out/INCLUSION_LEVELS_FULL* ]; then
+        cp data/processed/fmndko/vast_out/INCLUSION_LEVELS_FULL* fmndko_INCLUSION_LEVELS_FULL-mm10.tab
+    fi
     """
 }
 
 // Define workflow with proper dependencies
 workflow {
-    // Define parameter for VAST-DB path
-    params.vastdb_path = "/path/to/vastdb"
+    // Check required parameters
+    if (params.vastdb_path == "/path/to/vastdb") {
+        error "Please set the params.vastdb_path parameter to the location of your VAST-DB directory"
+    }
+
+    // Get the download script
+    download_script = file(params.script_file)
+    if (!download_script.exists()) {
+        error "Download script ${params.script_file} not found"
+    }
 
     // Execute processes in order
-    raw_dir = download_reads()
+    raw_dir = download_reads(download_script)
     processed_dir = concatenate_reads(raw_dir)
 
     // Run FastQC and alignment in parallel after concatenation
