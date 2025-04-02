@@ -35,21 +35,50 @@ process download_reads {
 
     echo "Starting download of raw sequencing data..."
 
+    # Count total number of download commands first
+    total_commands=\$(grep -v '^#' ${params.script_file} | grep -v '^\$' | wc -l)
+    echo "Found \$total_commands files to download"
+
     # Process all lines in the script
     step=1
     cat ${params.script_file} | while read line; do
         if [[ \$line != "#"* ]] && [[ ! -z "\$line" ]]; then
-            echo "Step \$step: Executing download command: \$line"
-            \$line || { echo "Download command failed: \$line"; exit 1; }
-            echo "Step \$step complete."
+            percentage=\$(( (step * 100) / total_commands ))
+            echo "===== File \$step of \$total_commands [\$percentage%] ====="
+
+            # Extract filename from the URL
+            filename=\$(echo \$line | awk -F/ '{print \$NF}')
+            echo "Downloading: \$filename"
+
+            # Use wget with progress bar for each file
+            \$line -q --show-progress || { echo "Download command failed: \$line"; exit 1; }
+
+            # Verify file was downloaded
+            if [[ -f \$filename ]]; then
+                echo "✓ Downloaded: \$filename"
+                # Move file immediately to fastq_files directory
+                mv \$filename fastq_files/
+                echo "✓ Moved to fastq_files directory"
+            else
+                echo "Error: File \$filename not found after download"
+                exit 1
+            fi
+
+            echo "Progress: \$step/\$total_commands files complete [\$percentage%]"
             step=\$((step + 1))
+            echo ""
         fi
     done
 
-    # Move all downloaded files to output directory
-    find . -name "*.fastq.gz" -exec mv {} fastq_files/ \\;
+    # Count number of successfully downloaded files
+    file_count=\$(ls -1 fastq_files | wc -l)
+    if [ \$file_count -ne \$total_commands ]; then
+        echo "Warning: Expected \$total_commands files but found \$file_count in output directory"
+    else
+        echo "Success: All \$total_commands files downloaded and moved to fastq_files directory"
+    fi
 
-    echo "Download complete. \$(ls -1 fastq_files | wc -l) files downloaded."
+    echo "Download complete. \$file_count files downloaded."
     """
 }
 
@@ -168,6 +197,7 @@ process combine_results {
 }
 
 
+
 // Define workflow with proper dependencies
 workflow {
     // Check required parameters
@@ -182,42 +212,19 @@ workflow {
     }
 
     // Execute processes in order with proper logging
-    println "Starting pipeline execution..."
+    log.info "Starting pipeline execution..."
 
-    // Use process outputs instead of direct log.info statements
-    download_reads()
-    .tap { println "Step 1/5: Downloading raw data..." }
-    .set { raw_dir }
+    // Run processes in sequence with proper channel connections
+    raw_dir = download_reads()
 
-    concatenate_reads(raw_dir)
-    .tap { println "Step 2/5: Concatenating technical replicates..." }
-    .set { processed_dir }
+    processed_dir = concatenate_reads(raw_dir)
 
     // Run FastQC on processed reads
     run_fastqc(processed_dir)
-    .tap { println "Step 3/5: FastQC quality control complete" }
 
     // Align reads
-    align_reads(processed_dir, params.vastdb_path)
-    .tap { println "Step 4/5: VAST-tools alignment complete" }
-    .set { vast_out_dir }
+    vast_out_dir = align_reads(processed_dir, params.vastdb_path)
 
     // Combine results after alignment
     combine_results(vast_out_dir, params.vastdb_path)
-    .tap { println "Step 5/5: VAST-tools results combined" }
-
-    // Display workflow completion message
-    workflow.onComplete {
-        println """
-        ===========================================
-        Pipeline execution summary
-        ===========================================
-        Completed at : ${workflow.complete}
-        Duration     : ${workflow.duration}
-        Success      : ${workflow.success}
-        Results      : ${params.outdir}
-        Work dir     : ${workflow.workDir}
-        ===========================================
-        """
-    }
 }
