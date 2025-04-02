@@ -15,7 +15,7 @@
 nextflow.enable.dsl=2
 
 // Default parameters
-params.outdir = "results"
+params.outdir = "nextflow_results"
 params.vastdb_path = "/path/to/vastdb"
 params.script_file = "$projectDir/data/raw/fmndko/fmndko_PRJNA406820.sh"
 params.help = false
@@ -85,17 +85,16 @@ process download_reads {
 process concatenate_reads {
     tag "Merging technical replicates"
     label 'process_medium'
-    publishDir "${params.outdir}/processed", mode: 'copy', pattern: 'processed'
+    publishDir "${params.outdir}/processed", mode: 'copy'
 
     input:
     path raw_dir
 
     output:
-    path "processed", emit: processed_dir
+    path "*.fastq.gz", emit: processed_dir
 
     script:
     """
-    mkdir -p processed
     echo "Starting read concatenation process..."
 
     # List files in input directory
@@ -110,14 +109,14 @@ process concatenate_reads {
             file3=\${files[i+2]}
             basename1=\$(basename \$file1 .fastq.gz | cut -d'_' -f1)
 
-            output_file="processed/\${basename1}_merged.fastq.gz"
+            output_file="\${basename1}_merged.fastq.gz"
             echo "Merging replicate set \$((i/3+1)) to \$output_file"
-            cat "\$file1" "\$file2" "\$file3" > "\$output_file"
+            cat <(gunzip -c "\$file1") <(gunzip -c "\$file2") <(gunzip -c "\$file3") | gzip > "\$output_file"
             echo "✓ Merged \$(basename \$file1), \$(basename \$file2), and \$(basename \$file3)"
         fi
     done
 
-    echo "Concatenation complete. \$(ls -1 processed | wc -l) merged files created."
+    echo "Concatenation complete. \$(ls -1 *.fastq.gz | wc -l) merged files created."
     """
 }
 
