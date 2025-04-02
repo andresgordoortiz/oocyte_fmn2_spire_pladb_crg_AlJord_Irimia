@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 
 #SBATCH --no-requeue
@@ -13,9 +12,9 @@
 
 # Configure bash
 
-set -e          # exit immediately on error
+set -e          # exit immediately on error
 
-set -u          # exit immidiately if using undefined variables
+set -u          # exit immidiately if using undefined variables
 
 set -o pipefail # ensure bash pipelines return non-zero status if any of their command fails
 
@@ -27,11 +26,11 @@ set -o pipefail # ensure bash pipelines return non-zero status if any of their c
 
 _term() {
 
-        echo "Caught SIGTERM signal!"
+        echo "Caught SIGTERM signal!"
 
-        kill -s SIGTERM $pid
+        kill -s SIGTERM $pid
 
-        wait $pid
+        wait $pid
 
 }
 
