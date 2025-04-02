@@ -16,6 +16,8 @@
 *.tab
 data/processed/*
 /downloads
+/work
+/.nextflow
 
 # File groups and specific data folders
 *to_combine/
