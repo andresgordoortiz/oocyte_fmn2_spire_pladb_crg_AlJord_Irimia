@@ -2,8 +2,7 @@ nextflow.enable.dsl=2
 
 process download_reads {
     tag "$task.name"
-    memory '5 GB'
-    time '3 min'
+
 
     output:
     path "data/raw/fmndko", emit: raw_dir
@@ -18,8 +17,7 @@ process download_reads {
 
 process concatenate_reads {
     tag "$task.name"
-    memory '4 GB'
-    time '30 min'
+
 
     input:
     path raw_dir
@@ -43,9 +41,6 @@ process concatenate_reads {
 
 process run_fastqc {
     tag "$task.name"
-    memory '5 GB'
-    time '60 min'
-    container 'docker://biocontainers/fastqc:v0.11.9_cv8'
 
     input:
     path processed_dir
@@ -62,9 +57,6 @@ process run_fastqc {
 
 process align_reads {
     tag "$task.name"
-    memory '10 GB'
-    time '120 min'
-    container 'docker://andresgordoortiz/vast-tools:latest'
 
     input:
     path processed_dir
@@ -88,9 +80,7 @@ process align_reads {
 
 process combine_results {
     tag "$task.name"
-    memory '5 GB'
-    time '20 min'
-    container 'docker://andresgordoortiz/vast-tools:latest'
+
 
     input:
     path vast_out_dir
