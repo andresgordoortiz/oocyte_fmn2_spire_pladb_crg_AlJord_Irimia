@@ -15,7 +15,7 @@
 nextflow.enable.dsl=2
 
 // Default parameters
-params.outdir = "nextflow_results"
+params.outdir = "$projectDir/nextflow_results"
 params.vastdb_path = "/path/to/vastdb"
 params.script_file = "$projectDir/data/raw/fmndko/fmndko_PRJNA406820.sh"
 params.help = false
@@ -33,87 +33,141 @@ process download_reads {
     """
     mkdir -p fastq_files
 
-    echo "Starting download of raw sequencing data..."
+    # Check for existing files in work directory (cached run)
+    if [ -d "fastq_files" ] && [ \$(ls -A fastq_files | wc -l) -gt 0 ]; then
+        echo "Using existing files in work directory"
+        ls -la fastq_files/
+        exit 0
+    fi
 
-    # Extract all filenames from the script
-    grep -v '^#' ${params.script_file} | grep -v '^\$' | awk -F/ '{print \$NF}' > expected_files.txt
-    total_commands=\$(wc -l < expected_files.txt)
-    echo "Found \$total_commands files to download"
+    # Check for files in publish directory for proper copying
+    if [ -d "${params.outdir}/raw/fastq_files" ] && [ \$(ls -A "${params.outdir}/raw/fastq_files" | wc -l) -gt 0 ]; then
+        echo "Copying from publish directory..."
+        cp -rv "${params.outdir}/raw/fastq_files/"* fastq_files/
+        echo "Files after copying:"
+        ls -la fastq_files/
+        exit 0
+    fi
+
+    # Continue with regular download only if needed
+    echo "No existing files found. Starting download..."
+
+    # First check if the script exists
+    if [ ! -f "${params.script_file}" ]; then
+        echo "ERROR: Download script not found at ${params.script_file}"
+        exit 1
+    fi
+
+    # Debug: Show content of download script
+    echo "Content of download script:"
+    cat "${params.script_file}"
+    echo "----------------------"
+
+    # Extract all filenames/accessions from the script
+    grep -v '^#' ${params.script_file} | grep -v '^\$' > download_commands.txt
+    total_commands=\$(wc -l < download_commands.txt)
+    echo "Found \$total_commands download commands"
 
     # Check if all files already exist in the publish directory
+    existing_files=0
     if [ -d "${params.outdir}/raw/fastq_files" ]; then
-        missing_files=0
-        while read filename; do
-            if [ ! -f "${params.outdir}/raw/fastq_files/\$filename" ]; then
-                missing_files=\$((missing_files + 1))
-                echo "Missing file: \$filename"
-            fi
-        done < expected_files.txt
+        existing_files=\$(ls -1A "${params.outdir}/raw/fastq_files" 2>/dev/null | wc -l)
+        echo "Found \$existing_files existing files in destination directory"
 
-        if [ \$missing_files -eq 0 ]; then
-            echo "All \$total_commands files already exist in ${params.outdir}/raw/fastq_files"
-            echo "Skipping download step and copying existing files..."
-            cp -r "${params.outdir}/raw/fastq_files/"* fastq_files/
-            echo "Files copied. Download step skipped."
-            exit 0
+        if [ \$existing_files -ge \$total_commands ]; then
+            echo "Files already exist in destination. Copying instead of downloading..."
+            cp -rv "${params.outdir}/raw/fastq_files/"* fastq_files/ || echo "Copy failed, will download files"
+
+            # Verify file count with extra logging
+            copied_files=\$(ls -1A fastq_files | wc -l)
+            echo "Copied \$copied_files files from existing directory (need \$total_commands)"
+
+            if [ \$copied_files -ge \$total_commands ]; then
+                echo "✓ Successfully used existing files"
+
+                # List the files to ensure they're actually there
+                echo "Files in fastq_files directory:"
+                ls -la fastq_files/
+
+                # Make sure we don't delete the directory on exit
+                touch fastq_files/COPY_COMPLETE
+                exit 0
+            else
+                echo "⚠️ Copied files incomplete (\$copied_files < \$total_commands). Proceeding with download..."
+            fi
         else
-            echo "\$missing_files files are missing. Proceeding with download..."
+            echo "Not enough files in destination (\$existing_files < \$total_commands). Will download all files."
         fi
     else
         echo "Destination directory doesn't exist yet. Will download all files."
     fi
 
-    # Process all lines in the script
+    # Process download commands
     step=1
-    while read line; do < ${params.script_file}
-        if [[ \$line != "#"* ]] && [[ ! -z "\$line" ]]; then
+    while read -r cmd; do
+        if [[ \$cmd != "#"* ]] && [[ ! -z "\$cmd" ]]; then
             percentage=\$(( (step * 100) / total_commands ))
-            echo "===== File \$step of \$total_commands [\$percentage%] ====="
+            echo "===== Command \$step of \$total_commands [\$percentage%] ====="
+            echo "Executing: \$cmd"
 
-            # Extract filename from the URL
-            filename=\$(echo \$line | awk -F/ '{print \$NF}')
-            echo "Downloading: \$filename"
-
-            # Skip if file already exists in the target directory
-            if [ -f "${params.outdir}/raw/fastq_files/\$filename" ]; then
-                echo "File \$filename already exists in destination. Copying instead of downloading..."
-                cp "${params.outdir}/raw/fastq_files/\$filename" fastq_files/
-                echo "✓ Copied: \$filename"
+            # Handle different command types
+            if [[ \$cmd =~ ^(http|https|ftp):// ]]; then
+                # Direct URL download
+                filename=\$(basename "\$cmd")
+                wget -q --show-progress "\$cmd" -O fastq_files/\$filename || {
+                    echo "Download failed: \$cmd";
+                    exit 1;
+                }
+                echo "✓ Downloaded: \$filename"
+            elif [[ \$cmd =~ ^SRR|^ERR|^DRR ]]; then
+                # SRA accession
+                sra_id=\$(echo "\$cmd" | awk '{print \$1}')
+                echo "Downloading SRA accession: \$sra_id"
+                prefetch "\$sra_id" && \\
+                fastq-dump --split-files --gzip "\$sra_id" && \\
+                mv \${sra_id}*.fastq.gz fastq_files/ || {
+                    echo "SRA download failed for: \$sra_id";
+                    exit 1;
+                }
+                echo "✓ Downloaded SRA: \$sra_id"
             else
-                # Use wget with progress bar for each file
-                if [[ \$line =~ ^https?:// ]]; then
-                    wget "\$line" -q --show-progress || { echo "Download command failed: \$line"; exit 1; }
-                else
-                if [[ -f "fastq_files/\$filename" ]]; then
-                fi
-
-                # Verify file was downloaded
-                if [[ -f \$filename ]]; then
-                    echo "✓ Downloaded: \$filename"
-                    # Move file immediately to fastq_files directory
-                    mv \$filename fastq_files/
-                    echo "✓ Moved to fastq_files directory"
-                else
-                    echo "Error: File \$filename not found after download"
-                    exit 1
-                fi
+                # Try to execute as shell command in fastq_files directory
+                (cd fastq_files && eval "\$cmd") || {
+                    echo "Command execution failed: \$cmd";
+                    exit 1;
+                }
+                echo "✓ Executed command successfully"
             fi
 
-            echo "Progress: \$step/\$total_commands files complete [\$percentage%]"
+            echo "Progress: \$step/\$total_commands commands processed [\$percentage%]"
             step=\$((step + 1))
             echo ""
         fi
-    done
+    done < download_commands.txt
 
-    # Count number of successfully downloaded files
+    # Count downloaded files
     file_count=\$(ls -1 fastq_files | wc -l)
-    if [ \$file_count -ne \$total_commands ]; then
-        echo "Warning: Expected \$total_commands files but found \$file_count in output directory"
-    else
-        echo "Success: All \$total_commands files downloaded and moved to fastq_files directory"
-    fi
-
     echo "Download complete. \$file_count files downloaded."
+
+    # Make sure we have files
+    if [ \$file_count -eq 0 ]; then
+        echo "ERROR: No files were downloaded!"
+        exit 1
+    fi
+    """
+}
+
+process verify_files {
+    debug true
+
+    input:
+    path dir
+
+    script:
+    """
+    echo "Verifying directory contents: ${dir}"
+    echo "File count: \$(find ${dir} -type f | wc -l)"
+    find ${dir} -type f | head -n 10
     """
 }
 
@@ -342,6 +396,7 @@ workflow {
 
     // Run processes in sequence with proper channel connections
     raw_dir = download_reads()
+    verify_files(raw_dir)
 
     processed_dir = concatenate_reads(raw_dir)
 
