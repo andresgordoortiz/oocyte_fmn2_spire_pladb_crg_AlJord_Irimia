@@ -36,7 +36,7 @@ process download_reads {
     echo "Starting download of raw sequencing data..."
 
     # Extract all filenames from the script
-    grep -v '^#' ${params.script_file} | grep -v '^\$' | awk -F/ '{print \\$NF}' > expected_files.txt
+    grep -v '^#' ${params.script_file} | grep -v '^\$' | awk -F/ '{print \$NF}' > expected_files.txt
     total_commands=\$(wc -l < expected_files.txt)
     echo "Found \$total_commands files to download"
 
