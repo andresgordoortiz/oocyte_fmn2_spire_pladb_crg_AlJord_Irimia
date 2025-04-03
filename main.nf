@@ -317,7 +317,7 @@ process run_rmarkdown_report {
 
     # Run the RMarkdown report
     cd /
-    Rscript -e "rmarkdown::render('${PWD}/notebooks/Oocyte_fmndko_spireko_complete.Rmd')"
+    Rscript -e "rmarkdown::render('\$PWD/notebooks/Oocyte_fmndko_spireko_complete.Rmd')"
 
     # Move the HTML report from notebooks to current directory
     cp notebooks/Oocyte_fmndko_spireko_complete.html ./
