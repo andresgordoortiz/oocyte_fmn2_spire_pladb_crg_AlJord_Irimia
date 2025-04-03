@@ -35,13 +35,37 @@ process download_reads {
 
     echo "Starting download of raw sequencing data..."
 
-    # Count total number of download commands first
-    total_commands=\$(grep -v '^#' ${params.script_file} | grep -v '^\$' | wc -l)
+    # Extract all filenames from the script
+    grep -v '^#' ${params.script_file} | grep -v '^\$' | awk -F/ '{print \\$NF}' > expected_files.txt
+    total_commands=\$(wc -l < expected_files.txt)
     echo "Found \$total_commands files to download"
+
+    # Check if all files already exist in the publish directory
+    if [ -d "${params.outdir}/raw/fastq_files" ]; then
+        missing_files=0
+        while read filename; do
+            if [ ! -f "${params.outdir}/raw/fastq_files/\$filename" ]; then
+                missing_files=\$((missing_files + 1))
+                echo "Missing file: \$filename"
+            fi
+        done < expected_files.txt
+
+        if [ \$missing_files -eq 0 ]; then
+            echo "All \$total_commands files already exist in ${params.outdir}/raw/fastq_files"
+            echo "Skipping download step and copying existing files..."
+            cp -r "${params.outdir}/raw/fastq_files/"* fastq_files/
+            echo "Files copied. Download step skipped."
+            exit 0
+        else
+            echo "\$missing_files files are missing. Proceeding with download..."
+        fi
+    else
+        echo "Destination directory doesn't exist yet. Will download all files."
+    fi
 
     # Process all lines in the script
     step=1
-    cat ${params.script_file} | while read line; do
+    while read line; do < ${params.script_file}
         if [[ \$line != "#"* ]] && [[ ! -z "\$line" ]]; then
             percentage=\$(( (step * 100) / total_commands ))
             echo "===== File \$step of \$total_commands [\$percentage%] ====="
@@ -50,18 +74,29 @@ process download_reads {
             filename=\$(echo \$line | awk -F/ '{print \$NF}')
             echo "Downloading: \$filename"
 
-            # Use wget with progress bar for each file
-            \$line -q --show-progress || { echo "Download command failed: \$line"; exit 1; }
-
-            # Verify file was downloaded
-            if [[ -f \$filename ]]; then
-                echo "✓ Downloaded: \$filename"
-                # Move file immediately to fastq_files directory
-                mv \$filename fastq_files/
-                echo "✓ Moved to fastq_files directory"
+            # Skip if file already exists in the target directory
+            if [ -f "${params.outdir}/raw/fastq_files/\$filename" ]; then
+                echo "File \$filename already exists in destination. Copying instead of downloading..."
+                cp "${params.outdir}/raw/fastq_files/\$filename" fastq_files/
+                echo "✓ Copied: \$filename"
             else
-                echo "Error: File \$filename not found after download"
-                exit 1
+                # Use wget with progress bar for each file
+                if [[ \$line =~ ^https?:// ]]; then
+                    wget "\$line" -q --show-progress || { echo "Download command failed: \$line"; exit 1; }
+                else
+                if [[ -f "fastq_files/\$filename" ]]; then
+                fi
+
+                # Verify file was downloaded
+                if [[ -f \$filename ]]; then
+                    echo "✓ Downloaded: \$filename"
+                    # Move file immediately to fastq_files directory
+                    mv \$filename fastq_files/
+                    echo "✓ Moved to fastq_files directory"
+                else
+                    echo "Error: File \$filename not found after download"
+                    exit 1
+                fi
             fi
 
             echo "Progress: \$step/\$total_commands files complete [\$percentage%]"
@@ -101,58 +136,69 @@ process concatenate_reads {
     echo "Contents of input directory '${raw_dir}':"
     ls -la ${raw_dir}/
 
-    # List files in input directory - avoid complex array syntax
+    # Find all FASTQ files using separate commands
     echo "Finding FASTQ files for processing..."
-    find ${raw_dir} -type f \\( -name "*.fastq.gz" -o -name "*.fq.gz" -o -name "*.fastq" -o -name "*.fq" \\) > fastq_files.txt
+    find ${raw_dir} -name "*.fastq.gz" > fastq_files.txt
+    find ${raw_dir} -name "*.fq.gz" >> fastq_files.txt
+    find ${raw_dir} -name "*.fastq" >> fastq_files.txt
+    find ${raw_dir} -name "*.fq" >> fastq_files.txt
+
     file_count=\$(wc -l < fastq_files.txt)
     echo "Found \$file_count FASTQ files for processing"
 
     # Check if we have any files to process
     if [ \$file_count -eq 0 ]; then
         echo "WARNING: No FASTQ files found in input directory"
-        echo "Creating empty placeholder file to satisfy Nextflow output requirement"
         touch empty_placeholder.fastq.gz
     else
         # Sort the files for consistent grouping
         sort fastq_files.txt > sorted_files.txt
 
-        # Group and concatenate files in sets of 3
+        # Simple approach: Process files in groups of 3
         i=1
         while [ \$i -le \$file_count ]; do
-            # Calculate indices for each set of 3 files
+            # Get current file and calculate next indices
             file1=\$(sed -n "\${i}p" sorted_files.txt)
-
-            # Calculate next two indices, but check if they exist
             next=\$((i+1))
             nextnext=\$((i+2))
 
+            # Check if we have all 3 files in the group
             if [ \$next -le \$file_count ] && [ \$nextnext -le \$file_count ]; then
                 file2=\$(sed -n "\${next}p" sorted_files.txt)
                 file3=\$(sed -n "\${nextnext}p" sorted_files.txt)
 
-                # Get base name for output file
-                basename1=\$(basename \$file1 | sed -E 's/\\.(fastq|fq)(\\\.gz)?//')
-                output_file="\${basename1}_merged.fastq.gz"
-                echo "Merging replicate set \$((i/3+1)) to \$output_file"
+                # Extract basename for output naming (simpler approach)
+                base1=\$(basename \$file1)
+                # Remove extensions with simplified pattern matching
+                base1=\${base1%.fastq.gz}
+                base1=\${base1%.fq.gz}
+                base1=\${base1%.fastq}
+                base1=\${base1%.fq}
 
-                # Handle both gzipped and non-gzipped files
+                echo "Merging to \${base1}_merged.fastq.gz: \$(basename \$file1), \$(basename \$file2), \$(basename \$file3)"
+
+                # Build concatenation command based on file extensions
+                cmd="("
                 for file in "\$file1" "\$file2" "\$file3"; do
                     if [[ \$file == *.gz ]]; then
-                        gunzip -c "\$file"
+                        cmd="\$cmd gunzip -c \$file; "
                     else
-                        cat "\$file"
+                        cmd="\$cmd cat \$file; "
                     fi
-                done | gzip > "\$output_file"
+                done
+                cmd="\$cmd) | gzip > \${base1}_merged.fastq.gz"
 
-                echo "✓ Merged \$(basename \$file1), \$(basename \$file2), and \$(basename \$file3)"
+                # Execute the command
+                eval \$cmd
+                echo "✓ Merged files into \${base1}_merged.fastq.gz"
             fi
 
-            # Move to next set of 3 files
+            # Move to next group
             i=\$((i+3))
         done
     fi
 
-    echo "Concatenation complete. \$(ls -1 *.fastq.gz | wc -l) merged files created."
+    echo "Concatenation complete. \$(ls -1 *.fastq.gz 2>/dev/null | wc -l) merged files created."
     """
 }
 
