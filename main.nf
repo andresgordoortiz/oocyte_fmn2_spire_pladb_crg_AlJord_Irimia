@@ -282,6 +282,7 @@ process run_rmarkdown_report {
     label 'process_high'
     publishDir "${params.outdir}/report", mode: 'copy', pattern: '*.html'
 
+
     input:
     path inclusion_table
 
@@ -315,9 +316,8 @@ process run_rmarkdown_report {
     cp ${inclusion_table} notebooks/
 
     # Run the RMarkdown report
-    singularity run --bind "\$(pwd)/notebooks:/shared" \\
-      docker://andresgordoortiz/splicing_analysis_r_crg:v1.5 \\
-      bash -c "cd /; Rscript -e \\\"rmarkdown::render('/shared/Oocyte_fmndko_spireko_complete.Rmd')\\\""
+    cd /
+    Rscript -e "rmarkdown::render('${PWD}/notebooks/Oocyte_fmndko_spireko_complete.Rmd')"
 
     # Move the HTML report from notebooks to current directory
     cp notebooks/Oocyte_fmndko_spireko_complete.html ./
