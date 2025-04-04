@@ -250,10 +250,6 @@ process align_reads {
     mkdir -p vast_out
     echo "Starting VAST-tools alignment..."
 
-    # Create symbolic link to ensure VAST-tools can find the database
-    mkdir -p /usr/local/vast-tools/VASTDB
-    ln -sf ${vastdb_path} /usr/local/vast-tools/VASTDB
-
     for file in ${processed_dir}/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
         echo "Processing sample: \$basename"
