@@ -253,7 +253,7 @@ process align_reads {
     for file in ${processed_dir}/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
         echo "Processing sample: \$basename"
-        vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
+        vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" -dbDir /usr/local/vast-tools/VASTDB || { echo "Alignment failed for \$basename"; exit 1; }
     done
 
     echo "VAST-tools alignment complete."
