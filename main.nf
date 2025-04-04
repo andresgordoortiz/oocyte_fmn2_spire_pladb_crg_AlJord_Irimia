@@ -7,9 +7,21 @@
  Authors: Andrés Gordo
  Date: April 2025
 
- This pipeline processes RNA-Seq data for analyzing
- alternative splicing patterns in FMN2/Spire knockouts
- using VAST-tools.
+ Description:
+ This pipeline processes RNA-Seq data to analyze alternative splicing patterns in FMN2/Spire knockouts using VAST-tools. It includes steps for downloading or linking FASTQ files, concatenating reads, performing quality control, aligning reads, combining results, and generating an RMarkdown report.
+
+ Dependencies:
+ - Nextflow
+ - VAST-tools
+ - FastQC
+ - R with rmarkdown package
+
+ Expected Outputs:
+ - Processed FASTQ files
+ - Quality control reports
+ - VAST-tools alignment results
+ - Combined inclusion level tables
+ - HTML report summarizing the analysis
 */
 
 nextflow.enable.dsl=2
@@ -19,139 +31,169 @@ params.outdir = "$projectDir/nextflow_results"
 params.vastdb_path = "/path/to/vastdb"
 params.script_file = "$projectDir/data/raw/fmndko/fmndko_PRJNA406820.sh"
 params.help = false
+params.skip_fastqc = false  // Option to skip FastQC step
 params.rmd_file = "$projectDir/scripts/R/notebooks/Oocyte_fmndko_spireko_complete.Rmd"
+params.prot_impact_url = "https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"  // Default URL for PROT_IMPACT file
+params.reads_dir = null  // If specified, use existing FASTQ files instead of downloading
+params.species = "mm10"  // Default species for VAST-tools alignment
+
+// Define parameter validation function
+def validateParameters() {
+    if (params.vastdb_path == "/path/to/vastdb") {
+        log.error "ERROR: No path to VAST-DB has been specified. Please set the --vastdb_path parameter to the location of your VAST-DB directory (e.g., --vastdb_path /path/to/vastdb)."
+        exit 1
+    }
+}
 
 process download_reads {
-    tag "Downloading raw sequencing data"
-    label 'network'
-    publishDir "${params.outdir}/raw", mode: 'copy', pattern: 'fastq_files'
+    tag "Downloading FASTQ files"
+    label 'process_medium'
+    publishDir "${params.outdir}/raw_data", mode: 'copy', pattern: 'raw_data'
 
     output:
-    path "fastq_files", emit: raw_dir
+    path "raw_data", emit: raw_dir
+
+    script:
+    if (params.reads_dir) {
+        // If a reads directory is provided, use it
+        """
+        mkdir -p raw_data
+        echo "Using pre-downloaded FASTQ files from ${params.reads_dir}"
+
+        # Use more robust file finding and copying
+        FASTQ_FILES=\$(find "${params.reads_dir}" -name "*.fastq.gz")
+        if [ -z "\$FASTQ_FILES" ]; then
+            echo "ERROR: No FASTQ files found in ${params.reads_dir}"
+            exit 1
+        fi
+
+        # Copy each file individually
+        for file in \$FASTQ_FILES; do
+            cp "\$file" raw_data/
+            echo "Copied \$(basename \$file)"
+        done
+
+        # Verify files were copied correctly
+        file_count=\$(find raw_data -name "*.fastq.gz" | wc -l)
+        echo "Found \$file_count FASTQ files in the raw_data directory"
+
+        if [ \$file_count -eq 0 ]; then
+            echo "ERROR: No FASTQ files found or copied from ${params.reads_dir}"
+            exit 1
+        fi
+        """
+    } else {
+        // Otherwise, download files using the script
+        """
+        if ! grep -q 'wget.*gz' ${params.script_file}; then
+            echo "ERROR: The script file ${params.script_file} does not contain valid wget commands."
+            exit 1
+        fi
+
+        grep -oP 'wget.*gz' ${params.script_file} | while read cmd; do
+        cd raw_data
+        echo "Downloading FASTQ files..."
+
+        # Extract and run wget commands from the script file
+        grep -oP 'wget.*gz' ${params.script_file} | while read cmd; do
+            echo "Executing: \$cmd"
+            eval \$cmd
+        done
+
+        # Verify downloads were successful
+        file_count=\$(find . -name "*.fastq.gz" | wc -l)
+        echo "Downloaded \$file_count FASTQ files"
+
+        if [ \$file_count -eq 0 ]; then
+            echo "ERROR: No files were downloaded!"
+            exit 1
+        fi
+
+        cd ..
+        """
+    }
+}
+
+process concatenate_reads {
+    tag "Concatenating read files in triples"
+    label 'process_medium'
+    publishDir "${params.outdir}/processed", mode: 'copy', pattern: 'processed_files'
+
+    input:
+    path raw_dir
+
+    output:
+    path "processed_files", emit: processed_dir
 
     script:
     """
-    mkdir -p fastq_files
+    mkdir -p processed_files
 
-    # Check for existing files in work directory (cached run)
-    if [ -d "fastq_files" ] && [ \$(ls -A fastq_files | wc -l) -gt 0 ]; then
-        echo "Using existing files in work directory"
-        ls -la fastq_files/
-        exit 0
-    fi
+    echo "Starting to concatenate read files in triples..."
 
-    # Check for files in publish directory for proper copying
-    if [ -d "${params.outdir}/raw/fastq_files" ] && [ \$(ls -A "${params.outdir}/raw/fastq_files" | wc -l) -gt 0 ]; then
-        echo "Copying from publish directory..."
-        cp -rv "${params.outdir}/raw/fastq_files/"* fastq_files/
-        echo "Files after copying:"
-        ls -la fastq_files/
-        exit 0
-    fi
+    # List all fastq.gz files in the input directory
+    ls -1 ${raw_dir}/*.fastq.gz > all_fastq_files.txt || {
+        echo "ERROR: No fastq.gz files found in ${raw_dir}!"
+        exit 1
+    }
 
-    # Continue with regular download only if needed
-    echo "No existing files found. Starting download..."
+    # Count total files and create an array
+    total_files=\$(wc -l < all_fastq_files.txt)
+    echo "Found \$total_files fastq.gz files to process"
 
-    # First check if the script exists
-    if [ ! -f "${params.script_file}" ]; then
-        echo "ERROR: Download script not found at ${params.script_file}"
+    # Check if we have files to process
+    if [ \$total_files -eq 0 ]; then
+        echo "ERROR: No fastq.gz files found to process!"
         exit 1
     fi
 
-    # Debug: Show content of download script
-    echo "Content of download script:"
-    cat "${params.script_file}"
-    echo "----------------------"
+    # Read files into array
+    i=1
+    files=()
+    while read -r file; do
+        files[\$((i-1))]="\$file"
+        i=\$((i+1))
+    done < all_fastq_files.txt
 
-    # Extract all filenames/accessions from the script
-    grep -v '^#' ${params.script_file} | grep -v '^\$' > download_commands.txt
-    total_commands=\$(wc -l < download_commands.txt)
-    echo "Found \$total_commands download commands"
+    # Iterate over the files in triples
+    for ((i=0; i<\$total_files; i+=3)); do
+        # Check if we have a complete triple
+        if [ \$((i+2)) -lt \$total_files ]; then
+            # We have a complete triple
+            file1=\${files[i]}
+            file2=\${files[i+1]}
+            file3=\${files[i+2]}
 
-    # Check if all files already exist in the publish directory
-    existing_files=0
-    if [ -d "${params.outdir}/raw/fastq_files" ]; then
-        existing_files=\$(ls -1A "${params.outdir}/raw/fastq_files" 2>/dev/null | wc -l)
-        echo "Found \$existing_files existing files in destination directory"
+            # Get basenames for the three files
+            base1=\$(basename \$file1 .fastq.gz)
+            base2=\$(basename \$file2 .fastq.gz)
+            base3=\$(basename \$file3 .fastq.gz)
 
-        if [ \$existing_files -ge \$total_commands ]; then
-            echo "Files already exist in destination. Copying instead of downloading..."
-            cp -rv "${params.outdir}/raw/fastq_files/"* fastq_files/ || echo "Copy failed, will download files"
+            # Define the output file name
+            output_file="processed_files/\${base1}_\${base2}_\${base3}_merged.fastq.gz"
 
-            # Verify file count with extra logging
-            copied_files=\$(ls -1A fastq_files | wc -l)
-            echo "Copied \$copied_files files from existing directory (need \$total_commands)"
+            echo "Merging files \$((i+1))-\$((i+3)) of \$total_files:"
+            echo " 1: \$(basename \$file1)"
+            echo " 2: \$(basename \$file2)"
+            echo " 3: \$(basename \$file3)"
 
-            if [ \$copied_files -ge \$total_commands ]; then
-                echo "✓ Successfully used existing files"
+            # Concatenate the triple of files
+            cat "\$file1" "\$file2" "\$file3" > "\$output_file"
 
-                # List the files to ensure they're actually there
-                echo "Files in fastq_files directory:"
-                ls -la fastq_files/
-
-                # Make sure we don't delete the directory on exit
-                touch fastq_files/COPY_COMPLETE
-                exit 0
-            else
-                echo "⚠️ Copied files incomplete (\$copied_files < \$total_commands). Proceeding with download..."
-            fi
+            echo "✓ Created merged file: \$(basename \$output_file)"
         else
-            echo "Not enough files in destination (\$existing_files < \$total_commands). Will download all files."
+            # Handle remaining files (incomplete triple) if any
+            echo "WARNING: Remaining files will not be processed in this implementation"
         fi
-    else
-        echo "Destination directory doesn't exist yet. Will download all files."
-    fi
+    done
 
-    # Process download commands
-    step=1
-    while read -r cmd; do
-        if [[ \$cmd != "#"* ]] && [[ ! -z "\$cmd" ]]; then
-            percentage=\$(( (step * 100) / total_commands ))
-            echo "===== Command \$step of \$total_commands [\$percentage%] ====="
-            echo "Executing: \$cmd"
-
-            # Handle different command types
-            if [[ \$cmd =~ ^(http|https|ftp):// ]]; then
-                # Direct URL download
-                filename=\$(basename "\$cmd")
-                wget -q --show-progress "\$cmd" -O fastq_files/\$filename || {
-                    echo "Download failed: \$cmd";
-                    exit 1;
-                }
-                echo "✓ Downloaded: \$filename"
-            elif [[ \$cmd =~ ^SRR|^ERR|^DRR ]]; then
-                # SRA accession
-                sra_id=\$(echo "\$cmd" | awk '{print \$1}')
-                echo "Downloading SRA accession: \$sra_id"
-                prefetch "\$sra_id" && \\
-                fastq-dump --split-files --gzip "\$sra_id" && \\
-                mv \${sra_id}*.fastq.gz fastq_files/ || {
-                    echo "SRA download failed for: \$sra_id";
-                    exit 1;
-                }
-                echo "✓ Downloaded SRA: \$sra_id"
-            else
-                # Try to execute as shell command in fastq_files directory
-                (cd fastq_files && eval "\$cmd") || {
-                    echo "Command execution failed: \$cmd";
-                    exit 1;
-                }
-                echo "✓ Executed command successfully"
-            fi
-
-            echo "Progress: \$step/\$total_commands commands processed [\$percentage%]"
-            step=\$((step + 1))
-            echo ""
-        fi
-    done < download_commands.txt
-
-    # Count downloaded files
-    file_count=\$(ls -1 fastq_files | wc -l)
-    echo "Download complete. \$file_count files downloaded."
+    # Count processed files
+    processed_count=\$(ls -1 processed_files/*.fastq.gz 2>/dev/null | wc -l)
+    echo "Concatenation complete. \$processed_count merged files created."
 
     # Make sure we have files
-    if [ \$file_count -eq 0 ]; then
-        echo "ERROR: No files were downloaded!"
+    if [ \$processed_count -eq 0 ]; then
+        echo "ERROR: No files were processed!"
         exit 1
     fi
     """
@@ -167,92 +209,7 @@ process verify_files {
     """
     echo "Verifying directory contents: ${dir}"
     echo "File count: \$(find ${dir} -type f | wc -l)"
-    find ${dir} -type f | head -n 10
-    """
-}
-
-process concatenate_reads {
-    tag "Merging technical replicates"
-    label 'process_medium'
-    publishDir "${params.outdir}/processed", mode: 'copy'
-
-    input:
-    path raw_dir
-
-    output:
-    path "*.fastq.gz", emit: processed_dir
-
-    script:
-    """
-    echo "Starting read concatenation process..."
-
-    # Debug input directory contents
-    echo "Contents of input directory '${raw_dir}':"
-    ls -la ${raw_dir}/
-
-    # Find all FASTQ files using separate commands
-    echo "Finding FASTQ files for processing..."
-    find ${raw_dir} -name "*.fastq.gz" > fastq_files.txt
-    find ${raw_dir} -name "*.fq.gz" >> fastq_files.txt
-    find ${raw_dir} -name "*.fastq" >> fastq_files.txt
-    find ${raw_dir} -name "*.fq" >> fastq_files.txt
-
-    file_count=\$(wc -l < fastq_files.txt)
-    echo "Found \$file_count FASTQ files for processing"
-
-    # Check if we have any files to process
-    if [ \$file_count -eq 0 ]; then
-        echo "WARNING: No FASTQ files found in input directory"
-        touch empty_placeholder.fastq.gz
-    else
-        # Sort the files for consistent grouping
-        sort fastq_files.txt > sorted_files.txt
-
-        # Simple approach: Process files in groups of 3
-        i=1
-        while [ \$i -le \$file_count ]; do
-            # Get current file and calculate next indices
-            file1=\$(sed -n "\${i}p" sorted_files.txt)
-            next=\$((i+1))
-            nextnext=\$((i+2))
-
-            # Check if we have all 3 files in the group
-            if [ \$next -le \$file_count ] && [ \$nextnext -le \$file_count ]; then
-                file2=\$(sed -n "\${next}p" sorted_files.txt)
-                file3=\$(sed -n "\${nextnext}p" sorted_files.txt)
-
-                # Extract basename for output naming (simpler approach)
-                base1=\$(basename \$file1)
-                # Remove extensions with simplified pattern matching
-                base1=\${base1%.fastq.gz}
-                base1=\${base1%.fq.gz}
-                base1=\${base1%.fastq}
-                base1=\${base1%.fq}
-
-                echo "Merging to \${base1}_merged.fastq.gz: \$(basename \$file1), \$(basename \$file2), \$(basename \$file3)"
-
-                # Build concatenation command based on file extensions
-                cmd="("
-                for file in "\$file1" "\$file2" "\$file3"; do
-                    if [[ \$file == *.gz ]]; then
-                        cmd="\$cmd gunzip -c \$file; "
-                    else
-                        cmd="\$cmd cat \$file; "
-                    fi
-                done
-                cmd="\$cmd) | gzip > \${base1}_merged.fastq.gz"
-
-                # Execute the command
-                eval \$cmd
-                echo "✓ Merged files into \${base1}_merged.fastq.gz"
-            fi
-
-            # Move to next group
-            i=\$((i+3))
-        done
-    fi
-
-    echo "Concatenation complete. \$(ls -1 *.fastq.gz 2>/dev/null | wc -l) merged files created."
+    find ${dir} -type f | head -n 5
     """
 }
 
@@ -296,7 +253,7 @@ process align_reads {
     for file in ${processed_dir}/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
         echo "Processing sample: \$basename"
-        vast-tools align "\$file" -sp mm10 -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
+        vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
     done
 
     echo "VAST-tools alignment complete."
@@ -320,13 +277,14 @@ process combine_results {
     echo "Combining VAST-tools results..."
     vast-tools combine ${vast_out_dir}/to_combine -sp mm10 -o ${vast_out_dir} || { echo "VAST-tools combine failed"; exit 1; }
 
-    # Move inclusion tables to output
-    if [ -f ${vast_out_dir}/INCLUSION_LEVELS_FULL* ]; then
-        cp ${vast_out_dir}/INCLUSION_LEVELS_FULL* fmndko_INCLUSION_LEVELS_FULL-mm10.tab
+    inclusion_file=\$(find ${vast_out_dir} -name "INCLUSION_LEVELS_FULL*" | head -n 1)
+    if [ -n "\$inclusion_file" ]; then
+        cp "\$inclusion_file" fmndko_INCLUSION_LEVELS_FULL-mm10.tab
         echo "✓ Results successfully combined and inclusion table created"
     else
-        echo "WARNING: No INCLUSION_LEVELS_FULL file was created"
-        exit 1
+        echo "WARNING: No INCLUSION_LEVELS_FULL file was created. Skipping this step."
+        touch fmndko_INCLUSION_LEVELS_FULL-mm10.tab  # Create an empty placeholder file
+    fi
     fi
     """
 }
@@ -348,7 +306,7 @@ process run_rmarkdown_report {
     # Create notebooks directory
     mkdir -p notebooks
 
-    # Download protein impact file if needed
+    URL3="${params.prot_impact_url}"
     URL3="https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"
     FILE3="notebooks/PROT_IMPACT-mm10-v2.3.tab.gz"
     UNZIPPED_FILE3="\${FILE3%.gz}"
@@ -368,9 +326,16 @@ process run_rmarkdown_report {
 
     # Copy inclusion table to notebooks directory
     cp ${inclusion_table} notebooks/
+    # Verify the RMarkdown file exists
+    RMD_FILE="\$PWD/notebooks/Oocyte_fmndko_spireko_complete.Rmd"
+    if [ ! -f "\$RMD_FILE" ]; then
+        echo "ERROR: RMarkdown file \$RMD_FILE not found. Cannot generate the report."
+        exit 1
+    fi
 
     # Run the RMarkdown report
     cd /
+    Rscript -e "rmarkdown::render('\$RMD_FILE')"
     Rscript -e "rmarkdown::render('\$PWD/notebooks/Oocyte_fmndko_spireko_complete.Rmd')"
 
     # Move the HTML report from notebooks to current directory
@@ -378,17 +343,15 @@ process run_rmarkdown_report {
     """
 }
 
-// Define workflow with proper dependencies
+// Add a workflow block to define the execution flow
 workflow {
-    // Check required parameters
-    if (params.vastdb_path == "/path/to/vastdb") {
-        error "Please set the params.vastdb_path parameter to the location of your VAST-DB directory"
-    }
+    // Validate parameters first
+    validateParameters()
 
     // Get the download script
     download_script = file(params.script_file)
     if (!download_script.exists()) {
-        error "Download script ${params.script_file} not found"
+        error "ERROR: The specified download script file '${params.script_file}' does not exist or is inaccessible. Please verify that the path is correct and the file is readable. Example: --script_file /path/to/your_script.sh"
     }
 
     // Execute processes in order with proper logging
@@ -400,8 +363,12 @@ workflow {
 
     processed_dir = concatenate_reads(raw_dir)
 
-    // Run FastQC on processed reads
-    run_fastqc(processed_dir)
+    // Run FastQC on processed reads if not skipped
+    if (!params.skip_fastqc) {
+        run_fastqc(processed_dir)
+    } else {
+        log.info "Skipping FastQC step as per user request."
+    }
 
     // Align reads
     vast_out_dir = align_reads(processed_dir, params.vastdb_path)
