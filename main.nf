@@ -186,25 +186,32 @@ process align_reads {
     mkdir -p vast_out
     echo "Starting VAST-tools alignment..."
 
-    # Check if Mm2 subdirectory exists in the mounted VASTDB path
-    if [ -d "/usr/local/vast-tools/VASTDB/Mm2" ]; then
-        echo "Found Mm2 directory in VASTDB path"
-    else
-        echo "Creating Mm2 directory structure"
-        mkdir -p /usr/local/vast-tools/VASTDB/Mm2
-        # Copy or link files from the main VASTDB directory to Mm2
-        find /usr/local/vast-tools/VASTDB -maxdepth 1 -type f -exec ln -sf {} /usr/local/vast-tools/VASTDB/Mm2/ \\;
+    # Create a local copy of the VASTDB
+    mkdir -p local_vastdb
+    echo "Copying necessary files from VASTDB to local writable directory..."
 
-        # Check for key VAST-tools directories and files
-        ls -la /usr/local/vast-tools/VASTDB/
-        echo "Contents of VASTDB directory:"
-        find /usr/local/vast-tools/VASTDB -type d | head -n 10
+    # Copy only mm10 species files (or other required files)
+    if [ -d "/usr/local/vast-tools/VASTDB/${params.species}" ]; then
+        echo "Copying ${params.species} directory..."
+        cp -r /usr/local/vast-tools/VASTDB/${params.species}/ local_vastdb/
+    else
+        echo "WARNING: ${params.species} directory not found in VASTDB"
     fi
 
+    # Copy other required files (adjust based on VAST-tools requirements)
+    cp -r /usr/local/vast-tools/VASTDB/TEMPLATES local_vastdb/ 2>/dev/null || true
+    cp /usr/local/vast-tools/VASTDB/*.txt local_vastdb/ 2>/dev/null || true
+    cp /usr/local/vast-tools/VASTDB/*.tab local_vastdb/ 2>/dev/null || true
+
+    # Create Mm2 directory if needed
+    mkdir -p local_vastdb/Mm2
+
+    # Process each file
     for file in ${processed_dir}/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
         echo "Processing sample: \$basename"
-        vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
+        # Use local_vastdb instead of default VASTDB path
+        VASTDB=\$PWD/local_vastdb vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
     done
 
     echo "VAST-tools alignment complete."
@@ -225,8 +232,18 @@ process combine_results {
 
     script:
     """
+    # Create a local copy of the VASTDB similar to align_reads
+    mkdir -p local_vastdb
+    echo "Copying necessary files from VASTDB to local writable directory..."
+
+    # Copy key files needed for combine
+    cp -r /usr/local/vast-tools/VASTDB/${params.species}/ local_vastdb/ 2>/dev/null || true
+    cp -r /usr/local/vast-tools/VASTDB/TEMPLATES local_vastdb/ 2>/dev/null || true
+    cp /usr/local/vast-tools/VASTDB/*.txt local_vastdb/ 2>/dev/null || true
+    cp /usr/local/vast-tools/VASTDB/*.tab local_vastdb/ 2>/dev/null || true
+
     echo "Combining VAST-tools results..."
-    vast-tools combine ${vast_out_dir}/to_combine -sp mm10 -o ${vast_out_dir} || { echo "VAST-tools combine failed"; exit 1; }
+    VASTDB=\$PWD/local_vastdb vast-tools combine ${vast_out_dir}/to_combine -sp ${params.species} -o ${vast_out_dir} || { echo "VAST-tools combine failed"; exit 1; }
 
     inclusion_file=\$(find ${vast_out_dir} -name "INCLUSION_LEVELS_FULL*" | head -n 1)
     if [ -n "\$inclusion_file" ]; then
