@@ -190,26 +190,33 @@ process align_reads {
     mkdir -p local_vastdb
     echo "Copying necessary files from VASTDB to local writable directory..."
 
-    # Copy only mm10 species files (or other required files)
-    if [ -d "/usr/local/vast-tools/VASTDB/${params.species}" ]; then
-        echo "Copying ${params.species} directory..."
-        cp -r /usr/local/vast-tools/VASTDB/${params.species}/ local_vastdb/
+    # Define species key mapping (add more if needed)
+    SPECIES_KEY="Mm2"  # The actual directory name VAST-tools expects for mm10
+    echo "Using species key: \$SPECIES_KEY for ${params.species}"
+
+    # Copy the species-specific directory using the correct species key
+    if [ -d "/usr/local/vast-tools/VASTDB/\$SPECIES_KEY" ]; then
+        echo "Copying \$SPECIES_KEY directory..."
+        cp -r /usr/local/vast-tools/VASTDB/\$SPECIES_KEY/ local_vastdb/
     else
-        echo "WARNING: ${params.species} directory not found in VASTDB"
+        echo "WARNING: \$SPECIES_KEY directory not found in VASTDB"
+        # Try listing directory content to debug
+        echo "Available directories in VASTDB:"
+        ls -la /usr/local/vast-tools/VASTDB/
     fi
 
-    # Copy other required files (adjust based on VAST-tools requirements)
+    # Copy other required files and directories
+    echo "Copying additional required files..."
     cp -r /usr/local/vast-tools/VASTDB/TEMPLATES local_vastdb/ 2>/dev/null || true
     cp /usr/local/vast-tools/VASTDB/*.txt local_vastdb/ 2>/dev/null || true
     cp /usr/local/vast-tools/VASTDB/*.tab local_vastdb/ 2>/dev/null || true
-
-    # Create Mm2 directory if needed
-    mkdir -p local_vastdb/Mm2
 
     # Process each file
     for file in ${processed_dir}/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
         echo "Processing sample: \$basename"
+        echo "Using local VASTDB at: \$PWD/local_vastdb"
+
         # Use local_vastdb instead of default VASTDB path
         VASTDB=\$PWD/local_vastdb vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
     done
@@ -236,8 +243,22 @@ process combine_results {
     mkdir -p local_vastdb
     echo "Copying necessary files from VASTDB to local writable directory..."
 
-    # Copy key files needed for combine
-    cp -r /usr/local/vast-tools/VASTDB/${params.species}/ local_vastdb/ 2>/dev/null || true
+    # Define species key mapping (add more if needed)
+    SPECIES_KEY="Mm2"  # The actual directory name VAST-tools expects for mm10
+    echo "Using species key: \$SPECIES_KEY for ${params.species}"
+
+    # Copy the species-specific directory using the correct species key
+    if [ -d "/usr/local/vast-tools/VASTDB/\$SPECIES_KEY" ]; then
+        echo "Copying \$SPECIES_KEY directory..."
+        cp -r /usr/local/vast-tools/VASTDB/\$SPECIES_KEY/ local_vastdb/
+    else
+        echo "WARNING: \$SPECIES_KEY directory not found in VASTDB"
+        # Try listing directory content to debug
+        echo "Available directories in VASTDB:"
+        ls -la /usr/local/vast-tools/VASTDB/
+    fi
+
+    # Copy other required files and directories
     cp -r /usr/local/vast-tools/VASTDB/TEMPLATES local_vastdb/ 2>/dev/null || true
     cp /usr/local/vast-tools/VASTDB/*.txt local_vastdb/ 2>/dev/null || true
     cp /usr/local/vast-tools/VASTDB/*.tab local_vastdb/ 2>/dev/null || true
