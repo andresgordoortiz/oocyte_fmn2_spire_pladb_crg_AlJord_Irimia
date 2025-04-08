@@ -172,7 +172,7 @@ process run_fastqc {
 process align_reads {
     tag "VAST-tools alignment"
     label 'process_high'
-    // No publishDir as we don't need to publish intermediate alignment files
+    debug true
 
     input:
     path processed_dir
@@ -186,39 +186,56 @@ process align_reads {
     mkdir -p vast_out
     echo "Starting VAST-tools alignment..."
 
-    # Create a local copy of the VASTDB
-    mkdir -p local_vastdb
-    echo "Copying necessary files from VASTDB to local writable directory..."
+    # Enhanced debugging information
+    echo "Examining mounted VASTDB path:"
+    ls -la /usr/local/vast-tools/VASTDB/
 
-    # Define species key mapping (add more if needed)
-    SPECIES_KEY="Mm2"  # The actual directory name VAST-tools expects for mm10
+    # Create local directory structure
+    mkdir -p local_vastdb/Mm2
+    echo "Created local VASTDB structure with Mm2 directory"
+
+    # Define species key mapping
+    SPECIES_KEY="Mm2"
     echo "Using species key: \$SPECIES_KEY for ${params.species}"
 
-    # Copy the species-specific directory using the correct species key
-    if [ -d "/usr/local/vast-tools/VASTDB/\$SPECIES_KEY" ]; then
-        echo "Copying \$SPECIES_KEY directory..."
-        cp -r /usr/local/vast-tools/VASTDB/\$SPECIES_KEY/ local_vastdb/
-    else
-        echo "WARNING: \$SPECIES_KEY directory not found in VASTDB"
-        # Try listing directory content to debug
-        echo "Available directories in VASTDB:"
-        ls -la /usr/local/vast-tools/VASTDB/
+    # Copy ALL files from mounted VASTDB (more aggressive approach)
+    echo "Copying entire VASTDB content..."
+    cp -r /usr/local/vast-tools/VASTDB/* local_vastdb/ 2>/dev/null || true
+
+    # Check if species directory exists
+    if [ ! -d "local_vastdb/\$SPECIES_KEY" ]; then
+        echo "Creating minimal directory structure for \$SPECIES_KEY"
+        mkdir -p local_vastdb/\$SPECIES_KEY
+
+        # Crucial files for VAST-tools mm10 alignment
+        # These are minimum file paths needed - they might be empty placeholders
+        mkdir -p local_vastdb/\$SPECIES_KEY/TEMPLATES
+        mkdir -p local_vastdb/\$SPECIES_KEY/VASTDB
+        mkdir -p local_vastdb/\$SPECIES_KEY/FILES
+        touch local_vastdb/\$SPECIES_KEY/VASTDB.VERSION
     fi
 
-    # Copy other required files and directories
-    echo "Copying additional required files..."
-    cp -r /usr/local/vast-tools/VASTDB/TEMPLATES local_vastdb/ 2>/dev/null || true
-    cp /usr/local/vast-tools/VASTDB/*.txt local_vastdb/ 2>/dev/null || true
-    cp /usr/local/vast-tools/VASTDB/*.tab local_vastdb/ 2>/dev/null || true
+    # List what we have in the local copy
+    echo "Local VASTDB structure:"
+    find local_vastdb -type d | sort
 
-    # Process each file
+    # Checking if we can retrieve any structural information from vast-tools directly
+    echo "Running vast-tools with --version to check configuration:"
+    vast-tools --version || true
+
+    # Process each file with enhanced error handling
     for file in ${processed_dir}/*.fastq.gz; do
         basename=\$(basename \$file .fastq.gz)
         echo "Processing sample: \$basename"
         echo "Using local VASTDB at: \$PWD/local_vastdb"
 
-        # Use local_vastdb instead of default VASTDB path
-        VASTDB=\$PWD/local_vastdb vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" || { echo "Alignment failed for \$basename"; exit 1; }
+        # Try alignment with more verbose output
+        VASTDB=\$PWD/local_vastdb vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" --verbose || {
+            echo "Alignment failed for \$basename - trying to understand why:"
+            echo "VAST-tools expected path structure:"
+            vast-tools info || true
+            exit 1;
+        }
     done
 
     echo "VAST-tools alignment complete."
@@ -228,6 +245,7 @@ process align_reads {
 process combine_results {
     tag "VAST-tools combine"
     label 'process_medium'
+    debug true
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
 
     input:
@@ -239,39 +257,41 @@ process combine_results {
 
     script:
     """
-    # Create a local copy of the VASTDB similar to align_reads
-    mkdir -p local_vastdb
-    echo "Copying necessary files from VASTDB to local writable directory..."
+    # Reuse the same approach as align_reads to create local VASTDB
+    mkdir -p local_vastdb/Mm2
+    echo "Copying entire VASTDB content for combine operation..."
+    cp -r /usr/local/vast-tools/VASTDB/* local_vastdb/ 2>/dev/null || true
 
-    # Define species key mapping (add more if needed)
-    SPECIES_KEY="Mm2"  # The actual directory name VAST-tools expects for mm10
-    echo "Using species key: \$SPECIES_KEY for ${params.species}"
+    # Check what's in the local vastdb
+    echo "Local VASTDB structure for combine:"
+    find local_vastdb -type d | sort
 
-    # Copy the species-specific directory using the correct species key
-    if [ -d "/usr/local/vast-tools/VASTDB/\$SPECIES_KEY" ]; then
-        echo "Copying \$SPECIES_KEY directory..."
-        cp -r /usr/local/vast-tools/VASTDB/\$SPECIES_KEY/ local_vastdb/
-    else
-        echo "WARNING: \$SPECIES_KEY directory not found in VASTDB"
-        # Try listing directory content to debug
-        echo "Available directories in VASTDB:"
-        ls -la /usr/local/vast-tools/VASTDB/
+    echo "Contents of vast_out directory:"
+    ls -la ${vast_out_dir}/
+
+    # Check if to_combine directory exists
+    if [ ! -d "${vast_out_dir}/to_combine" ]; then
+        echo "WARNING: to_combine directory not found in ${vast_out_dir}"
+        echo "Contents of ${vast_out_dir}:"
+        find ${vast_out_dir} -type d | sort
+        echo "Creating empty to_combine directory as fallback"
+        mkdir -p ${vast_out_dir}/to_combine
     fi
 
-    # Copy other required files and directories
-    cp -r /usr/local/vast-tools/VASTDB/TEMPLATES local_vastdb/ 2>/dev/null || true
-    cp /usr/local/vast-tools/VASTDB/*.txt local_vastdb/ 2>/dev/null || true
-    cp /usr/local/vast-tools/VASTDB/*.tab local_vastdb/ 2>/dev/null || true
-
     echo "Combining VAST-tools results..."
-    VASTDB=\$PWD/local_vastdb vast-tools combine ${vast_out_dir}/to_combine -sp ${params.species} -o ${vast_out_dir} || { echo "VAST-tools combine failed"; exit 1; }
+    VASTDB=\$PWD/local_vastdb vast-tools combine ${vast_out_dir}/to_combine -sp ${params.species} -o ${vast_out_dir} || {
+        echo "VAST-tools combine failed - trying to understand why:"
+        echo "VAST-tools expected path structure:"
+        vast-tools info
+        exit 1;
+    }
 
     inclusion_file=\$(find ${vast_out_dir} -name "INCLUSION_LEVELS_FULL*" | head -n 1)
     if [ -n "\$inclusion_file" ]; then
         cp "\$inclusion_file" fmndko_INCLUSION_LEVELS_FULL-mm10.tab
         echo "✓ Results successfully combined and inclusion table created"
     else
-        echo "WARNING: No INCLUSION_LEVELS_FULL file was created. Skipping this step."
+        echo "WARNING: No INCLUSION_LEVELS_FULL file was created."
         touch fmndko_INCLUSION_LEVELS_FULL-mm10.tab  # Create an empty placeholder file
     fi
     """
