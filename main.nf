@@ -280,7 +280,7 @@ process combine_results {
     }
 
     inclusion_file=\$(find ${vast_out_dir} -name "INCLUSION_LEVELS_FULL*" | head -n 1)
-    if [ -n "\$inclusion_file" ]; then
+    if [ -n "\$inclusion_file" ];then
         cp "\$inclusion_file" fmndko_INCLUSION_LEVELS_FULL-mm10.tab
         echo "✓ Results successfully combined and inclusion table created"
     else
@@ -353,6 +353,9 @@ workflow {
     // Create a channel from the reads directory
     reads_dir = Channel.fromPath(params.reads_dir, checkIfExists: true, type: 'dir')
 
+    // Prepare VASTDB - this is the new process
+    local_vastdb_dir = prepare_vastdb(params.vastdb_path)
+
     // Run processes in sequence with proper channel connections
     verify_files(reads_dir)
     processed_dir = concatenate_reads(reads_dir)
@@ -364,13 +367,10 @@ workflow {
         log.info "Skipping FastQC step as per user request."
     }
 
-    // Prepare VASTDB
-    local_vastdb_dir = prepare_vastdb(params.vastdb_path)
-
-    // Align reads
+    // Align reads using the local VASTDB copy
     vast_out_dir = align_reads(processed_dir, local_vastdb_dir)
 
-    // Combine results after alignment
+    // Combine results after alignment using the local VASTDB copy
     inclusion_table = combine_results(vast_out_dir, local_vastdb_dir)
 
     // Run the Rmarkdown report
