@@ -44,14 +44,14 @@ set -o pipefail
 
 # Define file list and select the pair for the current array job
 # Assuming files are named like sample-a.fastq.gz and sample-b.fastq.gz
-file_a_list=($PWD/data/raw/new_data/*-a.fastq.gz)
+file_a_list=($PWD/data/processed/new_data/trimmed/*-a.fq.gz)
 file_a=${file_a_list[$SLURM_ARRAY_TASK_ID]}
 
 # Get the corresponding -b file
-file_b="${file_a/-a.fastq.gz/-b.fastq.gz}"
+file_b="${file_a/-a.fq.gz/-b.fq.gz}"
 
-# Extract base name without -a.fastq.gz
-basename=$(basename "$file_a" -a.fastq.gz)
+# Extract base name without -a.fq.gz
+basename=$(basename "$file_a" -a.fq.gz)
 mkdir -p $PWD/data/processed/new_data/vast_out
 
 singularity_image="docker://andresgordoortiz/vast-tools:latest"
