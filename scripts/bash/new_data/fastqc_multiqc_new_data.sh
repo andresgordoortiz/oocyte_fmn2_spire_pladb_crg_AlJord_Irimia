@@ -46,6 +46,10 @@ mkdir -p $PWD/data/processed/new_data/fastqc
 #############################
 # get files based on array ID #
 #############################
+# Store the original working directory before changing to raw_dir
+original_dir="$PWD"
+
+# Change to raw directory
 raw_dir="$PWD/data/raw/new_data"
 cd $raw_dir
 
@@ -69,13 +73,15 @@ file_b="${base_name}-b.fastq.gz"
 if [ -f "$file_b" ]; then
     echo "Processing paired files: $file_a and $file_b"
 
-    # Run trim_galore in paired-end mode
+    # Run trim_galore in paired-end mode using absolute paths
     echo "Trimming paired files..."
-    singularity exec --bind $PWD/data/raw/new_data:$PWD/data/raw/new_data --bind $PWD/data/processed/new_data:$PWD/data/processed/new_data \
+    singularity exec --bind "$original_dir/data/raw/new_data:/data/raw/new_data" \
+        --bind "$original_dir/data/processed/new_data:/data/processed/new_data" \
         docker://quay.io/biocontainers/trim-galore:0.6.9--hdfd78af_0 \
-        trim_galore --paired "$raw_dir/$file_a" "$raw_dir/$file_b" \
-        --fastqc -j 8 -o $PWD/data/processed/new_data/trimmed -q 20 \
-        --fastqc_args "-t 8 --outdir $PWD/data/processed/new_data/fastqc"
+        trim_galore --paired "/data/raw/new_data/$file_a" "/data/raw/new_data/$file_b" \
+        --fastqc -j 8 -o /data/processed/new_data/trimmed -q 20 \
+        --fastqc_args "-t 8 --outdir /data/processed/new_data/fastqc"
+
 else
     echo "Error: Found $file_a but no matching $file_b"
     exit 1
