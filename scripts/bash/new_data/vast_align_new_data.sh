@@ -59,7 +59,7 @@ mkdir -p $PWD/data/processed/new_data/vast_out
 
 echo "Processing single-end file: $current_file"
 
-singularity_image="docker://vastgroup/vast-tools@sha256:3db3b638a567"
+singularity_image="docker://vastgroup/vast-tools:latest"
 VASTDB_PATH=$1
 
 # Run vast-tools align using Singularity in single-end mode
