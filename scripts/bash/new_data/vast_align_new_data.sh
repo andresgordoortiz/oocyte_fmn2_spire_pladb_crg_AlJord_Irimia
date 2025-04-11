@@ -20,7 +20,7 @@
 #SBATCH --cpus-per-task=8
 
 # job name
-#SBATCH --job-name vast-align
+#SBATCH --job-name vast-align-single
 # job array directive
 #SBATCH --array=0-14
 
@@ -42,27 +42,31 @@ set -o pipefail
 # run command #
 ###############
 
-# Define file list and select the pair for the current array job
-# Using the correct file suffixes: -a_val_1.fq.gz and -b_val_2.fq.gz
-file_a_list=($PWD/data/processed/new_data/trimmed/*-a_val_1.fq.gz)
-file_a=${file_a_list[$SLURM_ARRAY_TASK_ID]}
+# Define file list and select single file for the current array job
+file_list=($PWD/data/processed/new_data/trimmed/*.fq.gz)
 
-# Get the corresponding -b file
-file_b="${file_a/-a_val_1.fq.gz/-b_val_2.fq.gz}"
+# Exit if array index is out of bounds
+if [ $SLURM_ARRAY_TASK_ID -ge ${#file_list[@]} ]; then
+    echo "Error: SLURM_ARRAY_TASK_ID ($SLURM_ARRAY_TASK_ID) exceeds number of files (${#file_list[@]})"
+    exit 1
+fi
 
-# Extract base name without -a.fq.gz
-basename=$(basename "$file_a" -a.fq.gz)
+current_file=${file_list[$SLURM_ARRAY_TASK_ID]}
+
+# Extract base name without extension
+basename=$(basename "$current_file" .fq.gz)
 mkdir -p $PWD/data/processed/new_data/vast_out
+
+echo "Processing single-end file: $current_file"
 
 singularity_image="docker://andresgordoortiz/vast-tools:latest"
 VASTDB_PATH=$1
 
-# Run vast-tools align using Singularity in paired-end mode
+# Run vast-tools align using Singularity in single-end mode
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
     --bind $PWD/data/processed/new_data/vast_out:/vast_out \
     $singularity_image vast-tools align \
-    "$file_a" \
-    "$file_b" \
+    "$current_file" \
     -sp mm10 \
     -o /vast_out \
     --IR_version 2 \
