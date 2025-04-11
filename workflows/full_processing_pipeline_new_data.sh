@@ -21,25 +21,24 @@ fi
 
 VASTDB_PATH=$1
 
+echo "Submitting first job: cat technical replicates reads..."
+jid1=$(sbatch $PWD/scripts/bash/new_data/processing_cat_reads.sh | tr -cd '[:digit:].')
+echo "...first job ID is $jid1"
 
-# Third job - trim & fastQC
 echo "Submitting second job: Trim reads..."
-jid1=$(sbatch $PWD/scripts/bash/new_data/fastqc_multiqc_new_data.sh | tr -cd '[:digit:].')
-echo "...second job ID is $jid1"
+jid2=$(sbatch --dependency=afterok:$jid1 $PWD/scripts/bash/new_data/fastqc_multiqc_new_data.sh | tr -cd '[:digit:].')
+echo "...second job ID is $jid2"
 
-# Fourth job - align reads (dependent on second job)
 echo "Submitting third job: Align reads..."
-jid2=$(sbatch --dependency=afterok:$jid1 $PWD/scripts/bash/new_data/vast_align_new_data.sh $VASTDB_PATH | tr -cd '[:digit:].')
-echo "...third job ID is $jid2"
+jid3=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/new_data/vast_align_new_data.sh $VASTDB_PATH | tr -cd '[:digit:].')
+echo "...third job ID is $jid3"
 
-# Fifth job - run vast combine (dependent on fourth job)
-echo "Submitting fifth job: Run vast combine..."
-jid3=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/new_data/vast_combine_new_data.sh $VASTDB_PATH | tr -cd '[:digit:].')
-echo "...fifth job ID is $jid3"
+echo "Submitting fourth job: Run vast combine..."
+jid4=$(sbatch --dependency=afterok:$jid3 $PWD/scripts/bash/new_data/vast_combine_new_data.sh $VASTDB_PATH | tr -cd '[:digit:].')
+echo "...fifth job ID is $jid4"
 
-# Third job - Multiqc
-echo "Submitting second job: Multiqc..."
-jid4=$(sbatch --dependency=afterok:$jid1 $PWD/scripts/bash/new_data/multiqc.sh | tr -cd '[:digit:].')
-echo "...second job ID is $jid4"
+echo "Submitting fifth job: Multiqc..."
+jid5=$(sbatch --dependency=afterok:$jid2 $PWD/scripts/bash/new_data/multiqc.sh | tr -cd '[:digit:].')
+echo "...second job ID is $jid5"
 
 echo "All jobs submitted!"
