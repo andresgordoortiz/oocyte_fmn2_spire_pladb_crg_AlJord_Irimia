@@ -70,7 +70,7 @@ echo "Processing single-end file: $current_file"
 # Run trim_galore in single-end mode using absolute paths
 echo "Trimming file..."
 singularity exec --bind "$processed_dir:/data/processed/new_data" \
-    docker://quay.io/biocontainers/trim-galore:0.6.9--hdfd78af_0 \
+    https://depot.galaxyproject.org/singularity/trim-galore:0.6.9--hdfd78af_0 \
     trim_galore "/data/processed/new_data/$current_file" \
     --fastqc -j 8 -o /data/processed/new_data/trimmed -q 20 \
     --fastqc_args "-t 8 --outdir /data/processed/new_data/fastqc"
