@@ -43,7 +43,7 @@ set -o pipefail
 VASTDB_PATH=$1
 
 # Define Singularity image path
-singularity_image="docker://andresgordoortiz/vast-tools:latest"
+singularity_image="docker://vastgroup/vast-tools@sha256:3db3b638a567"
 
 # Run vast-tools align using Singularity
 singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
