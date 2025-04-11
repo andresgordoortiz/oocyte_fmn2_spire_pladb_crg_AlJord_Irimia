@@ -16,7 +16,7 @@
 #SBATCH --requeue
 
 # memory (MB)
-#SBATCH --mem=32G
+#SBATCH --mem=80G
 #SBATCH --cpus-per-task=8
 
 # job name
@@ -59,7 +59,7 @@ mkdir -p $PWD/data/processed/new_data/vast_out
 
 echo "Processing single-end file: $current_file"
 
-singularity_image="docker://vastgroup/vast-tools:latest"
+singularity_image="docker://andresgordoortiz/vast-tools:latest"
 VASTDB_PATH=$1
 
 # Run vast-tools align using Singularity in single-end mode
