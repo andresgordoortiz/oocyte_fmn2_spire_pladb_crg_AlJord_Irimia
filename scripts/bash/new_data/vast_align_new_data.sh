@@ -54,7 +54,7 @@ fi
 current_file=${file_list[$SLURM_ARRAY_TASK_ID]}
 
 # Extract base name without extension
-basename=$(basename "$current_file" .fq.gz)
+basename=$(basename "$current_file" _merged_trimmed.fq.gz)
 mkdir -p $PWD/data/processed/new_data/vast_out
 
 echo "Processing single-end file: $current_file"
