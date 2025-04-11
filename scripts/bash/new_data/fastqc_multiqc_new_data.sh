@@ -19,9 +19,9 @@
 #SBATCH --cpus-per-task=8
 
 # job name
-#SBATCH --job-name=trim_fastqc
+#SBATCH --job-name=trim_fastqc_single
 
-# Array job - process 15 pairs, max 5 concurrent jobs
+# Array job - process 15 files, max 5 concurrent jobs
 #SBATCH --array=0-14
 
 #################
@@ -46,46 +46,34 @@ mkdir -p $PWD/data/processed/new_data/fastqc
 #############################
 # get files based on array ID #
 #############################
-# Store the original working directory before changing to raw_dir
+# Store the original working directory
 original_dir="$PWD"
 
-# Change to raw directory
-raw_dir="$PWD/data/raw/new_data"
-cd $raw_dir
+# Change to processed directory - looking directly at processed files
+processed_dir="$PWD/data/processed/new_data"
+cd $processed_dir
 
-# Get a list of all "-a.fastq.gz" files
-mapfile -t files_a < <(ls *-a.fastq.gz)
+# Get a list of all fastq.gz files (single-end)
+mapfile -t fastq_files < <(ls *.fastq.gz)
 
 # Exit if array index is out of bounds
-if [ $SLURM_ARRAY_TASK_ID -ge ${#files_a[@]} ]; then
-    echo "Error: SLURM_ARRAY_TASK_ID ($SLURM_ARRAY_TASK_ID) exceeds number of files (${#files_a[@]})"
+if [ $SLURM_ARRAY_TASK_ID -ge ${#fastq_files[@]} ]; then
+    echo "Error: SLURM_ARRAY_TASK_ID ($SLURM_ARRAY_TASK_ID) exceeds number of files (${#fastq_files[@]})"
     exit 1
 fi
 
 # Get file corresponding to this array task
-file_a=${files_a[$SLURM_ARRAY_TASK_ID]}
+current_file=${fastq_files[$SLURM_ARRAY_TASK_ID]}
 
-# Get matching file_b
-base_name=${file_a%-a.fastq.gz}
-file_b="${base_name}-b.fastq.gz"
+echo "Processing single-end file: $current_file"
 
-# Check if matching file exists
-if [ -f "$file_b" ]; then
-    echo "Processing paired files: $file_a and $file_b"
-
-    # Run trim_galore in paired-end mode using absolute paths
-    echo "Trimming paired files..."
-    singularity exec --bind "$original_dir/data/raw/new_data:/data/raw/new_data" \
-        --bind "$original_dir/data/processed/new_data:/data/processed/new_data" \
-        docker://quay.io/biocontainers/trim-galore:0.6.9--hdfd78af_0 \
-        trim_galore --paired "/data/raw/new_data/$file_a" "/data/raw/new_data/$file_b" \
-        --fastqc -j 8 -o /data/processed/new_data/trimmed -q 20 \
-        --fastqc_args "-t 8 --outdir /data/processed/new_data/fastqc"
-
-else
-    echo "Error: Found $file_a but no matching $file_b"
-    exit 1
-fi
+# Run trim_galore in single-end mode using absolute paths
+echo "Trimming file..."
+singularity exec --bind "$processed_dir:/data/processed/new_data" \
+    docker://dceoy/trim_galore:latest \
+    trim_galore "/data/processed/new_data/$current_file" \
+    --fastqc -j 8 -o /data/processed/new_data/trimmed -q 20 \
+    --fastqc_args "-t 8 --outdir /data/processed/new_data/fastqc"
 
 ###############
 # end message #
