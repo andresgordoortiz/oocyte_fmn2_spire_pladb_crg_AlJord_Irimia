@@ -64,3 +64,17 @@ Gohr, A., Mantica, F., Hermoso-Pulido, A., Tapial, J., Márquez, Y., Irimia, M. 
 Ascensão-Ferreira, M., Martins-Silva, R., Saraiva-Agostinho, N. & Barbosa-Morais, N. L. betAS: intuitive analysis and visualization of differential alternative splicing using beta distributions. RNA 30, 337 (2024).
 
 
+sbatch scripts/submit_nf.sh
+      nf-core/rnasplice
+		 --input samplesheet_ssa_pladb_tub.csv
+		 --contrasts contrastsheet.csv
+		 --outdir nextflow_splicing/
+		 --gtf /users/aaljord/agordo/git/24CRG_ADEL_MANU_MYOBLAST_SPLICING/gencode.vM36.primary_assembly.annotation.gtf
+		 --fasta /users/aaljord/agordo/git/24CRG_ADEL_MANU_MYOBLAST_SPLICING/GRCm39.primary_assembly.genome.fa
+		 --star_index /users/aaljord/agordo/git/24CRG_ADEL_MANU_MYOBLAST_SPLICING/GenomeDir/
+		 --skip_trimming
+		 --skip_fastqc
+		 --rmats
+		 --rmats_read_len 60
+		 -with-tower
+		 -profile crg
