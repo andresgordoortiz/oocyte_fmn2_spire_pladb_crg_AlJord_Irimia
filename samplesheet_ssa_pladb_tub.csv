@@ -1,0 +1,16 @@
+sample,fastq_1,fastq_2,strandedness,condition
+CTL_11_03_25_REP1,data/processed/new_data/trimmed/reads_1_ctl_11_03_25_merged_trimmed.fq.gz,,forward,CTL
+CTL_11_03_25_REP2,data/processed/new_data/trimmed/reads_2_ctl_11_03_25_merged_trimmed.fq.gz,,forward,CTL
+CTL_11_03_25_REP3,data/processed/new_data/trimmed/reads_3_ctl_11_03_25_merged_trimmed.fq.gz,,forward,CTL
+TUB_10MM_11_03_25_REP1,data/processed/new_data/trimmed/reads_4_tub_10mm_11_03_25_merged_trimmed.fq.gz,,forward,TUB_10MM
+TUB_10MM_11_03_25_REP2,data/processed/new_data/trimmed/reads_5_tub_10mm_11_03_25_merged_trimmed.fq.gz,,forward,TUB_10MM
+TUB_10MM_11_03_25_REP3,data/processed/new_data/trimmed/reads_6_tub_10mm_11_03_25_merged_trimmed.fq.gz,,forward,TUB_10MM
+SSA_1MM_11_03_25_REP1,data/processed/new_data/trimmed/reads_7_ssa_1mm_11_03_25_merged_trimmed.fq.gz,,forward,SSA_1MM
+SSA_1MM_11_03_25_REP2,data/processed/new_data/trimmed/reads_8_ssa_1mm_11_03_25_merged_trimmed.fq.gz,,forward,SSA_1MM
+SSA_1MM_11_03_25_REP3,data/processed/new_data/trimmed/reads_9_ssa_1mm_11_03_25_merged_trimmed.fq.gz,,forward,SSA_1MM
+CTL_13_03_25_REP1,data/processed/new_data/trimmed/reads_10_ctl_13_03_25_merged_trimmed.fq.gz,,forward,CTL_13
+CTL_13_03_25_REP2,data/processed/new_data/trimmed/reads_11_ctl_13_03_25_merged_trimmed.fq.gz,,forward,CTL_13
+CTL_13_03_25_REP3,data/processed/new_data/trimmed/reads_12_ctl_13_03_25_merged_trimmed.fq.gz,,forward,CTL_13
+PLADB_3MM_13_03_25_REP1,data/processed/new_data/trimmed/reads_13_pladb_3mm_13_03_25_merged_trimmed.fq.gz,,forward,PLADB_3MM
+PLADB_3MM_13_03_25_REP2,data/processed/new_data/trimmed/reads_14_pladb_3mm_13_03_25_merged_trimmed.fq.gz,,forward,PLADB_3MM
+PLADB_3MM_13_03_25_REP3,data/processed/new_data/trimmed/reads_15_pladb_3mm_13_03_25_merged_trimmed.fq.gz,,forward,PLADB_3MM
