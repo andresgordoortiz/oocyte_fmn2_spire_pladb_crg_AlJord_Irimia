@@ -183,11 +183,21 @@ All the code history can be accessed through its [GitHub Repository](https://git
 ```{r inclusion tables}
 
 splicing_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/new_data_INCLUSION_LEVELS_FULL-mm10.tab"), tool = "vast-tools")
-splicing_events <- filterEvents(getEvents(splicing_data, tool = "vast-tools"), N = 10) # Extract alternative splicing events
 
-exons <- filterEvents(splicing_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 10)
-introns <- filterEvents(splicing_events, types = c("IR"), N = 10)
-alt <- filterEvents(splicing_events, types = c("Alt5", "Alt3"), N = 10)
+pladb_data<-splicing_data[,1:18]
+ssa_tub_data<-splicing_data[, c(1:6, 19:36)]
+
+pladb_events <- filterEvents(getEvents(pladb_data, tool = "vast-tools"), N = 10) 
+ssa_tub_events <- filterEvents(getEvents(ssa_tub_data, tool = "vast-tools"), N = 10) 
+
+
+exons_pladb <- filterEvents(pladb_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 10)
+introns_pladb <- filterEvents(pladb_events, types = c("IR"), N = 10)
+alt_pladb <- filterEvents(pladb_events, types = c("Alt5", "Alt3"), N = 10)
+
+exons_ssa_tub <- filterEvents(ssa_tub_events, types = c("C1", "C2", "C3", "S", "MIC"), N = 10)
+introns_ssa_tub <- filterEvents(ssa_tub_events, types = c("IR"), N = 10)
+alt_ssa_tub <- filterEvents(ssa_tub_events, types = c("Alt5", "Alt3"), N = 10)
 
 
 ```
@@ -195,17 +205,23 @@ alt <- filterEvents(splicing_events, types = c("Alt5", "Alt3"), N = 10)
 
 ## Metadata { .tabset}
 
-### FMN2DKO
+### PladB
 
-```{r metadata fmn2dko}
+```{r metadata pladb}
 # Load metadata file containing sample information
-metadata<-data.frame(samples=colnames(splicing_events$PSI)[7:21],condition=rep(c("control_pladb","pladb_3mm","control","tub_10mm","ssa_1mm"), each=3))
+metadata_pladb<-data.frame(samples=colnames(pladb_events$PSI)[7:12],condition=rep(c("control_pladb","pladb_3mm"), each=3))
 DT::datatable(metadata, options = list(pageLength = nrow(metadata), scrollX = TRUE))
 ```
 
+### Spliceostatin A & Tuberdicin
+
+```{r metadata pladb}
+# Load metadata file containing sample information
+metadata_ssa_tub<-data.frame(samples=colnames(ssa_tub_events$PSI)[7:15],condition=rep(c("control","tub_10mm","ssa_1mm"), each=3))
+DT::datatable(metadata_ssa_tub, options = list(pageLength = nrow(metadata), scrollX = TRUE))
+```
+
 ---
-
-
 
 # Total Splicing Events
 
@@ -216,12 +232,13 @@ This plot shows the total number of splicing events found during the **mapping**
 
 # Adjusted version of the script
 splicing_events_df <- tibble(
-  event_type = names(splicing_events$EventsPerType),
-  analysis = splicing_events$EventsPerType,
+  event_type = names(pladb_events$EventsPerType),
+  pladb = pladb_events$EventsPerType,
+  ssa_tub = ssa_tub_events$EventsPerType
 )
 
 splicing_events_long <- splicing_events_df %>%
-  pivot_longer(cols = c(analysis),
+  pivot_longer(cols = c(pladb,ssa_tub),
                names_to = "study", values_to = "count") %>%
   mutate(event_type = ifelse(event_type %in% c("C1", "C2", "C3", "ANN", "S", "MIC"), "EX", event_type)) %>%
   group_by(study, event_type) %>%
@@ -328,14 +345,14 @@ These plots show the distribution of the splicing change (dPSI) comparing the KO
 ```{r inclusionumber of exons tub, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
-tub_exons_df <- exons$PSI %>% 
-  filter(complete.cases(select(., 13:18)))
+tub_exons_df <- exons_ssa_tub$PSI %>% 
+  filter(complete.cases(select(., 7:12)))
 
 # Compute the averages and PSI difference for each row
 tub_exons_df <- tub_exons_df %>% 
   mutate(
-    avg_control = rowMeans(select(., 13:15)),
-    avg_tub = rowMeans(select(., 16:18)),
+    avg_control = rowMeans(select(., 7:9)),
+    avg_tub = rowMeans(select(., 10:12)),
     difference = avg_tub - avg_control
   ) %>% 
   filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
@@ -426,7 +443,7 @@ print(plot_psi_distribution)
 # ---- Prepare Data -----------------------------------------------------------
 
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
-pladb_exons_df <- exons$PSI %>% 
+pladb_exons_df <- exons_pladb$PSI %>% 
   filter(complete.cases(select(., 7:12)))
 
 # Compute the averages and PSI difference for each row
@@ -516,14 +533,14 @@ print(plot_psi_distribution)
 # ---- Prepare Data -----------------------------------------------------------
 
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
-ssa_exons_df <- exons$PSI %>% 
-  filter(complete.cases(select(., c(13:15,19:21))))
+ssa_exons_df <- exons_ssa_tub$PSI %>% 
+  filter(complete.cases(select(., 7:15)))
 
 # Compute the averages and PSI difference for each row
 ssa_exons_df <- ssa_exons_df %>% 
   mutate(
-    avg_ssa = rowMeans(select(., 19:21)),
-    avg_control = rowMeans(select(., 13:15)),
+    avg_ssa = rowMeans(select(., 13:15)),
+    avg_control = rowMeans(select(., 7:9)),
     difference = avg_ssa - avg_control
   ) %>% 
   filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
@@ -608,14 +625,14 @@ print(plot_psi_distribution)
 ```{r inclusionumber of introns tub, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
-tub_introns_df <- introns$PSI %>% 
-  filter(complete.cases(select(., 13:18)))
+tub_introns_df <- introns_ssa_tub$PSI %>% 
+  filter(complete.cases(select(., 7:12)))
 
 # Compute the averages and PSI difference for each row
 tub_introns_df <- tub_introns_df %>% 
   mutate(
-    avg_control = rowMeans(select(., 13:15)),
-    avg_tub = rowMeans(select(., 16:18)),
+    avg_control = rowMeans(select(., 7:9)),
+    avg_tub = rowMeans(select(., 10:12)),
     difference = avg_tub - avg_control
   ) %>% 
   filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
@@ -706,7 +723,7 @@ print(plot_psi_distribution)
 # ---- Prepare Data -----------------------------------------------------------
 
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
-pladb_introns_df <- introns$PSI %>% 
+pladb_introns_df <- introns_pladb$PSI %>% 
   filter(complete.cases(select(., 7:12)))
 
 # Compute the averages and PSI difference for each row
@@ -796,14 +813,14 @@ print(plot_psi_distribution)
 # ---- Prepare Data -----------------------------------------------------------
 
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
-ssa_introns_df <- introns$PSI %>% 
-  filter(complete.cases(select(., c(13:15,19:21))))
+ssa_introns_df <- introns_ssa_tub$PSI %>% 
+  filter(complete.cases(select(., 7:15)))
 
 # Compute the averages and PSI difference for each row
 ssa_introns_df <- ssa_introns_df %>% 
   mutate(
-    avg_ssa = rowMeans(select(., 19:21)),
-    avg_control = rowMeans(select(., 13:15)),
+    avg_ssa = rowMeans(select(., 13:15)),
+    avg_control = rowMeans(select(., 7:9)),
     difference = avg_ssa - avg_control
   ) %>% 
   filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
@@ -884,10 +901,11 @@ print(plot_psi_distribution)
 # PCA Plot { .tabset}
 
 
+## PladB
 
-```{r pca calculation spire}
+```{r pca calculation pladb}
 # Subset and scale data
-pca_splicing <- splicing_events$PSI[, c("EVENT",splicing_events$Samples)] %>%
+pca_splicing <- pladb_events$PSI[, c("EVENT",pladb_events$Samples)] %>%
   na.omit()
 
 rownames(pca_splicing)<- pca_splicing$EVENT
@@ -899,10 +917,10 @@ pca_result <- prcomp(pca_splicing)  # Perform PCA
 # Prepare PCA results for plotting
 pca_data <- as.data.frame(pca_result$x)
 pca_data$Sample <- rownames(pca_data)
-pca_data$condition<-metadata$condition
+pca_data$condition<-metadata_pladb$condition
 ```
 
-```{r pca plotting spire}
+```{r pca plotting pladb}
 pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition))) +
   geom_point(size = 6, alpha = 0.9) +
   labs(
@@ -925,7 +943,56 @@ pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition))
   ) +
   scale_color_paletteer_d("MetBrewer::Hokusai3") +
   coord_fixed()
-ggsave("final_plots/pca_spire.svg", pca_plot, width = 5, height = 5, dpi = 300)
+ggsave("final_plots/pca_pladb.svg", pca_plot, width = 5, height = 5, dpi = 300)
+
+
+pca_plot
+
+```
+
+## Spliceostatin & Tubercidin
+
+```{r pca calculation ssa tub}
+# Subset and scale data
+pca_splicing <- ssa_tub_events$PSI[, c("EVENT",ssa_tub_events$Samples)] %>%
+  na.omit()
+
+rownames(pca_splicing)<- pca_splicing$EVENT
+pca_splicing<-t(pca_splicing[,-1])
+
+
+pca_result <- prcomp(pca_splicing)  # Perform PCA
+
+# Prepare PCA results for plotting
+pca_data <- as.data.frame(pca_result$x)
+pca_data$Sample <- rownames(pca_data)
+pca_data$condition<-metadata_ssa_tub$condition
+```
+
+```{r pca plotting ssa tub}
+pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, color = as.factor(condition))) +
+  geom_point(size = 6, alpha = 0.9) +
+  labs(
+    title = "<b style='font-size:18px;'>PCA of Samples (PSI Data)</b>",
+    x = paste("PC1 (", round(100 * summary(pca_result)$importance[2, 1], 1), "%)", sep = ""),
+    y = paste("PC2 (", round(100 * summary(pca_result)$importance[2, 2], 1), "%)", sep = ""),
+    caption = paste0("Created by AG on ", Sys.Date())
+  ) +
+  theme_minimal(base_family = "sans") +
+  theme(
+    plot.title = element_markdown(),
+    plot.title.position = "plot",
+    axis.title = element_text(size = 14, margin = margin(t = 10)),
+    axis.text = element_text(size = 12),
+    legend.position = "right",
+    legend.title = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_color_paletteer_d("MetBrewer::Hokusai3") +
+  coord_fixed()
+ggsave("final_plots/pca_ssa_tub.svg", pca_plot, width = 5, height = 5, dpi = 300)
 
 
 pca_plot
@@ -934,16 +1001,15 @@ pca_plot
 
 
 
-
-
 # Exon Lists
 
 ```{r aux_featuregroup}
 # Extract unique groups and sample IDs
 
+# Pladb 
 
-groups<- unique(metadata[, "condition"])
-samples <- metadata$samples
+groups<- unique(metadata_pladb[, "condition"])
+samples <- metadata_pladb$samples
 
 
 random_colors=c("#D8D97AFF", "#95C36EFF", "#74C8C3FF", "#5A97C1FF", "#295384FF", "#0A2E57FF")
@@ -953,16 +1019,12 @@ random_colors=c("#D8D97AFF", "#95C36EFF", "#74C8C3FF", "#5A97C1FF", "#295384FF",
 groupList <- lapply(1:length(groups), function(i) {
   list(
     name = groups[i],
-    samples = samples[metadata[, "condition"] == groups[i]],
+    samples = samples[metadata_pladb[, "condition"] == groups[i]],
     color = random_colors[i]
   )
 })
 names(groupList) <- groups
 
-```
-
-```{r groups_auxiliary}
-# Define groups
 
 group_controlpladb<-"control_pladb"
 group_control<-"control"
@@ -972,29 +1034,62 @@ group_ssa<-"ssa_1mm"
 
 
 samples_controlpladb <- groupList[[group_controlpladb]]$samples
-samples_control <- groupList[[group_control]]$samples
+#samples_control <- groupList[[group_control]]$samples
 samples_pladb <- groupList[[group_pladB]]$samples
+#samples_tub <- groupList[[group_tub]]$samples
+#samples_ssa <- groupList[[group_ssa]]$samples
+
+colsGroup_controlpladb <- convertCols(pladb_events$PSI, samples_controlpladb)
+#colsGroup_control <- convertCols(splicing_events$PSI, samples_control)
+colsGroup_pladb <- convertCols(pladb_events$PSI, samples_pladb)
+#colsGroup_tub<- convertCols(splicing_events$PSI, samples_tub)
+#colsGroup_ssa <- convertCols(splicing_events$PSI, samples_ssa)
+
+
+# ssa tub
+
+groups<- unique(metadata_ssa_tub[, "condition"])
+samples <- metadata_ssa_tub$samples
+
+
+random_colors=c("#D8D97AFF", "#95C36EFF", "#74C8C3FF", "#5A97C1FF", "#295384FF", "#0A2E57FF")
+
+
+# Create group list with metadata
+groupList <- lapply(1:length(groups), function(i) {
+  list(
+    name = groups[i],
+    samples = samples[metadata_ssa_tub[, "condition"] == groups[i]],
+    color = random_colors[i]
+  )
+})
+names(groupList) <- groups
+
+
+
+#samples_controlpladb <- groupList[[group_controlpladb]]$samples
+samples_control <- groupList[[group_control]]$samples
+#samples_pladb <- groupList[[group_pladB]]$samples
 samples_tub <- groupList[[group_tub]]$samples
 samples_ssa <- groupList[[group_ssa]]$samples
 
-colsGroup_controlpladb <- convertCols(splicing_events$PSI, samples_controlpladb)
-colsGroup_control <- convertCols(splicing_events$PSI, samples_control)
-colsGroup_pladb <- convertCols(splicing_events$PSI, samples_pladb)
-colsGroup_tub<- convertCols(splicing_events$PSI, samples_tub)
-colsGroup_ssa <- convertCols(splicing_events$PSI, samples_ssa)
-
+#colsGroup_controlpladb <- convertCols(splicing_events$PSI, samples_controlpladb)
+colsGroup_control <- convertCols(ssa_tub_events$PSI, samples_control)
+#colsGroup_pladb <- convertCols(splicing_events$PSI, samples_pladb)
+colsGroup_tub<- convertCols(ssa_tub_events$PSI, samples_tub)
+colsGroup_ssa <- convertCols(ssa_tub_events$PSI, samples_ssa)
 
 ```
 
 ## Calculations
 
-```{r pdiff calculation exons}
+```{r pdiff calculations}
 set.seed(42) #Setting seed for downstream simulations of the beta distribution
 
 # Prepare table for fmn2dko
 tub_fdr <- prepareTableVolcanoFDR(
-  psitable = splicing_events$PSI,
-  qualtable = splicing_events$Qual,
+  psitable = ssa_tub_events$PSI,
+  qualtable = ssa_tub_events$Qual,
   npoints = 500,
   colsA = colsGroup_control,
   colsB = colsGroup_tub,
@@ -1009,8 +1104,8 @@ tub_fdr <- prepareTableVolcanoFDR(
 )
 
 pladb_fdr <- prepareTableVolcanoFDR(
-  psitable = splicing_events$PSI,
-  qualtable = splicing_events$Qual,
+  psitable = pladb_events$PSI,
+  qualtable = pladb_events$Qual,
   npoints = 500,
   colsA = colsGroup_controlpladb,
   colsB = colsGroup_pladb,
@@ -1025,8 +1120,8 @@ pladb_fdr <- prepareTableVolcanoFDR(
 )
 
 ssa_fdr <- prepareTableVolcanoFDR(
-  psitable = splicing_events$PSI,
-  qualtable = splicing_events$Qual,
+  psitable = ssa_tub_events$PSI,
+  qualtable = ssa_tub_events$Qual,
   npoints = 500,
   colsA = colsGroup_control,
   colsB = colsGroup_ssa,
@@ -1045,6 +1140,17 @@ write.csv(tub_fdr,"tub_fdr.csv")
 write.csv(pladb_fdr,"pladb_fdr.csv")
 write.csv(ssa_fdr,"ssa_fdr.csv")
 
+tub_fdr_df<-read.csv("tables_10n/tub_fdr.csv")[,-1]
+pladb_fdr_df<-read.csv("tables_10n/pladb_fdr.csv")[,-1]
+ssa_fdr_df<-read.csv("tables_10n/ssa_fdr.csv")[,-1]
+
+
+differential_tub<-na.omit(tub_fdr_df[tub_fdr_df$FDR <= 0.05 & abs(tub_fdr_df$deltapsi) >= 0.1,])
+
+differential_pladb<-na.omit(pladb_fdr_df[pladb_fdr_df$FDR <= 0.05 & abs(pladb_fdr_df$deltapsi) >= 0.1,])
+
+differential_ssa<-na.omit(ssa_fdr_df[ssa_fdr_df$FDR <= 0.05 & abs(ssa_fdr_df$deltapsi) >= 0.1,])
+
 ```
 
 
@@ -1053,30 +1159,34 @@ write.csv(ssa_fdr,"ssa_fdr.csv")
 ## Volcano Plots { .tabset}
 
 
-### FMN2
+### Tuberdicine
 
-```{r fmndko fdr volcano exons}
+```{r tub fdr volcano exons}
+tub_exons<-tub_fdr_df[grepl("EX",tub_fdr_df$EVENT),]
 
-differential_spire_exons<-na.omit(spire_pdiff_exons[spire_pdiff_exons$FDR <= 0.05 & abs(spire_pdiff_exons$deltapsi) >= 0.1,])
-differential_fmndko_exons<-na.omit(fmndko_pdiff_exons[fmndko_pdiff_exons$FDR <= 0.05 & abs(fmndko_pdiff_exons$deltapsi) >= 0.1,])
+differential_tub_exons<-differential_tub[grepl("EX",differential_tub$EVENT),]
+differential_pladb_exons<-differential_pladb[grepl("EX",differential_pladb$EVENT),]
+differential_ssa_exons<-differential_ssa[grepl("EX",differential_ssa$EVENT),]
 
-shared_exons<-differential_spire_exons$EVENT[differential_spire_exons$EVENT %in% differential_fmndko_exons$EVENT]
+
+shared_exons<-intersect(differential_tub_exons$EVENT, differential_pladb_exons$EVENT)
+shared_exons<-intersect(shared_exons, differential_ssa_exons$EVENT)
+
 library(ggrepel)
-fmndko_pdiff_exons<-na.omit(fmndko_pdiff_exons)
 # Add a Shared column based on the shared_exons
-fmndko_pdiff_exons$Shared <- ifelse(fmndko_pdiff_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
+tub_exons$Shared <- ifelse(tub_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
 
 # Classify significance
-fmndko_pdiff_exons$Significant <- ifelse(
-  fmndko_pdiff_exons$FDR <=0.05 & fmndko_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+tub_exons$Significant <- ifelse(
+  tub_exons$FDR <=0.05 & tub_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_exons$FDR <=0.05 & fmndko_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    tub_exons$FDR <=0.05 & tub_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-fmndko_pdiff_exons$negLogpvalue <- -log10(fmndko_pdiff_exons$FDR)
+tub_exons$negLogpvalue <- -log10(tub_exons$FDR)
 
 # Define your maximum displayed y-value (the cap)
 max_y <- 2
@@ -1087,7 +1197,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-fmndko_pdiff_exons <- fmndko_pdiff_exons %>%
+tub_exons <- tub_exons %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -1096,15 +1206,15 @@ fmndko_pdiff_exons <- fmndko_pdiff_exons %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi)) +
+volcano_plot <- ggplot(tub_exons, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(fmndko_pdiff_exons, !is_capped),
+  geom_point(data = filter(tub_exons, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(fmndko_pdiff_exons, is_capped),
+  geom_point(data = filter(tub_exons, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -1138,9 +1248,9 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (Tubercidin - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2 Exons",
+    title = "Volcano Plot of Tubercidin Exons",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "sans") +  
@@ -1163,31 +1273,33 @@ volcano_plot <- ggplot(fmndko_pdiff_exons, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("final_plots/volcano_fmndko_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
-ggsave("final_plots/volcano_fmndko_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("final_plots/volcano_tub_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("final_plots/volcano_tub_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 
 volcano_plot
 ```
 
-### Spire
+### PladB
 
 ```{r spire fdr volcano exons}
-spire_pdiff_exons<-na.omit(spire_pdiff_exons)
+pladb_exons<-pladb_fdr_df[grepl("EX",pladb_fdr_df$EVENT),]
+
+
 # Add a Shared column based on the shared_exons
-spire_pdiff_exons$Shared <- ifelse(spire_pdiff_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
+pladb_exons$Shared <- ifelse(pladb_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
 
 # Classify significance
-spire_pdiff_exons$Significant <- ifelse(
-  spire_pdiff_exons$FDR <=0.05 & spire_pdiff_exons$deltapsi >= 0.1, "Overrepresented",
+pladb_exons$Significant <- ifelse(
+  pladb_exons$FDR <=0.05 & pladb_exons$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_exons$FDR <=0.05 & spire_pdiff_exons$deltapsi <= -0.1, "Underrepresented",
+    pladb_exons$FDR <=0.05 & pladb_exons$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-spire_pdiff_exons$negLogpvalue <- -log10(spire_pdiff_exons$FDR)
+pladb_exons$negLogpvalue <- -log10(pladb_exons$FDR)
 
 # Define your maximum displayed y-value (the cap)
 max_y <- 2
@@ -1198,7 +1310,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-spire_pdiff_exons <- spire_pdiff_exons %>%
+pladb_exons <- pladb_exons %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -1207,15 +1319,15 @@ spire_pdiff_exons <- spire_pdiff_exons %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi)) +
+volcano_plot <- ggplot(pladb_exons, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(spire_pdiff_exons, !is_capped),
+  geom_point(data = filter(pladb_exons, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(spire_pdiff_exons, is_capped),
+  geom_point(data = filter(pladb_exons, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -1249,9 +1361,9 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (PladB - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of Spire Exons",
+    title = "Volcano Plot of PladB Exons",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -1273,8 +1385,8 @@ volcano_plot <- ggplot(spire_pdiff_exons, aes(x = deltapsi)) +
   )
 
 # Save as SVG with dimensions 606 x 396
-ggsave("final_plots/volcano_spire_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
-ggsave("final_plots/volcano_spire_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("final_plots/volcano_pladb_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("final_plots/volcano_pladb_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 
@@ -1282,18 +1394,130 @@ volcano_plot
 ```
 
 
+### Spliceostatin A
+
+```{r spire fdr volcano exons}
+ssa_exons<-ssa_fdr_df[grepl("EX",ssa_fdr_df$EVENT),]
+
+
+# Add a Shared column based on the shared_exons
+ssa_exons$Shared <- ifelse(ssa_exons$EVENT %in% shared_exons, "Shared", "Not Shared")
+
+# Classify significance
+ssa_exons$Significant <- ifelse(
+  ssa_exons$FDR <=0.05 & ssa_exons$deltapsi >= 0.1, "Overrepresented",
+  ifelse(
+    ssa_exons$FDR <=0.05 & ssa_exons$deltapsi <= -0.1, "Underrepresented",
+    "Not Significant"
+  )
+)
+
+# Convert FDR to -log10 scale for y-axis
+ssa_exons$negLogpvalue <- -log10(ssa_exons$FDR)
+
+# Define your maximum displayed y-value (the cap)
+max_y <- 2
+
+# Pre-process the data:
+#  - Create plot_y: if negLogpvalue is infinite (FDR == 0) or > max_y, use max_y.
+#  - Flag these points in is_capped.
+#  - For capped points only, create a new y-value (plot_y_jitter)
+#    that subtracts a small random offset so they don't completely overlap.
+set.seed(123)  # for reproducibility of the jitter
+ssa_exons <- ssa_exons %>%
+  mutate(
+    plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
+    is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
+    # Apply a small downward jitter (up to -0.1) only to capped points
+    plot_y_jitter = ifelse(is_capped, max_y - runif(n(), 0, 0.1), plot_y)
+  )
+
+# Build the volcano plot:
+volcano_plot <- ggplot(ssa_exons, aes(x = deltapsi)) +
+  # Layer for non-capped points (displayed at their true y-values)
+  geom_point(data = filter(ssa_exons, !is_capped),
+             aes(y = plot_y, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant)) +
+  # Layer for capped points: keep them as circles, but use jittered y-values
+  geom_point(data = filter(ssa_exons, is_capped),
+             aes(y = plot_y_jitter, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant),
+             stroke = 0.5,
+             show.legend = FALSE) +  
+  # Define the color scales
+  scale_color_manual(values = c(
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
+    "Not Significant" = "gray"
+  )) +
+  scale_alpha_manual(values = c(
+    "Overrepresented" = 0.6,
+    "Underrepresented" = 0.6,
+    "Not Significant" = 0.3
+  )) +
+  scale_size_manual(values = c(
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
+  )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  # Keep the y-axis fixed from 0 to max_y. Also, modify the top label to show "≥2"
+  scale_y_continuous(
+    limits = c(0, max_y),
+    expand = c(0, 0),
+    labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
+  ) +
+  labs(
+    x = "Delta PSI (Spliceostatin A - Control)",
+    y = expression(-log[10](FDR)),
+    title = "Volcano Plot of SSA Exons",
+    subtitle = "Significant events are highlighted"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Arial") +  
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 18, face = "bold", color = "black"
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 14, face = "italic", color = "gray30"
+    ),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  )
+
+# Save as SVG with dimensions 606 x 396
+ggsave("final_plots/volcano_ssa_exons.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("final_plots/volcano_ssa_exons.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+
+volcano_plot
+
+
+```
+
 ## Individual Combination Tables { .tabset}
 
 These tables show the introns with FDR <= 0.05 and |dPSI|>=0.1 in the pairwise comparison of each condition. 
 
 
+### Tubercidin
 
-### FMN2
-
-```{r fmndko combination table exons}
+```{r tub combination table exons}
 # Render DataTable with enhancements
 datatable(
-  differential_fmndko_exons,
+  differential_tub_exons,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -1342,13 +1566,12 @@ datatable(
 
 ```
 
-### Spire
+### PladB
 
-
-```{r spire combination table exons}
+```{r pladb combination table exons}
 # Render DataTable with enhancements
 datatable(
-  differential_spire_exons,
+  differential_pladb_exons,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -1397,7 +1620,59 @@ datatable(
 
 ```
 
+### Spliceostatin A
 
+```{r pladb combination table exons}
+# Render DataTable with enhancements
+datatable(
+  differential_ssa_exons,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+    columnDefs = list(
+      list(targets = "_all", className = "dt-center"),    # Center-align all columns
+      list(
+        targets = 3,  # Highlight significant Pdiff
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && parseFloat(data) > 0.99) {
+               return '<span style=\"color: green; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      ),
+      list(
+        targets = 4,  # Highlight large deltapsi values
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && Math.abs(parseFloat(data)) > 0.5) {
+               return '<span style=\"color: red; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      )
+    )
+  ),
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+) %>%
+  formatStyle(
+    columns = "FDR",
+    color = styleInterval(0.99, c("black", "green")),
+    fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
+  ) %>%
+  formatStyle(
+  columns = "deltapsi",
+  color = styleInterval(c(-0.5, 0.5), c("black", "red", "black")),  # Three colors for two intervals
+  fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
+)
+
+
+```
 
 # Intron Lists
 
@@ -1405,50 +1680,14 @@ datatable(
 
 ```{r pdiff calculation introns}
 
-
-# Prepare table for Tao
-fmndko_pdiff_introns <- prepareTableVolcanoFDR(
-  psitable = fmndko_introns$PSI,
-  qualtable = fmndko_introns$Qual,
-  npoints = 500,
-  colsA = colsGroupA_fmndko,
-  colsB = colsGroupB_fmndko,
-  labA = groupA_fmndko,
-  labB = groupB_fmndko,
-  basalColor = "#89C0AE",
-  interestColor = "#E69A9C",
-  maxDevTable = maxDevSimulationN100,
-  nsim = 1000,
-  seed = TRUE,
-  CoverageWeight = FALSE
-)
-
-# Prepare table for spire
-spire_pdiff_introns <- prepareTableVolcanoFDR(
-  psitable = spire_introns$PSI,
-  qualtable = spire_introns$Qual,
-  npoints = 500,
-  colsA = colsGroupA_spire,
-  colsB = colsGroupB_spire,
-  labA = groupA_spire,
-  labB = groupB_spire,
-  basalColor = "#89C0AE",
-  interestColor = "#E69A9C",
-  maxDevTable = maxDevSimulationN100,
-  nsim=1000,
-  seed = TRUE,
-  CoverageWeight = FALSE
-)
-
-differential_spire_introns<-na.omit(spire_pdiff_introns[spire_pdiff_introns$FDR <=0.05 & abs(spire_pdiff_introns$deltapsi)>=0.1,])
-differential_fmndko_introns<-na.omit(fmndko_pdiff_introns[fmndko_pdiff_introns$FDR <=0.05 & abs(fmndko_pdiff_introns$deltapsi)>=0.1,])
+differential_tub_introns<-differential_tub[grepl("INT",differential_tub$EVENT),]
+differential_pladb_introns<-differential_pladb[grepl("INT",differential_pladb$EVENT),]
+differential_ssa_introns<-differential_ssa[grepl("INT",differential_ssa$EVENT),]
 
 
+shared_introns<-intersect(differential_tub_introns$EVENT,differential_pladb_introns$EVENT)
+shared_introns<-intersect(shared_introns,differential_ssa_introns$EVENT)
 
-shared_introns<-differential_spire_introns$EVENT[differential_spire_introns$EVENT %in% differential_fmndko_introns$EVENT]
-
-write.csv(fmndko_pdiff_introns,"fmndko_pdiff_introns.csv")
-write.csv(spire_pdiff_introns,"spire_pdiff_introns.csv")
 
 ```
 
@@ -1457,24 +1696,26 @@ write.csv(spire_pdiff_introns,"spire_pdiff_introns.csv")
 ## Volcano Plots { .tabset}
 
 
-### FMN2
+### Tubercidin
 
-```{r fmndko volcano introns}
-fmndko_pdiff_introns<-na.omit(fmndko_pdiff_introns)
+```{r tub volcano introns}
+
+tub_introns<-tub_fdr_df[grepl("INT",tub_fdr_df$EVENT),]
+
 # Add a Shared column based on the shared_exons
-fmndko_pdiff_introns$Shared <- ifelse(fmndko_pdiff_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
+tub_introns$Shared <- ifelse(tub_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
 
 # Classify significance
-fmndko_pdiff_introns$Significant <- ifelse(
-  fmndko_pdiff_introns$FDR <=0.05 & fmndko_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+tub_introns$Significant <- ifelse(
+  tub_introns$FDR <=0.05 & tub_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_introns$FDR <=0.05 & fmndko_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    tub_introns$FDR <=0.05 & tub_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-fmndko_pdiff_introns$negLogpvalue <- -log10(fmndko_pdiff_introns$FDR)
+tub_introns$negLogpvalue <- -log10(tub_introns$FDR)
 
 
 # Define your maximum displayed y-value (the cap)
@@ -1486,7 +1727,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-fmndko_pdiff_introns <- fmndko_pdiff_introns %>%
+tub_introns <- tub_introns %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -1495,15 +1736,15 @@ fmndko_pdiff_introns <- fmndko_pdiff_introns %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi)) +
+volcano_plot <- ggplot(tub_introns, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(fmndko_pdiff_introns, !is_capped),
+  geom_point(data = filter(tub_introns, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(fmndko_pdiff_introns, is_capped),
+  geom_point(data = filter(tub_introns, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -1537,9 +1778,9 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (Tubercidin - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2 Introns",
+    title = "Volcano Plot of Tubercidin Introns",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -1562,29 +1803,30 @@ volcano_plot <- ggplot(fmndko_pdiff_introns, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
-ggsave("volcano_fmndko_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_tub_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_tub_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
 
-### Spire
+### PladB
 
 ```{r spire volcano introns}
-spire_pdiff_introns<-na.omit(spire_pdiff_introns)
-spire_pdiff_introns$Shared <- ifelse(spire_pdiff_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
+pladb_introns<-pladb_fdr_df[grepl("INT",pladb_fdr_df$EVENT),]
+
+pladb_introns$Shared <- ifelse(pladb_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
 
 # Classify significance
-spire_pdiff_introns$Significant <- ifelse(
-  spire_pdiff_introns$FDR <=0.05 & spire_pdiff_introns$deltapsi >= 0.1, "Overrepresented",
+pladb_introns$Significant <- ifelse(
+  pladb_introns$FDR <=0.05 & pladb_introns$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_introns$FDR <=0.05 & spire_pdiff_introns$deltapsi <= -0.1, "Underrepresented",
+    pladb_introns$FDR <=0.05 & pladb_introns$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-spire_pdiff_introns$negLogpvalue <- -log10(spire_pdiff_introns$FDR)
+pladb_introns$negLogpvalue <- -log10(pladb_introns$FDR)
 
 # Define your maximum displayed y-value (the cap)
 max_y <- 2
@@ -1595,7 +1837,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-spire_pdiff_introns <- spire_pdiff_introns %>%
+pladb_introns <- pladb_introns %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -1604,15 +1846,15 @@ spire_pdiff_introns <- spire_pdiff_introns %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi)) +
+volcano_plot <- ggplot(pladb_introns, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(spire_pdiff_introns, !is_capped),
+  geom_point(data = filter(pladb_introns, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(spire_pdiff_introns, is_capped),
+  geom_point(data = filter(pladb_introns, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -1646,9 +1888,9 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (PladB - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of Spire Introns",
+    title = "Volcano Plot of PladB Introns",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -1671,8 +1913,118 @@ volcano_plot <- ggplot(spire_pdiff_introns, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
-ggsave("volcano_spire_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_pladb_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_pladb_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+
+volcano_plot
+```
+
+### Spliceostatin A
+
+```{r spire volcano introns}
+ssa_introns<-ssa_fdr_df[grepl("INT",ssa_fdr_df$EVENT),]
+
+ssa_introns$Shared <- ifelse(ssa_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
+
+# Classify significance
+ssa_introns$Significant <- ifelse(
+  ssa_introns$FDR <=0.05 & ssa_introns$deltapsi >= 0.1, "Overrepresented",
+  ifelse(
+    ssa_introns$FDR <=0.05 & ssa_introns$deltapsi <= -0.1, "Underrepresented",
+    "Not Significant"
+  )
+)
+
+# Convert FDR to -log10 scale for y-axis
+ssa_introns$negLogpvalue <- -log10(ssa_introns$FDR)
+
+# Define your maximum displayed y-value (the cap)
+max_y <- 2
+
+# Pre-process the data:
+#  - Create plot_y: if negLogpvalue is infinite (FDR == 0) or > max_y, use max_y.
+#  - Flag these points in is_capped.
+#  - For capped points only, create a new y-value (plot_y_jitter)
+#    that subtracts a small random offset so they don't completely overlap.
+set.seed(123)  # for reproducibility of the jitter
+ssa_introns <- ssa_introns %>%
+  mutate(
+    plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
+    is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
+    # Apply a small downward jitter (up to -0.1) only to capped points
+    plot_y_jitter = ifelse(is_capped, max_y - runif(n(), 0, 0.1), plot_y)
+  )
+
+# Build the volcano plot:
+volcano_plot <- ggplot(ssa_introns, aes(x = deltapsi)) +
+  # Layer for non-capped points (displayed at their true y-values)
+  geom_point(data = filter(ssa_introns, !is_capped),
+             aes(y = plot_y, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant)) +
+  # Layer for capped points: keep them as circles, but use jittered y-values
+  geom_point(data = filter(ssa_introns, is_capped),
+             aes(y = plot_y_jitter, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant),
+             stroke = 0.5,
+             show.legend = FALSE) +  
+  # Define the color scales
+  scale_color_manual(values = c(
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
+    "Not Significant" = "gray"
+  )) +
+  scale_alpha_manual(values = c(
+    "Overrepresented" = 0.6,
+    "Underrepresented" = 0.6,
+    "Not Significant" = 0.3
+  )) +
+  scale_size_manual(values = c(
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
+  )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  # Keep the y-axis fixed from 0 to max_y. Also, modify the top label to show "≥2"
+  scale_y_continuous(
+    limits = c(0, max_y),
+    expand = c(0, 0),
+    labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
+  ) +
+  labs(
+    x = "Delta PSI (SSA - Control)",
+    y = expression(-log[10](FDR)),
+    title = "Volcano Plot of Spliceostatin A Introns",
+    subtitle = "Significant events are highlighted"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Arial") +  
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 18, face = "bold", color = "black"
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 14, face = "italic", color = "gray30"
+    ),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  )
+
+
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_ssa_introns.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_ssa_introns.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
@@ -1681,14 +2033,12 @@ volcano_plot
 
 These tables show the introns with FDR <= 0.05 and |dPSI|>=0.1 in the pairwise comparison of each condition. 
 
-### FMN2
+### Tubercidin
 
-
-
-```{r fmndko combination table introns}
+```{r tub combination table introns}
 # Render DataTable with enhancements
 datatable(
-  differential_fmndko_introns,
+  differential_tub_introns,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -1737,13 +2087,67 @@ datatable(
 
 ```
 
-### Spire
+### PladB
 
 
-```{r spire combination table introns}
+```{r pladb combination table introns}
 # Render DataTable with enhancements
 datatable(
-  differential_spire_introns,
+  differential_pladb_introns,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+    columnDefs = list(
+      list(targets = "_all", className = "dt-center"),    # Center-align all columns
+      list(
+        targets = 3,  # Highlight significant Pdiff
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && parseFloat(data) > 0.99) {
+               return '<span style=\"color: green; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      ),
+      list(
+        targets = 4,  # Highlight large deltapsi values
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && Math.abs(parseFloat(data)) > 0.5) {
+               return '<span style=\"color: red; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      )
+    )
+  ),
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+) %>%
+  formatStyle(
+    columns = "FDR",
+    color = styleInterval(0.99, c("black", "green")),
+    fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
+  ) %>%
+  formatStyle(
+  columns = "deltapsi",
+  color = styleInterval(c(-0.5, 0.5), c("black", "red", "black")),  # Three colors for two intervals
+  fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
+)
+
+```
+
+### Spliceostatin A
+
+
+```{r ssa combination table introns}
+# Render DataTable with enhancements
+datatable(
+  differential_ssa_introns,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -1798,72 +2202,44 @@ datatable(
 
 ```{r pdiff calculation alt}
 
-# Prepare table for Tao
-fmndko_pdiff_alt <- prepareTableVolcanoFDR(
-  psitable = fmndko_alt$PSI,
-  qualtable = fmndko_alt$Qual,
-  npoints = 500,
-  colsA = colsGroupA_fmndko,
-  colsB = colsGroupB_fmndko,
-  labA = groupA_fmndko,
-  labB = groupB_fmndko,
-  basalColor = "#89C0AE",
-  interestColor = "#E69A9C",
-  maxDevTable = maxDevSimulationN100,
-  nsim=1000,
-  seed = TRUE,
-  CoverageWeight = FALSE
-)
+differential_tub_alt<-differential_tub[grepl("ALT",differential_tub$EVENT),]
+differential_pladb_alt<-differential_pladb[grepl("ALT",differential_pladb$EVENT),]
+differential_ssa_alt<-differential_ssa[grepl("ALT",differential_ssa$EVENT),]
 
-# Prepare table for spire
-spire_pdiff_alt <- prepareTableVolcanoFDR(
-  psitable = spire_alt$PSI,
-  qualtable = spire_alt$Qual,
-  npoints = 500,
-  colsA = colsGroupA_spire,
-  colsB = colsGroupB_spire,
-  labA = groupA_spire,
-  labB = groupB_spire,
-  basalColor = "#89C0AE",
-  interestColor = "#E69A9C",
-  maxDevTable = maxDevSimulationN100,
-  nsim=1000,
-  seed = TRUE,
-  CoverageWeight = FALSE
-)
 
-differential_spire_alt<-na.omit(spire_pdiff_alt[spire_pdiff_alt$FDR <=0.05 & abs(spire_pdiff_alt$deltapsi)>=0.1 ,])
-differential_fmndko_alt<-na.omit(fmndko_pdiff_alt[fmndko_pdiff_alt$FDR <=0.05 & abs(fmndko_pdiff_alt$deltapsi)>=0.1 ,])
+shared_alt<-intersect(differential_tub_alt$EVENT,differential_pladb_alt$EVENT)
+shared_alt<-intersect(shared_alt,differential_ssa_alt$EVENT)
 
-shared_alt<-differential_spire_alt$EVENT[differential_spire_alt$EVENT %in% differential_fmndko_alt$EVENT]
 
-write.csv(fmndko_pdiff_alt,"fmndko_pdiff_alt.csv")
-write.csv(spire_pdiff_alt,"spire_pdiff_alt.csv")
 ```
-
 
 
 
 ## Volcano Plots { .tabset}
 
 
-### FMN2
+### Tubercidin
 
-```{r fmndko  volcano alt}
-fmndko_pdiff_alt<-na.omit(fmndko_pdiff_alt)
-fmndko_pdiff_alt$Shared <- ifelse(fmndko_pdiff_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
+```{r tub volcano introns}
+
+tub_alt<-tub_fdr_df[grepl("ALT",tub_fdr_df$EVENT),]
+
+# Add a Shared column based on the shared_exons
+tub_alt$Shared <- ifelse(tub_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
 
 # Classify significance
-fmndko_pdiff_alt$Significant <- ifelse(
-  fmndko_pdiff_alt$FDR <=0.05 & fmndko_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+tub_alt$Significant <- ifelse(
+  tub_alt$FDR <=0.05 & tub_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    fmndko_pdiff_alt$FDR <=0.05 & fmndko_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    tub_alt$FDR <=0.05 & tub_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-fmndko_pdiff_alt$negLogpvalue <- -log10(fmndko_pdiff_alt$FDR)
+tub_alt$negLogpvalue <- -log10(tub_alt$FDR)
+
+
 # Define your maximum displayed y-value (the cap)
 max_y <- 2
 
@@ -1873,7 +2249,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-fmndko_pdiff_alt <- fmndko_pdiff_alt %>%
+tub_alt <- tub_alt %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -1882,15 +2258,15 @@ fmndko_pdiff_alt <- fmndko_pdiff_alt %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi)) +
+volcano_plot <- ggplot(tub_alt, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(fmndko_pdiff_alt, !is_capped),
+  geom_point(data = filter(tub_alt, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(fmndko_pdiff_alt, is_capped),
+  geom_point(data = filter(tub_alt, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -1924,9 +2300,9 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (Tubercidin - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2 Alt 5´ 3´",
+    title = "Volcano Plot of Tubercidin Alt",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -1949,30 +2325,32 @@ volcano_plot <- ggplot(fmndko_pdiff_alt, aes(x = deltapsi)) +
 
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
-ggsave("volcano_fmndko_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_tub_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_tub_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
 
-### Spire
+### PladB
 
-```{r spire fdr volcano alt}
-spire_pdiff_alt<-na.omit(spire_pdiff_alt)
-spire_pdiff_alt$Shared <- ifelse(spire_pdiff_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
+```{r pladb volcano alt}
+pladb_alt<-pladb_fdr_df[grepl("ALT",pladb_fdr_df$EVENT),]
+
+pladb_alt$Shared <- ifelse(pladb_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
 
 # Classify significance
-spire_pdiff_alt$Significant <- ifelse(
-  spire_pdiff_alt$FDR <=0.05 & spire_pdiff_alt$deltapsi >= 0.1, "Overrepresented",
+pladb_alt$Significant <- ifelse(
+  pladb_alt$FDR <=0.05 & pladb_alt$deltapsi >= 0.1, "Overrepresented",
   ifelse(
-    spire_pdiff_alt$FDR <=0.05 & spire_pdiff_alt$deltapsi <= -0.1, "Underrepresented",
+    pladb_alt$FDR <=0.05 & pladb_alt$deltapsi <= -0.1, "Underrepresented",
     "Not Significant"
   )
 )
 
 # Convert FDR to -log10 scale for y-axis
-spire_pdiff_alt$negLogpvalue <- -log10(spire_pdiff_alt$FDR)
+pladb_alt$negLogpvalue <- -log10(pladb_alt$FDR)
 
+# Define your maximum displayed y-value (the cap)
 max_y <- 2
 
 # Pre-process the data:
@@ -1981,7 +2359,7 @@ max_y <- 2
 #  - For capped points only, create a new y-value (plot_y_jitter)
 #    that subtracts a small random offset so they don't completely overlap.
 set.seed(123)  # for reproducibility of the jitter
-spire_pdiff_alt <- spire_pdiff_alt %>%
+pladb_alt <- pladb_alt %>%
   mutate(
     plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
     is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
@@ -1990,15 +2368,15 @@ spire_pdiff_alt <- spire_pdiff_alt %>%
   )
 
 # Build the volcano plot:
-volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
+volcano_plot <- ggplot(pladb_alt, aes(x = deltapsi)) +
   # Layer for non-capped points (displayed at their true y-values)
-  geom_point(data = filter(spire_pdiff_alt, !is_capped),
+  geom_point(data = filter(pladb_alt, !is_capped),
              aes(y = plot_y, 
                  color = Significant, 
                  alpha = Significant, 
                  size = Significant)) +
   # Layer for capped points: keep them as circles, but use jittered y-values
-  geom_point(data = filter(spire_pdiff_alt, is_capped),
+  geom_point(data = filter(pladb_alt, is_capped),
              aes(y = plot_y_jitter, 
                  color = Significant, 
                  alpha = Significant, 
@@ -2032,9 +2410,9 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (PladB - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of Spire Alt 5´ 3´",
+    title = "Volcano Plot of PladB Alt",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -2056,10 +2434,119 @@ volcano_plot <- ggplot(spire_pdiff_alt, aes(x = deltapsi)) +
   )
 
 
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_pladb_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_pladb_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+
+volcano_plot
+```
+
+### Spliceostatin A
+
+```{r ssa volcano alt}
+ssa_alt<-ssa_fdr_df[grepl("ALT",ssa_fdr_df$EVENT),]
+
+ssa_alt$Shared <- ifelse(ssa_alt$EVENT %in% shared_alt, "Shared", "Not Shared")
+
+# Classify significance
+ssa_alt$Significant <- ifelse(
+  ssa_alt$FDR <=0.05 & ssa_alt$deltapsi >= 0.1, "Overrepresented",
+  ifelse(
+    ssa_alt$FDR <=0.05 & ssa_alt$deltapsi <= -0.1, "Underrepresented",
+    "Not Significant"
+  )
+)
+
+# Convert FDR to -log10 scale for y-axis
+ssa_alt$negLogpvalue <- -log10(ssa_alt$FDR)
+
+# Define your maximum displayed y-value (the cap)
+max_y <- 2
+
+# Pre-process the data:
+#  - Create plot_y: if negLogpvalue is infinite (FDR == 0) or > max_y, use max_y.
+#  - Flag these points in is_capped.
+#  - For capped points only, create a new y-value (plot_y_jitter)
+#    that subtracts a small random offset so they don't completely overlap.
+set.seed(123)  # for reproducibility of the jitter
+ssa_alt <- ssa_alt %>%
+  mutate(
+    plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
+    is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
+    # Apply a small downward jitter (up to -0.1) only to capped points
+    plot_y_jitter = ifelse(is_capped, max_y - runif(n(), 0, 0.1), plot_y)
+  )
+
+# Build the volcano plot:
+volcano_plot <- ggplot(ssa_alt, aes(x = deltapsi)) +
+  # Layer for non-capped points (displayed at their true y-values)
+  geom_point(data = filter(ssa_alt, !is_capped),
+             aes(y = plot_y, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant)) +
+  # Layer for capped points: keep them as circles, but use jittered y-values
+  geom_point(data = filter(ssa_alt, is_capped),
+             aes(y = plot_y_jitter, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant),
+             stroke = 0.5,
+             show.legend = FALSE) +  
+  # Define the color scales
+  scale_color_manual(values = c(
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
+    "Not Significant" = "gray"
+  )) +
+  scale_alpha_manual(values = c(
+    "Overrepresented" = 0.6,
+    "Underrepresented" = 0.6,
+    "Not Significant" = 0.3
+  )) +
+  scale_size_manual(values = c(
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
+  )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  # Keep the y-axis fixed from 0 to max_y. Also, modify the top label to show "≥2"
+  scale_y_continuous(
+    limits = c(0, max_y),
+    expand = c(0, 0),
+    labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
+  ) +
+  labs(
+    x = "Delta PSI (SSA - Control)",
+    y = expression(-log[10](FDR)),
+    title = "Volcano Plot of Spliceostatin A Alt",
+    subtitle = "Significant events are highlighted"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Arial") +  
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 18, face = "bold", color = "black"
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 14, face = "italic", color = "gray30"
+    ),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  )
+
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
-ggsave("volcano_spire_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_ssa_alt.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_ssa_alt.svg", plot = volcano_plot, width = 606/72, height = 396/72)
 
 volcano_plot
 ```
@@ -2068,14 +2555,12 @@ volcano_plot
 
 These tables show the introns with FDR <= 0.05 and |dPSI|>=0.1 in the pairwise comparison of each condition. 
 
+### Tubercidin
 
-### FMN2
-
-
-```{r fmndko combination table alt}
+```{r tub combination table alt}
 # Render DataTable with enhancements
 datatable(
-  differential_fmndko_alt,
+  differential_tub_alt,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2124,14 +2609,13 @@ datatable(
 
 ```
 
-### Spire
+### PladB
 
 
-
-```{r spire combination table alt}
+```{r pladb combination table alt}
 # Render DataTable with enhancements
 datatable(
-  differential_spire_alt,
+  differential_pladb_alt,
   options = list(
     pageLength = 10,                      # Rows per page
     autoWidth = TRUE,                     # Adjust column widths automatically
@@ -2177,17 +2661,70 @@ datatable(
   fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
 )
 
+```
+
+### Spliceostatin A
+
+
+```{r ssa combination table alt}
+# Render DataTable with enhancements
+datatable(
+  differential_ssa_alt,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+    columnDefs = list(
+      list(targets = "_all", className = "dt-center"),    # Center-align all columns
+      list(
+        targets = 3,  # Highlight significant Pdiff
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && parseFloat(data) > 0.99) {
+               return '<span style=\"color: green; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      ),
+      list(
+        targets = 4,  # Highlight large deltapsi values
+        render = JS(
+          "function(data, type, row) {
+             if (type === 'display' && Math.abs(parseFloat(data)) > 0.5) {
+               return '<span style=\"color: red; font-weight: bold;\">' + data + '</span>';
+             }
+             return data;
+           }"
+        )
+      )
+    )
+  ),
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+) %>%
+  formatStyle(
+    columns = "FDR",
+    color = styleInterval(0.99, c("black", "green")),
+    fontWeight = styleEqual(0.99, "bold")  # Ensure consistent styling
+  ) %>%
+  formatStyle(
+  columns = "deltapsi",
+  color = styleInterval(c(-0.5, 0.5), c("black", "red", "black")),  # Three colors for two intervals
+  fontWeight = styleInterval(c(-0.5, 0.5), c("normal", "bold", "normal"))  # Three weights for two intervals
+)
 
 ```
 
 # All Event Types Volcano Plots { .tabset}
 
 
-## FMN2
+## Tubercidin
 
-```{r fmndko all volcano }
+```{r tub all volcano }
 
-mega_volcano<-rbind(fmndko_pdiff_alt,fmndko_pdiff_exons,fmndko_pdiff_introns)
+mega_volcano<-rbind(tub_introns,tub_exons,tub_alt)
 
 max_y <- 2
 
@@ -2248,9 +2785,9 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (Tubercidin - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of FMN2 All Events",
+    title = "Volcano Plot of Tubercidin All Events",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -2272,16 +2809,16 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
   )
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_fmndko_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
-ggsave("volcano_fmndko_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_tub_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_tub_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
 
 volcano_plot
 ```
 
-## Spire
+## PladB
 
-```{r spire fdr volcano all}
-mega_volcano<-rbind(spire_pdiff_alt,spire_pdiff_exons,spire_pdiff_introns)
+```{r pladb fdr volcano all}
+mega_volcano<-rbind(pladb_alt,pladb_introns,pladb_exons)
 max_y <- 2
 
 # Pre-process the data:
@@ -2341,9 +2878,9 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
     labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
   ) +
   labs(
-    x = "Delta PSI (KO - WT)",
+    x = "Delta PSI (PladB - Control)",
     y = expression(-log[10](FDR)),
-    title = "Volcano Plot of Spire All Events",
+    title = "Volcano Plot of PladB All Events",
     subtitle = "Significant events are highlighted"
   ) +
   theme_minimal(base_size = 14, base_family = "Arial") +  
@@ -2365,12 +2902,104 @@ volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
   )
 
 # Save as SVG with dimensions 606 x 396
-ggsave("volcano_spire_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
-ggsave("volcano_spire_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+ggsave("volcano_pladb_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_pladb_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
 
 volcano_plot
 ```
 
+## Spliceostatin A
+
+```{r ssa fdr volcano all}
+mega_volcano<-rbind(ssa_alt,ssa_introns,ssa_exons)
+max_y <- 2
+
+# Pre-process the data:
+#  - Create plot_y: if negLogpvalue is infinite (FDR == 0) or > max_y, use max_y.
+#  - Flag these points in is_capped.
+#  - For capped points only, create a new y-value (plot_y_jitter)
+#    that subtracts a small random offset so they don't completely overlap.
+set.seed(123)  # for reproducibility of the jitter
+mega_volcano <- mega_volcano %>%
+  mutate(
+    plot_y = ifelse(is.infinite(negLogpvalue) | negLogpvalue > max_y, max_y, negLogpvalue),
+    is_capped = (is.infinite(negLogpvalue) | negLogpvalue > max_y),
+    # Apply a small downward jitter (up to -0.1) only to capped points
+    plot_y_jitter = ifelse(is_capped, max_y - runif(n(), 0, 0.1), plot_y)
+  )
+
+# Build the volcano plot:
+volcano_plot <- ggplot(mega_volcano, aes(x = deltapsi)) +
+  # Layer for non-capped points (displayed at their true y-values)
+  geom_point(data = filter(mega_volcano, !is_capped),
+             aes(y = plot_y, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant)) +
+  # Layer for capped points: keep them as circles, but use jittered y-values
+  geom_point(data = filter(mega_volcano, is_capped),
+             aes(y = plot_y_jitter, 
+                 color = Significant, 
+                 alpha = Significant, 
+                 size = Significant),
+             stroke = 0.5,
+             show.legend = FALSE) +  
+  # Define the color scales
+  scale_color_manual(values = c(
+    "Overrepresented" = "#D62839",
+    "Underrepresented" = "#4BA3C3",
+    "Not Significant" = "gray"
+  )) +
+  scale_alpha_manual(values = c(
+    "Overrepresented" = 0.6,
+    "Underrepresented" = 0.6,
+    "Not Significant" = 0.3
+  )) +
+  scale_size_manual(values = c(
+    "Overrepresented" = 3,
+    "Underrepresented" = 3,
+    "Not Significant" = 2
+  )) +
+  scale_x_continuous(
+    limits = c(-1, 1),
+    breaks = seq(-1, 1, by = 0.5)
+  ) +
+  # Keep the y-axis fixed from 0 to max_y. Also, modify the top label to show "≥2"
+  scale_y_continuous(
+    limits = c(0, max_y),
+    expand = c(0, 0),
+    labels = function(x) ifelse(x == max_y, paste0("≥", max_y), x)
+  ) +
+  labs(
+    x = "Delta PSI (SSA - Control)",
+    y = expression(-log[10](FDR)),
+    title = "Volcano Plot of Spliceostatin A All Events",
+    subtitle = "Significant events are highlighted"
+  ) +
+  theme_minimal(base_size = 14, base_family = "Arial") +  
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 18, face = "bold", color = "black"
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 14, face = "italic", color = "gray30"
+    ),
+    axis.text = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, face = "bold", color = "black"),
+    legend.text = element_text(size = 12),
+    legend.title = element_blank(),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  )
+
+# Save as SVG with dimensions 606 x 396
+ggsave("volcano_ssa_all_events.svg", plot = volcano_plot, width = 606/72, height = 396/72)
+ggsave("volcano_ssa_all_events.png", plot = volcano_plot, width = 606/72, height = 396/72, dpi = 1200)
+
+volcano_plot
+```
 
 # Basic Stats on Found Events
 
@@ -2378,37 +3007,45 @@ volcano_plot
 
 ```{r basic stats}
 # Define study-specific data
-fmndko_exons <- data.frame(EVENT = differential_fmndko_exons$EVENT, Type = "Exons", Study = "FMN2")
-fmndko_introns <- data.frame(EVENT = differential_fmndko_introns$EVENT, Type = "Introns", Study = "FMN2")
-fmndko_alt <- data.frame(EVENT = differential_fmndko_alt$EVENT, Type = "Alt", Study = "FMN2")
+tub_exons_df <- data.frame(EVENT = differential_tub_exons$EVENT, Type = "Exons", Study = "Tubercidin")
+tub_introns_df <- data.frame(EVENT = differential_tub_introns$EVENT, Type = "Introns", Study = "Tubercidin")
+tub_alt_df <- data.frame(EVENT = differential_tub_alt$EVENT, Type = "Alt", Study = "Tubercidin")
 
-spire_exons <- data.frame(EVENT = differential_spire_exons$EVENT, Type = "Exons", Study = "Spire")
-spire_introns <- data.frame(EVENT = differential_spire_introns$EVENT, Type = "Introns", Study = "Spire")
-spire_alt <- data.frame(EVENT = differential_spire_alt$EVENT, Type = "Alt", Study = "Spire")
+pladb_exons_df <- data.frame(EVENT = differential_pladb_exons$EVENT, Type = "Exons", Study = "pladb")
+pladb_introns_df <- data.frame(EVENT = differential_pladb_introns$EVENT, Type = "Introns", Study = "pladb")
+pladb_alt_df <- data.frame(EVENT = differential_pladb_alt$EVENT, Type = "Alt", Study = "pladb")
+
+ssa_exons_df <- data.frame(EVENT = differential_ssa_exons$EVENT, Type = "Exons", Study = "Spliceostatin")
+ssa_introns_df <- data.frame(EVENT = differential_ssa_introns$EVENT, Type = "Introns", Study = "Spliceostatin")
+ssa_alt_df <- data.frame(EVENT = differential_ssa_alt$EVENT, Type = "Alt", Study = "Spliceostatin")
+
 # Define subsets for each event type
 event_list_exons <- list(
-  FMN2_Exons  = unique(fmndko_exons$EVENT),
-  Spire_Exons = unique(spire_exons$EVENT)
+  Tubercidin_Exons  = unique(tub_exons_df$EVENT),
+  Pladb_Exons = unique(pladb_exons_df$EVENT),
+  Spliceostatin_Exons = unique(ssa_exons_df$EVENT)
 )
 
 event_list_introns <- list(
-  FMN2_Introns  = unique(fmndko_introns$EVENT),
-  Spire_Introns = unique(spire_introns$EVENT)
+  Tubercidin_Introns  = unique(tub_introns_df$EVENT),
+  Pladb_Introns = unique(pladb_introns_df$EVENT),
+  Spliceostatin_Introns = unique(ssa_introns_df$EVENT)
 )
 
 event_list_alt <- list(
-  FMN2_Alt  = unique(fmndko_alt$EVENT),
-  Spire_Alt = unique(spire_alt$EVENT)
+  Tubercidin_Alt  = unique(tub_alt_df$EVENT),
+  Pladb_Alt = unique(pladb_alt_df$EVENT),
+  Spliceostatin_Alt = unique(ssa_alt_df$EVENT)
 )
 
 # Define colors
-color_exons <- c("#4E79A7", "#4E79A7")  # Blue for exons
-color_introns <- c("#F28E2B", "#F28E2B")  # Orange for introns
-color_alt <- c("#E15759", "#E15759")  # Red for alternative splicing events
+color_exons <- c("#4E79A7", "#4E79A7","#4E79A7")  # Blue for exons
+color_introns <- c("#F28E2B", "#F28E2B","#F28E2B")  # Orange for introns
+color_alt <- c("#E15759", "#E15759","#E15759")  # Red for alternative splicing events
 
 # Generate UpSet plots
 p_exons<-upset(fromList(event_list_exons),
-                 nsets = 2,
+                 nsets = 3,
                  order.by = "freq",
                  sets.bar.color = color_exons,
                  mainbar.y.label = "Exon Overlapping Events",
@@ -2416,7 +3053,7 @@ p_exons<-upset(fromList(event_list_exons),
                  text.scale = 2)
 
 p_introns <- upset(fromList(event_list_introns),
-                   nsets = 2,
+                   nsets = 3,
                    order.by = "freq",
                    sets.bar.color = color_introns,
                    mainbar.y.label = "Intron Overlapping Events",
@@ -2424,7 +3061,7 @@ p_introns <- upset(fromList(event_list_introns),
                    text.scale = 2)
 
 p_alt <- upset(fromList(event_list_alt),
-               nsets = 2,
+               nsets = 3,
                order.by = "freq",
                sets.bar.color = color_alt,
                mainbar.y.label = "Alt Overlapping Events",
@@ -2442,15 +3079,17 @@ p_alt
 ```{r, basic gene stats}
 
 gene_list <- list(
-  FMN2  = unique(c(differential_fmndko_exons$GENE,differential_fmndko_introns$GENE,differential_fmndko_alt$GENE)),
-  Spire = unique(c(differential_spire_exons$GENE,differential_spire_introns$GENE,differential_spire_alt$GENE))
+  Tubercidin  = unique(c(differential_tub_exons$GENE,differential_tub_introns$GENE,differential_tub_alt$GENE)),
+  Pladb = unique(c(differential_pladb_exons$GENE,differential_pladb_introns$GENE,differential_pladb_alt$GENE)),
+  Spliceostatin  = unique(c(differential_ssa_exons$GENE,differential_ssa_introns$GENE,differential_ssa_alt$GENE))
 )
 
 
-shared_genes<-intersect(gene_list$FMN2,gene_list$Spire)
+shared_genes<-intersect(gene_list$Tubercidin,gene_list$Pladb)
+shared_genes<-intersect(shared_genes, gene_list$Spliceostatin)
 # Generate UpSet plots
 p_genes<-upset(fromList(gene_list),
-                 nsets = 2,
+                 nsets = 3,
                  order.by = "freq",
                  sets.bar.color = "#0099cf",
                  mainbar.y.label = "Overlapping Genes",
@@ -2465,10 +3104,41 @@ p_genes
 
 The following ontology analysis uses all significant events regardless of type. No background gene list was used for the following enrichment analysis. For a background-aware ontology analysis, check the *Metascape* analysis.
 
-## FMN2 { .tabset}
+## Tubercidin { .tabset}
 
 ```{r fmndko enrichr}
-enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE, differential_fmndko_introns$GENE, differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+enrichdata<-enrichr(unique(c(differential_tub$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+
+
+# Map to Entrez IDs
+genes<-unique(c(differential_pladb$GENE,differential_tub$GENE,differential_ssa$GENE))
+gene_df <- bitr(genes, fromType="SYMBOL", toType="ENTREZID", OrgDb=org.Mm.eg.db)
+background_df <- bitr(unique(splicing_events$PSI$GENE[!splicing_events$PSI$GENE %in% genes]), fromType="SYMBOL", toType="ENTREZID", OrgDb=org.Mm.eg.db)
+
+# Extract vectors
+gene_entrez <- gene_df$ENTREZID
+background_entrez <- background_df$ENTREZID
+
+# Example ranking metric (replace with your real data)
+scores <- differential_pladb$FDR
+
+
+names(scores) <- gene_df$ENTREZID
+ranks <- sort(scores, decreasing = TRUE)
+
+kegg_gsea <- gseKEGG(geneList     = ranks,
+                     organism     = 'mmu',
+                     nPerm        = 1000,
+                     minGSSize    = 10,
+                     pvalueCutoff = 0.05)
+
+# View results
+head(kegg_gsea)
+
+# Plot
+gseaplot2(kegg_gsea, geneSetID = kegg_gsea@result$ID[1])
+
+
 ```
 
 
@@ -2529,10 +3199,10 @@ datatable(
 ))
 ```
 
-## Spire { .tabset}
+## PladB { .tabset}
 
 ```{r spire enrichr}
-enrichdata<-enrichr(unique(c(differential_spire_exons$GENE, differential_spire_introns$GENE, differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+enrichdata<-enrichr(unique(c(differential_pladb$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 
 ```
@@ -2585,6 +3255,61 @@ datatable(
 ))
 ```
 
+## Spliceostatin A { .tabset}
+
+```{r spire enrichr}
+enrichdata<-enrichr(unique(c(differential_ssa$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
+
+
+```
+
+### GO Biological Process
+
+```{r spire bioprocess, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[1]])
+datatable(
+  enrichdata[[1]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### GO Cellular Component
+
+```{r spire cellcomponent, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[2]])
+datatable(
+  enrichdata[[2]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
+
+### GO Molecular Function
+
+```{r spire molfunction, fig.width=10, fig.height=8}
+plotEnrich(enrichdata[[3]])
+datatable(
+  enrichdata[[3]],
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+```
 
 ## Ontology of Shared Genes { .tabset}
 
@@ -2651,407 +3376,12 @@ datatable(
 ```
 
 
-# Enrichment Analysis with EnrichR of Specific Types { .tabset}
-
-
-## FMN2 { .tabset}
-
-### Exons { .tabset}
-
-```{r fmndko enrichr ex}
-enrichdata<-enrichr(unique(c(differential_fmndko_exons$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-#### GO Biological Process
-
-```{r fmndko bioprocess ex, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r fmndko cellcomponent ex, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r fmndko molfunctionn ex, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-
-### Introns { .tabset}
-
-```{r fmndko enrichr in}
-enrichdata<-enrichr(unique(c(differential_fmndko_introns$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-#### GO Biological Process
-
-```{r fmndko bioprocess in, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r fmndko cellcomponent in, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r fmndko molfunction in, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-
-### Alternative 5´ & 3´ { .tabset}
-
-```{r fmndko enrichr alt}
-enrichdata<-enrichr(unique(c(differential_fmndko_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-#### GO Biological Process
-
-```{r fmndko bioprocess alt, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r fmndko cellcomponent alt, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r fmndko molfunction alt, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-## Spire { .tabset}
-
-### Exons { .tabset}
-
-```{r spire enrichr 2}
-enrichdata<-enrichr(unique(c(differential_spire_exons$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-#### GO Biological Process
-
-```{r spre bioprocess ex, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r spire  cellcomponent ex, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r spire  molfunction ex, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-
-### Introns { .tabset}
-
-```{r spire enrichr int}
-enrichdata<-enrichr(unique(c(differential_spire_introns$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-#### GO Biological Process
-
-```{r spire bioprocess int, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r spire cellcomponent int, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r spire molfunction int, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-
-### Alternative 5´ & 3´ { .tabset}
-
-```{r spire enrichr alt}
-enrichdata<-enrichr(unique(c(differential_spire_alt$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-#### GO Biological Process
-
-```{r spire bioprocess alt, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Cellular Component
-
-```{r spire cellcomponent alt, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-#### GO Molecular Function
-
-```{r spire molfunction alt, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
 
 # Gene-centric Analysis { .tabset}
 
 The following analysis identifies the number of significant events a given gene has. This number of *hits* serves as a proxy of how heavily influenced by splicing a given gene has been. The table shows how many genes classified by the number of significant events I have found, alongside the proportion of ORF disruption for each group. The plot then shows the list of genes, with at least 3 *hits*, in the x-axis, their average |dPSI| in the y-axis, and the shape of the points shows whether that given event is ORF-disrupted.
 
-## FMN2
+## Tubercidin
 
 ```{r gene-centric plot fmn2 prep}
 # Set seed for reproducibility
@@ -3066,9 +3396,9 @@ protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
 
 # Combine exon and intron event data (with a column "source" indicating the origin)
 combined_df <- bind_rows(
-  exons  = differential_fmndko_exons,
-  introns = differential_fmndko_introns,
-  alt = differential_fmndko_alt,
+  exons  = differential_tub_exons,
+  introns = differential_tub_introns,
+  alt = differential_tub_alt,
   .id = "source"
 )
 
@@ -3167,7 +3497,7 @@ p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents)
   labs(
     x = "Gene ID",
     y = "Mean |dPSI|",
-    title = "Genes with >2 Differential Splicing Events in FMN2",
+    title = "Genes with >2 Differential Splicing Events in Tubercidin",
     subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
   ) +
   # Use a clean, publication-ready theme with custom font settings
@@ -3184,16 +3514,16 @@ p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents)
 # -------------------------------
 # Save the plot as an SVG
 # -------------------------------
-ggsave("final_plots/fmn2_splicing_events_plot.svg", plot = p2, width = 24, height = 10)
+ggsave("final_plots/tub_splicing_events_plot.svg", plot = p2, width = 24, height = 10)
 
 # Display the plot
 print(p2)
 ```
 
 
-## Spire
+## PladB
 
-```{r gene-centric plot spire prep}
+```{r gene-centric plot pladb prep}
 # Set seed for reproducibility
 set.seed(44)
 
@@ -3201,9 +3531,9 @@ set.seed(44)
 
 # Combine exon and intron event data (with a column "source" indicating the origin)
 combined_df <- bind_rows(
-  exons  = differential_spire_exons,
-  introns = differential_spire_introns,
-  alt = differential_spire_alt,
+  exons  = differential_pladb_exons,
+  introns = differential_pladb_introns,
+  alt = differential_pladb_alt,
   .id = "source"
 )
 
@@ -3273,7 +3603,7 @@ datatable(table_summary,
           caption = 'Summary of Genes by Number of significant Events')
 ```
 
-```{r spire gene-centric plot, fig.width=30, fig.height=12}
+```{r pladb gene-centric plot, fig.width=30, fig.height=12}
 # -------------------------------
 # Filter for genes with >2 events and compute SD
 # -------------------------------
@@ -3302,7 +3632,7 @@ p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents)
   labs(
     x = "Gene ID",
     y = "Mean |dPSI|",
-    title = "Genes with >2 Differential Splicing Events in Spire",
+    title = "Genes with >2 Differential Splicing Events in PladB",
     subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
   ) +
   # Use a clean, publication-ready theme with custom font settings
@@ -3319,26 +3649,148 @@ p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents)
 # -------------------------------
 # Save the plot as an SVG
 # -------------------------------
-ggsave("spire_splicing_events_plot.svg", plot = p2, width = 30, height = 12, dpi = 300)
+ggsave("pladb_splicing_events_plot.svg", plot = p2, width = 30, height = 12, dpi = 300)
 
 # Display the plot
 print(p2)
 ```
 
+## Spliceostatin A
 
+```{r gene-centric plot ssa prep}
+# Set seed for reproducibility
+set.seed(44)
+
+
+
+# Combine exon and intron event data (with a column "source" indicating the origin)
+combined_df <- bind_rows(
+  exons  = differential_ssa_exons,
+  introns = differential_ssa_introns,
+  alt = differential_ssa_alt,
+  .id = "source"
+)
+
+# Add protein impact info by matching on event IDs
+combined_df$protein_impact <- protein_impact$ONTO[match(combined_df$EVENT, protein_impact$EventID)]
+
+# Keep one row per EVENT (if duplicates exist)
+combined_df <- combined_df %>% distinct(EVENT, .keep_all = TRUE) %>%
+  filter(!GENE == "")
+
+# -------------------------------
+# 1. Create per-gene summary statistics
+# -------------------------------
+combined_df_summary <- combined_df %>%
+  distinct(GENE, EVENT, .keep_all = TRUE) %>%  # remove duplicate gene/event rows if any
+  group_by(GENE) %>%
+  summarise(
+    nEvents   = n(),                                        # number of events per gene
+    meanDelta = mean(abs(deltapsi), na.rm = TRUE),          # mean absolute |dPSI|
+    sdDelta   = sd(abs(deltapsi), na.rm = TRUE)             # standard deviation (for reference)
+  ) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%              # sort: genes with more events first
+  mutate(GENE = factor(GENE, levels = unique(GENE)))        # set ordering for later plotting
+
+# -------------------------------
+# 2. Add ORF information to gene-level summary
+#    (We consider a gene “ORF disrupted” if any of its events has impact labeled as "ORF")
+# -------------------------------
+# First, mark each event as ORF or Non-ORF
+combined_df <- combined_df %>%
+  mutate(
+    absDelta = abs(deltapsi),
+    impact   = ifelse(grepl("ORF", protein_impact, ignore.case = TRUE), "ORF", "Non-ORF")
+  ) 
+
+# Compute per-gene flag: Does the gene have at least one ORF event?
+gene_ORF_flag <- combined_df %>%
+  group_by(GENE) %>%
+  summarise(has_ORF = any(impact == "ORF"))
+
+# Now merge with the gene summary
+combined_df_summary <- combined_df_summary %>%
+  left_join(gene_ORF_flag, by = "GENE")
+
+# -------------------------------
+# 3. Create a summary table (datatable) grouped by number of events per gene
+#    Showing for each nEvents the number of genes and the proportion that are ORF disrupted
+# -------------------------------
+table_summary <- combined_df_summary %>%
+  group_by(nEvents) %>%
+  summarise(
+    n_genes  = n(),
+    prop_ORF = paste0(round(mean(has_ORF), 3)*100, "%")  # proportion of genes with at least one ORF event
+  )
+
+
+table_summary <- table_summary %>%
+  rename(
+    "Number of Significant Events" = nEvents,
+    "Number of Genes" = n_genes,
+    "Proportion of ORF-shifted genes" = prop_ORF
+  )
+
+# (Optional) If you want an interactive table, use DT:
+datatable(table_summary, 
+          rownames = FALSE,
+          caption = 'Summary of Genes by Number of significant Events')
+```
+
+```{r ssa gene-centric plot, fig.width=30, fig.height=12}
+# -------------------------------
+# Filter for genes with >2 events and compute SD
+# -------------------------------
+df_summary_gt2 <- combined_df_summary %>%
+  filter(nEvents > 2) %>%
+  arrange(desc(nEvents), desc(meanDelta)) %>%
+  mutate(
+    GENE = factor(GENE, levels = unique(GENE))
+  )
+
+# -------------------------------
+# Build the publication-ready plot:
+# - Bars show the mean |dPSI| per gene.
+# - Upper error bars show mean + SD.
+# -------------------------------
+
+p2 <- ggplot(df_summary_gt2, aes(x = GENE, y = meanDelta, fill = factor(nEvents))) +
+  # Bar plot for mean |dPSI|
+  geom_bar(stat = "identity", width = 0.7, alpha = 0.8) +
+  # Upper error bar: from meanDelta to meanDelta + SD
+  geom_errorbar(aes(ymin = meanDelta, ymax = meanDelta + sdDelta),
+                width = 0.2, color = "black", alpha = 0.7) +
+  # Define fill colors (using a color palette) and label for the legend
+  scale_fill_brewer(palette = "Set2", name = "Number of Events") +
+  # Improved axis and plot annotations
+  labs(
+    x = "Gene ID",
+    y = "Mean |dPSI|",
+    title = "Genes with >2 Differential Splicing Events in Spliceostatin",
+    subtitle = "Bar height = mean |dPSI|; Upper error bar = SD"
+  ) +
+  # Use a clean, publication-ready theme with custom font settings
+  theme_classic(base_size = 16, base_family = "sans") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    plot.margin = margin(10, 10, 10, 20) # Ensure enough space
+  )
+
+# -------------------------------
+# Save the plot as an SVG
+# -------------------------------
+ggsave("ssa_splicing_events_plot.svg", plot = p2, width = 30, height = 12, dpi = 300)
+
+# Display the plot
+print(p2)
+```
 
 # Splicing Dynamics Heatmap Spire
 
-
-```{r heatmap pre-prep, results='hide', fig.show='hide'}
-
-# Extract all events
-spire_all <- filterEvents(
-  spire_events,
-  types = c("C1", "C2", "C3", "S", "MIC", "IR","Alt3","Alt5"),
-  N = 10
-)
-```
 
 ```{r heatmap prep, results='hide', fig.show='hide'}
 # Load required libraries
@@ -3356,27 +3808,46 @@ set.seed(44)
 # Data Preparation
 # --------------------------
 # Get unique splicing events (remove NA events) and convert selected PSI columns to matrix
-spire_unique <- spire_all$PSI %>% distinct(EVENT, .keep_all = TRUE)
-spire_unique <- spire_unique[!is.na(spire_unique$EVENT), ]
-rownames(spire_unique) <- spire_unique$EVENT
-spire_unique <- as.matrix(spire_unique[,7:12])
+
+tub_exons_df <- exons$PSI %>% 
+  filter(complete.cases(select(., 13:18)))
+
+tub_unique <- tub_exons_df %>% distinct(EVENT, .keep_all = TRUE)
+rownames(tub_unique) <- tub_unique$EVENT
+tub_unique <- tub_unique[!is.na(tub_unique$EVENT), ][,c(7:9, 16:18)]
+
 
 # Filter rows based on differential events (|dPSI| >= 0.1)
 filtered_events <- unique(c(
-  differential_spire_exons[abs(differential_spire_exons$deltapsi) >= 0.1, "EVENT"],
-  differential_spire_introns[abs(differential_spire_introns$deltapsi) >= 0.1, "EVENT"]
+  differential_tub_exons$EVENT,
+  differential_tub_introns$EVENT
 ))
-spire_unique <- spire_unique[rownames(spire_unique) %in% filtered_events, ]
+tub_unique <- tub_unique[rownames(tub_unique) %in% filtered_events, ]
+events_selected<-rownames(tub_unique)
+
+tub_unique <- as_tibble(tub_unique) %>%
+  rowwise() %>%
+  mutate(across(everything(), ~ (. - mean(c_across(everything()), na.rm = TRUE)) / 
+                               sd(c_across(everything()), na.rm = TRUE))) %>%
+  ungroup() %>%
+  as.matrix()
+
+rownames(tub_unique)<-events_selected
+
+row_variances <- apply(tub_unique, 1, var, na.rm = TRUE)
+tub_unique <- tub_unique[ row_variances > 0, ]
+tub_unique<-na.omit(tub_unique)
+
 
 # Create a dendrogram for the columns (using hierarchical clustering on the transposed data)
-col_dend <- hclust(dist(t(spire_unique))) %>%
+col_dend <- hclust(dist(t(tub_unique))) %>%
   as.dendrogram() %>%
   color_branches(k = 2)
 
 # Define a color function using a viridis palette.
 # Here we assume the PSI values range from 0 to 100 with a midpoint at 50.
 col_fun <- colorRamp2(
-  c(0, 50, 100),
+  c(-2, 0, 2),
   viridis(3)
 )
 
@@ -3384,26 +3855,17 @@ number_splices <- 8
 
 # Create a reference table for enrichment analysis by combining events and genes
 reference_table <- data.frame(
-  EVENT = c(
-    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "EVENT"],
-    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "EVENT"],
-    differential_spire_exons[abs(differential_spire_exons$deltapsi) >= 0.1, "EVENT"],
-    differential_spire_introns[abs(differential_spire_introns$deltapsi) >= 0.1, "EVENT"]
-  ),
-  GENE = c(
-    differential_fmndko_exons[abs(differential_fmndko_exons$deltapsi) >= 0.1, "GENE"],
-    differential_fmndko_introns[abs(differential_fmndko_introns$deltapsi) >= 0.1, "GENE"],
-    differential_spire_exons[abs(differential_spire_exons$deltapsi) >= 0.1, "GENE"],
-    differential_spire_introns[abs(differential_spire_introns$deltapsi) >= 0.1, "GENE"]
+  EVENT = splicing_events$PSI$EVENT,
+  GENE = splicing_events$PSI$GENE
   )
-)
+
 
 # --------------------------
 # Initial Heatmap and Annotations
 # --------------------------
 # Calculate the initial heatmap to obtain cluster order
 ht <- Heatmap(
-  spire_unique, name = "PSI",
+  tub_unique, name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
   cluster_columns = col_dend,
@@ -3434,8 +3896,8 @@ clustered_events <- row_order(ht)
 # Build the left annotation: Protein impact points.
 protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
                              header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
-events_for_impact <- rownames(spire_unique)
-final_impact <- data.frame(EventID = rownames(spire_unique)) %>%  
+events_for_impact <- rownames(tub_unique)
+final_impact <- data.frame(EventID = rownames(tub_unique)) %>%  
   left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
   mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
   mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
@@ -3505,10 +3967,10 @@ set.seed(44)
 # --------------------------
 # Final Heatmap with Annotations
 # --------------------------
-colnames(spire_unique) <- c("Control 1", "Control 2", "Control 3", "Spire KO 1", "Spire KO 2", "Spire KO 3")
+#colnames(spire_unique) <- c("Control 1", "Control 2", "Control 3", "Spire KO 1", "Spire KO 2", "Spire KO 3")
 
 ht <- Heatmap(
-  spire_unique, name = "PSI",
+  tub_unique, name = "PSI",
   clustering_distance_rows = "pearson",
   col = col_fun,
   cluster_columns = col_dend,
@@ -3516,7 +3978,7 @@ ht <- Heatmap(
   column_title_gp = gpar(fontsize = 18, fontface = "bold"),
   row_title = "Splicing Events of |dPSI| >= 0.1",
   row_title_gp = gpar(fontsize = 28, fontface = "italic"),
-  column_names_rot = 0,
+  column_names_rot = 45,
   column_dend_reorder = 1:6,
   row_km = number_splices,
   left_annotation = left_annotation,    # Protein impact annotation on left
