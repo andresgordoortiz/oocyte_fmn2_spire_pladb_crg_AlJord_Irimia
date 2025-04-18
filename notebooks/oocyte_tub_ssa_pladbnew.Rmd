@@ -215,7 +215,7 @@ DT::datatable(metadata, options = list(pageLength = nrow(metadata), scrollX = TR
 
 ### Spliceostatin A & Tuberdicin
 
-```{r metadata pladb}
+```{r metadata ssa tub}
 # Load metadata file containing sample information
 metadata_ssa_tub<-data.frame(samples=colnames(ssa_tub_events$PSI)[7:15],condition=rep(c("control","tub_10mm","ssa_1mm"), each=3))
 DT::datatable(metadata_ssa_tub, options = list(pageLength = nrow(metadata), scrollX = TRUE))
@@ -1282,7 +1282,7 @@ volcano_plot
 
 ### PladB
 
-```{r spire fdr volcano exons}
+```{r plab fdr volcano exons}
 pladb_exons<-pladb_fdr_df[grepl("EX",pladb_fdr_df$EVENT),]
 
 
@@ -1396,7 +1396,7 @@ volcano_plot
 
 ### Spliceostatin A
 
-```{r spire fdr volcano exons}
+```{r ssa fdr volcano exons}
 ssa_exons<-ssa_fdr_df[grepl("EX",ssa_fdr_df$EVENT),]
 
 
@@ -1622,7 +1622,7 @@ datatable(
 
 ### Spliceostatin A
 
-```{r pladb combination table exons}
+```{r ssa combination table exons}
 # Render DataTable with enhancements
 datatable(
   differential_ssa_exons,
@@ -1811,7 +1811,7 @@ volcano_plot
 
 ### PladB
 
-```{r spire volcano introns}
+```{r pladb volcano introns}
 pladb_introns<-pladb_fdr_df[grepl("INT",pladb_fdr_df$EVENT),]
 
 pladb_introns$Shared <- ifelse(pladb_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
@@ -1921,7 +1921,7 @@ volcano_plot
 
 ### Spliceostatin A
 
-```{r spire volcano introns}
+```{r ssa volcano introns}
 ssa_introns<-ssa_fdr_df[grepl("INT",ssa_fdr_df$EVENT),]
 
 ssa_introns$Shared <- ifelse(ssa_introns$EVENT %in% shared_introns, "Shared", "Not Shared")
@@ -2220,7 +2220,7 @@ shared_alt<-intersect(shared_alt,differential_ssa_alt$EVENT)
 
 ### Tubercidin
 
-```{r tub volcano introns}
+```{r tub volcano alt}
 
 tub_alt<-tub_fdr_df[grepl("ALT",tub_fdr_df$EVENT),]
 
@@ -3201,7 +3201,7 @@ datatable(
 
 ## PladB { .tabset}
 
-```{r spire enrichr}
+```{r pladb enrichr}
 enrichdata<-enrichr(unique(c(differential_pladb$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 
@@ -3257,7 +3257,7 @@ datatable(
 
 ## Spliceostatin A { .tabset}
 
-```{r spire enrichr}
+```{r ssa enrichr}
 enrichdata<-enrichr(unique(c(differential_ssa$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
 
 
@@ -3265,7 +3265,7 @@ enrichdata<-enrichr(unique(c(differential_ssa$GENE)), databases = c("GO_Biologic
 
 ### GO Biological Process
 
-```{r spire bioprocess, fig.width=10, fig.height=8}
+```{r ssa bioprocess, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[1]])
 datatable(
   enrichdata[[1]],
@@ -3281,7 +3281,7 @@ datatable(
 
 ### GO Cellular Component
 
-```{r spire cellcomponent, fig.width=10, fig.height=8}
+```{r ssa cellcomponent, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[2]])
 datatable(
   enrichdata[[2]],
@@ -3297,7 +3297,7 @@ datatable(
 
 ### GO Molecular Function
 
-```{r spire molfunction, fig.width=10, fig.height=8}
+```{r ssa molfunction, fig.width=10, fig.height=8}
 plotEnrich(enrichdata[[3]])
 datatable(
   enrichdata[[3]],
