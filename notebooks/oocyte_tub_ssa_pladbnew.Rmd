@@ -210,7 +210,7 @@ alt_ssa_tub <- filterEvents(ssa_tub_events, types = c("Alt5", "Alt3"), N = 10)
 ```{r metadata pladb}
 # Load metadata file containing sample information
 metadata_pladb<-data.frame(samples=colnames(pladb_events$PSI)[7:12],condition=rep(c("control_pladb","pladb_3mm"), each=3))
-DT::datatable(metadata, options = list(pageLength = nrow(metadata), scrollX = TRUE))
+DT::datatable(metadata_pladb, options = list(pageLength = nrow(metadata_pladb), scrollX = TRUE))
 ```
 
 ### Spliceostatin A & Tuberdicin
@@ -218,7 +218,7 @@ DT::datatable(metadata, options = list(pageLength = nrow(metadata), scrollX = TR
 ```{r metadata ssa tub}
 # Load metadata file containing sample information
 metadata_ssa_tub<-data.frame(samples=colnames(ssa_tub_events$PSI)[7:15],condition=rep(c("control","tub_10mm","ssa_1mm"), each=3))
-DT::datatable(metadata_ssa_tub, options = list(pageLength = nrow(metadata), scrollX = TRUE))
+DT::datatable(metadata_ssa_tub, options = list(pageLength = nrow(metadata_ssa_tub), scrollX = TRUE))
 ```
 
 ---
