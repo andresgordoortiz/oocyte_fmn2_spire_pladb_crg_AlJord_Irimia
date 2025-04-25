@@ -435,7 +435,177 @@ print(plot_psi_distribution)
 
 ```
 
+```{r skewness tub}
 
+ensembl <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+
+# Retrieve gene symbols
+gene_conversion <- getBM(
+  attributes = c("mgi_symbol","ensembl_gene_id"),
+  filters = "mgi_symbol",
+  values = tub_exons_df$GENE,
+  mart = ensembl
+)
+
+# Merge gene symbols and exon counts
+tub_exons_df <- tub_exons_df %>%
+  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id), by = c("GENE" = "mgi_symbol")) %>%
+  left_join(exons_per_gene %>% select(gene, exons), by = c("ensembl_gene_id" = "gene")) %>%
+  rename(numb_exons = exons)
+
+
+library(dplyr)
+library(ggplot2)
+library(purrr)
+
+set.seed(123)
+
+# 1. Manual skewness
+skewness_manual <- function(x) {
+  x <- na.omit(x)
+  n <- length(x)
+  if (n < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / n / (s^3)
+}
+
+# 2. Bin the data
+binned <- tub_exons_df %>%
+  filter(abs(difference) > 0, !is.na(numb_exons)) %>%
+  mutate(
+    exon_bin = cut(numb_exons,
+                   breaks = c(0, 10, 50, Inf),
+                   labels = c("1–10", "11–50", "51+"),
+                   right = TRUE)
+  ) %>%
+  filter(!is.na(exon_bin))
+
+# 3. Bootstrap skewness per bin
+boot_results <- binned %>%
+  group_by(exon_bin) %>%
+  summarise(
+    boot_skews = list(replicate(
+      1000,
+      skewness_manual(sample(difference, replace = TRUE))
+    )),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    skew_estimate = map_dbl(boot_skews, ~ mean(.x, na.rm = TRUE)),
+    ci_lower      = map_dbl(boot_skews, ~ quantile(.x, 0.025, na.rm = TRUE)),
+    ci_upper      = map_dbl(boot_skews, ~ quantile(.x, 0.975, na.rm = TRUE)),
+    significant   = (ci_lower > 0) | (ci_upper < 0)
+  )
+
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+font_add_google(name = "Courier Prime", family = "Courier Prime") 
+library(showtext)
+showtext_auto()
+
+boot_long <- boot_results %>%
+  mutate(exon_bin = factor(exon_bin,
+                           levels = c("1–10", "11–50", "51+"))) %>%
+  unnest(boot_skews)
+
+p <- ggplot(boot_results,
+            aes(x = exon_bin, y = skew_estimate)) +
+  
+  # jittered bootstraps
+  geom_jitter(data = boot_long,
+              aes(fill = exon_bin, y = boot_skews),
+              position = position_jitter(width = 0.15, height = 0),
+              shape = 21,
+              color = "gray30", 
+              size = 2,
+              alpha = 0.05,
+              stroke = 0.8) +
+
+  # polynomial regression (2nd degree)
+  geom_smooth(data = boot_long,
+              aes(x = as.numeric(exon_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x, 2),
+              se = FALSE,
+              linetype = "dashed",
+              color = "grey40",    # grey line
+              size = 1.5) +        # thicker
+
+  # main points
+  geom_point(aes(fill = exon_bin, color = significant, shape = significant),
+             size = 4, alpha = 0.9, stroke = 1) +
+
+  scale_fill_manual(values = c(
+    "1–10"  = "#d1cbe5",
+    "11–50" = "#9671bd",
+    "51+"   = "#6a408d"
+  ), name = "Exon Bin",
+     guide = guide_legend(override.aes = list(shape = 21, 
+                                             alpha = 1,
+                                             size = 4,
+                                             color = "gray30"))) +
+            
+
+  # significance aesthetics
+  scale_color_manual(values = c(`TRUE`  = "#378d94",
+                                `FALSE` = "grey60"),
+                     name = "Significant") +
+  scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
+                     name = "Significant") +
+
+  # densify grid on y-axis
+  scale_y_continuous(
+    breaks = pretty_breaks(n = 5),         # fewer major
+    minor_breaks = waiver(),               # you can specify seq(min, max, length.out) here
+    expand = expansion(add = 0.1)
+  ) +
+
+  # densify grid on x-axis
+  scale_x_discrete(expand = expansion(add = 0.5)) +
+
+  # labels
+  labs(
+    title = "Bootstrapped Skewness of Tuberdicin Splicing",
+    x     = "Number of exons per gene",
+    y     = "Skewness of ΔPSI Distribution"
+  ) +
+
+  # theme tweaks
+  # theme tweaks
+  theme_minimal(base_family = "Courier Prime") +
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "top",
+    legend.direction = "horizontal",
+
+    # Remove grid lines, but keep the square
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # add a border around the panel
+    panel.border     = element_rect(fill = NA,
+                                    color = alpha("black", 0.3),
+                                    size = 0.5),
+
+    plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title       = element_text(size = 12),
+    axis.text        = element_text(size = 10),
+  ) +
+
+  # Add a grey line at y = 0
+  geom_hline(yintercept = 0, color = "grey50", linetype = "solid", size = 0.5)
+
+print(p)
+
+
+ggsave("tub_exons.svg",
+       width  = 6,
+       height = 6)
+
+```
 
 ### PladB
 
@@ -524,6 +694,178 @@ plot_psi_distribution <- ggplot(pladb_exons_df, aes(x = difference)) +
 ggsave("final_plots/pladb_exons_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 print(plot_psi_distribution)
 
+
+```
+
+
+```{r skewness pladb}
+
+
+# Retrieve gene symbols
+gene_conversion <- getBM(
+  attributes = c("mgi_symbol","ensembl_gene_id"),
+  filters = "mgi_symbol",
+  values = pladb_exons_df$GENE,
+  mart = ensembl
+)
+
+# Merge gene symbols and exon counts
+pladb_exons_df <- pladb_exons_df %>%
+  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id), by = c("GENE" = "mgi_symbol")) %>%
+  left_join(exons_per_gene %>% select(gene, exons), by = c("ensembl_gene_id" = "gene")) %>%
+  rename(numb_exons = exons)
+
+
+library(dplyr)
+library(ggplot2)
+library(purrr)
+
+set.seed(123)
+
+# 1. Manual skewness
+skewness_manual <- function(x) {
+  x <- na.omit(x)
+  n <- length(x)
+  if (n < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / n / (s^3)
+}
+
+# 2. Bin the data
+binned <- pladb_exons_df %>%
+  filter(abs(difference) > 0, !is.na(numb_exons)) %>%
+  mutate(
+    exon_bin = cut(numb_exons,
+                   breaks = c(0, 10, 50, Inf),
+                   labels = c("1–10", "11–50", "51+"),
+                   right = TRUE)
+  ) %>%
+  filter(!is.na(exon_bin))
+
+# 3. Bootstrap skewness per bin
+boot_results <- binned %>%
+  group_by(exon_bin) %>%
+  summarise(
+    boot_skews = list(replicate(
+      1000,
+      skewness_manual(sample(difference, replace = TRUE))
+    )),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    skew_estimate = map_dbl(boot_skews, ~ mean(.x, na.rm = TRUE)),
+    ci_lower      = map_dbl(boot_skews, ~ quantile(.x, 0.025, na.rm = TRUE)),
+    ci_upper      = map_dbl(boot_skews, ~ quantile(.x, 0.975, na.rm = TRUE)),
+    significant   = (ci_lower > 0) | (ci_upper < 0)
+  )
+
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+font_add_google(name = "Courier Prime", family = "Courier Prime") 
+library(showtext)
+showtext_auto()
+
+boot_long <- boot_results %>%
+  mutate(exon_bin = factor(exon_bin,
+                           levels = c("1–10", "11–50", "51+"))) %>%
+  unnest(boot_skews)
+
+p <- ggplot(boot_results,
+            aes(x = exon_bin, y = skew_estimate)) +
+  
+  # jittered bootstraps
+  geom_jitter(data = boot_long,
+              aes(fill = exon_bin, y = boot_skews),
+              position = position_jitter(width = 0.15, height = 0),
+              shape = 21,
+              color = "gray30", 
+              size = 2,
+              alpha = 0.05,
+              stroke = 0.8) +
+
+  # polynomial regression (2nd degree)
+  geom_smooth(data = boot_long,
+              aes(x = as.numeric(exon_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x, 2),
+              se = FALSE,
+              linetype = "dashed",
+              color = "grey40",    # grey line
+              size = 1.5) +        # thicker
+
+  # main points
+  geom_point(aes(fill = exon_bin, color = significant, shape = significant),
+             size = 4, alpha = 0.9, stroke = 1) +
+
+  scale_fill_manual(values = c(
+    "1–10"  = "#d1cbe5",
+    "11–50" = "#9671bd",
+    "51+"   = "#6a408d"
+  ), name = "Exon Bin",
+     guide = guide_legend(override.aes = list(shape = 21, 
+                                             alpha = 1,
+                                             size = 4,
+                                             color = "gray30"))) +
+            
+
+  # significance aesthetics
+  scale_color_manual(values = c(`TRUE`  = "#378d94",
+                                `FALSE` = "grey60"),
+                     name = "Significant") +
+  scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
+                     name = "Significant") +
+
+  # densify grid on y-axis
+  scale_y_continuous(
+    breaks = pretty_breaks(n = 5),         # fewer major
+    minor_breaks = waiver(),               # you can specify seq(min, max, length.out) here
+    expand = expansion(add = 0.1)
+  ) +
+
+  # densify grid on x-axis
+  scale_x_discrete(expand = expansion(add = 0.5)) +
+
+  # labels
+  labs(
+    title = "Bootstrapped Skewness of Pladienolide B Splicing",
+    x     = "Number of exons per gene",
+    y     = "Skewness of ΔPSI Distribution"
+  ) +
+
+  # theme tweaks
+  # theme tweaks
+  theme_minimal(base_family = "Courier Prime") +
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "top",
+    legend.direction = "horizontal",
+
+    # Remove grid lines, but keep the square
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # add a border around the panel
+    panel.border     = element_rect(fill = NA,
+                                    color = alpha("black", 0.3),
+                                    size = 0.5),
+
+    plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title       = element_text(size = 12),
+    axis.text        = element_text(size = 10),
+  ) +
+
+  # Add a grey line at y = 0
+  geom_hline(yintercept = 0, color = "grey50", linetype = "solid", size = 0.5)
+
+print(p)
+
+
+ggsave("pladb_exons.svg",
+       width  = 6,
+       height = 6)
 
 ```
 
@@ -617,6 +959,176 @@ print(plot_psi_distribution)
 
 ```
 
+```{r skewness ssa}
+
+
+# Retrieve gene symbols
+gene_conversion <- getBM(
+  attributes = c("mgi_symbol","ensembl_gene_id"),
+  filters = "mgi_symbol",
+  values = ssa_exons_df$GENE,
+  mart = ensembl
+)
+
+# Merge gene symbols and exon counts
+ssa_exons_df <- ssa_exons_df %>%
+  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id), by = c("GENE" = "mgi_symbol")) %>%
+  left_join(exons_per_gene %>% select(gene, exons), by = c("ensembl_gene_id" = "gene")) %>%
+  rename(numb_exons = exons)
+
+
+library(dplyr)
+library(ggplot2)
+library(purrr)
+
+set.seed(123)
+
+# 1. Manual skewness
+skewness_manual <- function(x) {
+  x <- na.omit(x)
+  n <- length(x)
+  if (n < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / n / (s^3)
+}
+
+# 2. Bin the data
+binned <- ssa_exons_df %>%
+  filter(abs(difference) > 0, !is.na(numb_exons)) %>%
+  mutate(
+    exon_bin = cut(numb_exons,
+                   breaks = c(0, 10, 50, Inf),
+                   labels = c("1–10", "11–50", "51+"),
+                   right = TRUE)
+  ) %>%
+  filter(!is.na(exon_bin))
+
+# 3. Bootstrap skewness per bin
+boot_results <- binned %>%
+  group_by(exon_bin) %>%
+  summarise(
+    boot_skews = list(replicate(
+      1000,
+      skewness_manual(sample(difference, replace = TRUE))
+    )),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    skew_estimate = map_dbl(boot_skews, ~ mean(.x, na.rm = TRUE)),
+    ci_lower      = map_dbl(boot_skews, ~ quantile(.x, 0.025, na.rm = TRUE)),
+    ci_upper      = map_dbl(boot_skews, ~ quantile(.x, 0.975, na.rm = TRUE)),
+    significant   = (ci_lower > 0) | (ci_upper < 0)
+  )
+
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+font_add_google(name = "Courier Prime", family = "Courier Prime") 
+library(showtext)
+showtext_auto()
+
+boot_long <- boot_results %>%
+  mutate(exon_bin = factor(exon_bin,
+                           levels = c("1–10", "11–50", "51+"))) %>%
+  unnest(boot_skews)
+
+p <- ggplot(boot_results,
+            aes(x = exon_bin, y = skew_estimate)) +
+  
+  # jittered bootstraps
+  geom_jitter(data = boot_long,
+              aes(fill = exon_bin, y = boot_skews),
+              position = position_jitter(width = 0.15, height = 0),
+              shape = 21,
+              color = "gray30", 
+              size = 2,
+              alpha = 0.05,
+              stroke = 0.8) +
+
+  # polynomial regression (2nd degree)
+  geom_smooth(data = boot_long,
+              aes(x = as.numeric(exon_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x, 2),
+              se = FALSE,
+              linetype = "dashed",
+              color = "grey40",    # grey line
+              size = 1.5) +        # thicker
+
+  # main points
+  geom_point(aes(fill = exon_bin, color = significant, shape = significant),
+             size = 4, alpha = 0.9, stroke = 1) +
+
+  scale_fill_manual(values = c(
+    "1–10"  = "#d1cbe5",
+    "11–50" = "#9671bd",
+    "51+"   = "#6a408d"
+  ), name = "Exon Bin",
+     guide = guide_legend(override.aes = list(shape = 21, 
+                                             alpha = 1,
+                                             size = 4,
+                                             color = "gray30"))) +
+            
+
+  # significance aesthetics
+  scale_color_manual(values = c(`TRUE`  = "#378d94",
+                                `FALSE` = "grey60"),
+                     name = "Significant") +
+  scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
+                     name = "Significant") +
+
+  # densify grid on y-axis
+  scale_y_continuous(
+    breaks = pretty_breaks(n = 5),         # fewer major
+    minor_breaks = waiver(),               # you can specify seq(min, max, length.out) here
+    expand = expansion(add = 0.1)
+  ) +
+
+  # densify grid on x-axis
+  scale_x_discrete(expand = expansion(add = 0.5)) +
+
+  # labels
+  labs(
+    title = "Bootstrapped Skewness of Spliceostatin A Splicing",
+    x     = "Number of exons per gene",
+    y     = "Skewness of ΔPSI Distribution"
+  ) +
+
+  # theme tweaks
+  # theme tweaks
+  theme_minimal(base_family = "Courier Prime") +
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "top",
+    legend.direction = "horizontal",
+
+    # Remove grid lines, but keep the square
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # add a border around the panel
+    panel.border     = element_rect(fill = NA,
+                                    color = alpha("black", 0.3),
+                                    size = 0.5),
+
+    plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title       = element_text(size = 12),
+    axis.text        = element_text(size = 10),
+  ) +
+
+  # Add a grey line at y = 0
+  geom_hline(yintercept = 0, color = "grey50", linetype = "solid", size = 0.5)
+
+print(p)
+
+
+ggsave("ssa_exons.svg",
+       width  = 6,
+       height = 6)
+
+```
 
 ## Introns
 
@@ -1144,6 +1656,41 @@ tub_fdr_df<-read.csv("tables_10n/tub_fdr.csv")[,-1]
 pladb_fdr_df<-read.csv("tables_10n/pladb_fdr.csv")[,-1]
 ssa_fdr_df<-read.csv("tables_10n/ssa_fdr.csv")[,-1]
 
+consertable<- read.delim("EVENT_CONSERVATION.tab", header = TRUE, sep = "\t") %>%
+  filter(grepl("Mmu", EventID))
+
+
+tub_human <- tub_fdr_df %>%
+  filter(FDR <= 0.05) %>%
+  left_join(consertable %>% select(EventID, ConservedID),
+            by = c("EVENT" = "EventID")) %>%
+  filter(grepl("Hsa", ConservedID)) %>%
+  # here: replace tiny deltapsi with 0
+  mutate(deltapsi = if_else(abs(deltapsi) < 0.001, 0, deltapsi)) %>%
+  select(GENE, EVENT, deltapsi, ConservedID) %>%
+  distinct(EVENT, .keep_all = TRUE)
+
+
+      
+pladb_human <- pladb_fdr_df %>%
+  filter(FDR<=0.05) %>%
+    left_join(consertable %>% select(EventID, ConservedID), by = c("EVENT" = "EventID")) %>%
+      filter(grepl("Hsa",ConservedID)) %>%
+    mutate(deltapsi = if_else(abs(deltapsi) < 0.001, 0, deltapsi)) %>%
+      select(GENE, EVENT, deltapsi, ConservedID) %>%
+  distinct(EVENT, .keep_all = TRUE)
+
+
+ssa_human <- ssa_fdr_df %>%
+  filter(FDR<=0.05) %>%
+    left_join(consertable %>% select(EventID, ConservedID), by = c("EVENT" = "EventID")) %>%
+      filter(grepl("Hsa",ConservedID)) %>%
+    mutate(deltapsi = if_else(abs(deltapsi) < 0.001, 0, deltapsi)) %>%
+      select(GENE, EVENT, deltapsi, ConservedID) %>%
+  distinct(EVENT, .keep_all = TRUE)
+
+      
+      
 
 differential_tub<-na.omit(tub_fdr_df[tub_fdr_df$FDR <= 0.05 & abs(tub_fdr_df$deltapsi) >= 0.1,])
 
@@ -3100,282 +3647,6 @@ p_genes
 ```
 
 
-# Enrichment Analysis with EnrichR of All Events { .tabset}
-
-The following ontology analysis uses all significant events regardless of type. No background gene list was used for the following enrichment analysis. For a background-aware ontology analysis, check the *Metascape* analysis.
-
-## Tubercidin { .tabset}
-
-```{r fmndko enrichr}
-enrichdata<-enrichr(unique(c(differential_tub$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-
-# Map to Entrez IDs
-genes<-unique(c(differential_pladb$GENE,differential_tub$GENE,differential_ssa$GENE))
-gene_df <- bitr(genes, fromType="SYMBOL", toType="ENTREZID", OrgDb=org.Mm.eg.db)
-background_df <- bitr(unique(splicing_events$PSI$GENE[!splicing_events$PSI$GENE %in% genes]), fromType="SYMBOL", toType="ENTREZID", OrgDb=org.Mm.eg.db)
-
-# Extract vectors
-gene_entrez <- gene_df$ENTREZID
-background_entrez <- background_df$ENTREZID
-
-# Example ranking metric (replace with your real data)
-scores <- differential_pladb$FDR
-
-
-names(scores) <- gene_df$ENTREZID
-ranks <- sort(scores, decreasing = TRUE)
-
-kegg_gsea <- gseKEGG(geneList     = ranks,
-                     organism     = 'mmu',
-                     nPerm        = 1000,
-                     minGSSize    = 10,
-                     pvalueCutoff = 0.05)
-
-# View results
-head(kegg_gsea)
-
-# Plot
-gseaplot2(kegg_gsea, geneSetID = kegg_gsea@result$ID[1])
-
-
-```
-
-
-### GO Biological Process
-
-```{r fmndko bioprocess, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Cellular Component
-
-```{r fmndko cellcomponent, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Molecular Function
-
-```{r fmndko molfunction, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-## PladB { .tabset}
-
-```{r pladb enrichr}
-enrichdata<-enrichr(unique(c(differential_pladb$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-
-```
-
-### GO Biological Process
-
-```{r spire bioprocess, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Cellular Component
-
-```{r spire cellcomponent, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Molecular Function
-
-```{r spire molfunction, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-## Spliceostatin A { .tabset}
-
-```{r ssa enrichr}
-enrichdata<-enrichr(unique(c(differential_ssa$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-
-
-```
-
-### GO Biological Process
-
-```{r ssa bioprocess, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Cellular Component
-
-```{r ssa cellcomponent, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Molecular Function
-
-```{r ssa molfunction, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-## Ontology of Shared Genes { .tabset}
-
-```{r shared enrichr}
-enrichdata<-enrichr(unique(shared_genes), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
-```
-
-
-### GO Biological Process
-
-```{r shared bioprocess, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[1]])
-
-datatable(
-  enrichdata[[1]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Cellular Component
-
-```{r shared cellcomponent, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[2]])
-
-datatable(
-  enrichdata[[2]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-### GO Molecular Function
-
-```{r shared molfunction, fig.width=10, fig.height=8}
-plotEnrich(enrichdata[[3]])
-
-rna_fmndko_genes <- unlist(strsplit(
-  enrichdata[[3]]$Genes[grepl("GO:0003723", enrichdata[[3]]$Term)], 
-  split = ";"
-))
-
-
-datatable(
-  enrichdata[[3]],
-  options = list(
-    pageLength = 10,                      # Rows per page
-    autoWidth = TRUE,                     # Adjust column widths automatically
-    dom = 'Bfrtip',                       # Add buttons for export
-    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
-  rownames = FALSE,                       # Disable row names
-  extensions = "Buttons"                  # Enable export buttons
-))
-```
-
-
 
 # Gene-centric Analysis { .tabset}
 
@@ -3789,7 +4060,7 @@ ggsave("ssa_splicing_events_plot.svg", plot = p2, width = 30, height = 12, dpi =
 print(p2)
 ```
 
-# Splicing Dynamics Heatmap Spire
+# Heatmap Tubercidin
 
 
 ```{r heatmap prep, results='hide', fig.show='hide'}
@@ -3809,34 +4080,22 @@ set.seed(44)
 # --------------------------
 # Get unique splicing events (remove NA events) and convert selected PSI columns to matrix
 
-tub_exons_df <- exons$PSI %>% 
-  filter(complete.cases(select(., 13:18)))
+tub_exons_df <- exons_ssa_tub$PSI %>% 
+  filter(complete.cases(select(., 7:12)))
 
 tub_unique <- tub_exons_df %>% distinct(EVENT, .keep_all = TRUE)
 rownames(tub_unique) <- tub_unique$EVENT
-tub_unique <- tub_unique[!is.na(tub_unique$EVENT), ][,c(7:9, 16:18)]
 
-
+tub_unique_all<-tub_unique
 # Filter rows based on differential events (|dPSI| >= 0.1)
 filtered_events <- unique(c(
-  differential_tub_exons$EVENT,
-  differential_tub_introns$EVENT
+  differential_tub_exons$EVENT[abs(differential_tub_exons$deltapsi)>=0.2],
+  differential_tub_introns$EVENT[abs(differential_tub_introns$deltapsi)>=0.2]
 ))
-tub_unique <- tub_unique[rownames(tub_unique) %in% filtered_events, ]
-events_selected<-rownames(tub_unique)
-
-tub_unique <- as_tibble(tub_unique) %>%
-  rowwise() %>%
-  mutate(across(everything(), ~ (. - mean(c_across(everything()), na.rm = TRUE)) / 
-                               sd(c_across(everything()), na.rm = TRUE))) %>%
-  ungroup() %>%
+tub_unique <- tub_unique[rownames(tub_unique) %in% filtered_events, ] %>%
+  select(7:12) %>%
   as.matrix()
-
-rownames(tub_unique)<-events_selected
-
-row_variances <- apply(tub_unique, 1, var, na.rm = TRUE)
-tub_unique <- tub_unique[ row_variances > 0, ]
-tub_unique<-na.omit(tub_unique)
+  
 
 
 # Create a dendrogram for the columns (using hierarchical clustering on the transposed data)
@@ -3847,16 +4106,16 @@ col_dend <- hclust(dist(t(tub_unique))) %>%
 # Define a color function using a viridis palette.
 # Here we assume the PSI values range from 0 to 100 with a midpoint at 50.
 col_fun <- colorRamp2(
-  c(-2, 0, 2),
+  c(0, 50, 100),
   viridis(3)
 )
 
-number_splices <- 8
+number_splices <- 4
 
 # Create a reference table for enrichment analysis by combining events and genes
 reference_table <- data.frame(
-  EVENT = splicing_events$PSI$EVENT,
-  GENE = splicing_events$PSI$GENE
+  EVENT = ssa_tub_events$PSI$EVENT,
+  GENE = ssa_tub_events$PSI$GENE
   )
 
 
@@ -3946,12 +4205,6 @@ for (i in 1:length(clustered_events)) {
     sep = "; \n"
   )
 }
-right_annotation <- rowAnnotation(
-  foo = anno_empty(
-    border = FALSE,
-    width = max_text_width(unlist(text_list)) + unit(4, "mm")
-  )
-)
 
 
 
@@ -3976,7 +4229,7 @@ ht <- Heatmap(
   cluster_columns = col_dend,
   column_title = "Oocytes Spire Samples",
   column_title_gp = gpar(fontsize = 18, fontface = "bold"),
-  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title = "Splicing Events of |dPSI| >= 0.2",
   row_title_gp = gpar(fontsize = 28, fontface = "italic"),
   column_names_rot = 45,
   column_dend_reorder = 1:6,
@@ -4014,7 +4267,7 @@ col_order <- unlist(column_order(ht), use.names = F)
 cluster_index <- unlist(lapply(seq_along(row_order(ht)), function(i) rep(i, length(row_order(ht)[[i]]))))
 
 # Reorder the original matrix based on clustering
-clustered_matrix <- spire_unique[row_order, col_order]
+clustered_matrix <- tub_unique[row_order, col_order]
 
 final_impact_string<-protein_impact %>%
   filter(EventID %in% events_for_impact) %>%
@@ -4045,21 +4298,21 @@ datatable(
 
 ### Same Heatmap but averaging PSI values from same condition
 
-```{r heatmap_plot short spire, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+```{r heatmap_plot short tub, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
 
-spire_unique_short <- cbind(
-  rowMeans(spire_unique[, 1:3]),
-  rowMeans(spire_unique[, 4:6])
+tub_unique_short <- cbind(
+  rowMeans(tub_unique[, 1:3]),
+  rowMeans(tub_unique[, 4:6])
 )
 
 # Convert to matrix and print result
-colnames(spire_unique_short) <- c("Control", "SpireKO")
+colnames(tub_unique_short) <- c("Control", "Tubercidin")
 
-spire_unique_short <- spire_unique_short[row_order,]
+spire_unique_short <- tub_unique_short[row_order,]
 
 ht <- Heatmap(
-  spire_unique_short,
+  tub_unique_short,
   name = "PSI",
   col = col_fun,
   column_title = "Oocytes Samples",
@@ -4100,44 +4353,36 @@ ht <- draw(ht)
 
 I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
 
-```{r protein impact psi spire, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
-
+```{r protein impact psi spire, out.width="100%"}
+# Load required libraries
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(rstatix)      # For pairwise comparisons and p-value adjustment
-library(ggpubr)       # For stat_pvalue_manual if needed
+library(rstatix)
+library(ggpubr)
 
-original_columns <- colnames(spire_unique)
-# Prepare the data frame
-spire_df <- as.data.frame(spire_unique) %>% 
-  rownames_to_column("EVENT") %>% 
+# Filter and reshape data
+filtered_events <- unique(c(
+  differential_tub_exons$EVENT,
+  differential_tub_introns$EVENT
+))
+
+tub_mat <- tub_unique_all[rownames(tub_unique_all) %in% filtered_events, ] %>%
+  select(7:12) %>%
+  as.matrix()
+
+original_cols <- colnames(tub_mat)
+
+tub_df <- as.data.frame(tub_mat) %>%
+  rownames_to_column("EVENT") %>%
   pivot_longer(
     cols = -EVENT,
     names_to = "sample",
     values_to = "value"
-  ) 
-
-# Modify dose based on sample name
-spire_df <- spire_df %>%
-  mutate(
-    variable_order = match(sample, original_columns),
-    group = ceiling(variable_order / 3),
-    condition = case_when(
-      str_detect(sample, "KO") ~ "KO",
-      str_detect(sample, "Cont") ~ "Control",
-      TRUE ~ NA_character_
-    ),
-    condition = factor(condition, levels = c("Control", "KO"))  # Ensure correct order
   ) %>%
-  select(-variable_order, -group)
-
-# Assign the protein impact based on matching EventID.
-spire_df$protein_impact <- final_impact_string$ONTO[match(spire_df$EVENT, final_impact_string$EventID)]
-
-# Cluster the protein_impact values into desired groups
-spire_df <- spire_df %>%
   mutate(
+    group_idx = match(sample, original_cols),
+    protein_impact = final_impact_string$ONTO[match(EVENT, final_impact_string$EventID)],
     protein_impact = case_when(
       grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
       grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
@@ -4145,68 +4390,481 @@ spire_df <- spire_df %>%
       grepl("In the CDS", protein_impact) ~ "CDS impacted",
       grepl("UTR", protein_impact) ~ "UTR",
       TRUE ~ "Unknown"
-    )
+    ),
+    group = ceiling(group_idx/3),
+    condition = factor(if_else(str_detect(sample, "tub"), "Tubercidin", "Control"),
+                       levels = c("Control", "Tubercidin"))
   ) %>%
-  arrange(EVENT, sample, condition)
+  select(-group_idx)
 
-# Function to calculate bootstrap confidence intervals
-bootstrap_ci <- function(values, n_bootstrap = 1000, conf_level = 0.95) {
-  boot_samples <- replicate(n_bootstrap, mean(sample(values, replace = TRUE)))
-  quantile(boot_samples, probs = c((1 - conf_level) / 2, 1 - (1 - conf_level) / 2), na.rm=TRUE)
+# Bootstrap confidence intervals
+bootstrap_ci <- function(x, nboot = 1000, conf = 0.95) {
+  boots <- replicate(nboot, mean(sample(x, replace = TRUE)))
+  quantile(boots, c((1 - conf) / 2, 1 - (1 - conf) / 2), na.rm = TRUE)
 }
 
-# Compute summary statistics with bootstrapped confidence intervals
-summary_df <- spire_df %>%
-  group_by(condition, protein_impact) %>%
+# Summaries per group with direct CI extraction
+summary_df <- tub_df %>%
+  group_by(protein_impact, condition) %>%
   summarise(
-    mean_value = mean(value),
-    sd_value = sd(value),
-    n = n(),
-    ci_lower = bootstrap_ci(value)[1],
-    ci_upper = bootstrap_ci(value)[2],
-    .groups = "drop"
+    mean_val   = mean(value),
+    n          = n(),
+    ci_lower   = bootstrap_ci(value)[1],
+    ci_upper   = bootstrap_ci(value)[2],
+    .groups    = "drop"
+  )
+
+# Statistical tests per facet
+tests <- tub_df %>%
+  group_by(protein_impact) %>%
+  t_test(value ~ condition) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance() %>%
+  add_xy_position(x = "condition")
+
+# Determine y-axis upper limit
+y_max <- max(tub_df$value, na.rm = TRUE) * 1.1
+
+# Create the plot
+impact_psi_plot <- ggplot(summary_df, aes(x = condition, y = mean_val, color = protein_impact, fill = protein_impact)) +
+  # raw points
+  geom_jitter(data = tub_df, aes(x = condition, y = value), width = 0.15, size = 1, alpha = 0.5, color = "grey50") +
+  # mean lines & points
+  geom_line(aes(group = protein_impact), size = 1) +
+  geom_point(size = 3) +
+  # confidence ribbons
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  # add p-value bars & stars
+  stat_pvalue_manual(tests, label = "p.adj.signif", tip.length = 0.02, bracket.size = 0.4) +
+  # facets
+  facet_wrap(~ protein_impact, scales = "free_y", ncol = 3) +
+  # axes and limits
+  scale_y_continuous(limits = c(0, y_max), expand = expansion(mult = c(0.02, 0.05))) +
+  # color palette
+  scale_color_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2") +
+  # theme
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_line(color = "grey90"),
+    strip.text        = element_text(face = "bold", size = 12),
+    axis.title        = element_text(face = "bold"),
+    legend.position   = "bottom"
+  ) +
+  labs(
+    x               = "Condition",
+    y               = "Mean PSI",
+    color           = "Protein Impact",
+    fill            = "Protein Impact"
+  )
+
+# Save
+ggsave("final_plots/protein_impact_plot_tub_improved.svg", impact_psi_plot, width = 12, height = 8)
+
+impact_psi_plot
+
+
+```
+
+
+# Heatmap Spliceostatin A
+
+
+```{r heatmap prep ssa, results='hide', fig.show='hide'}
+
+
+set.seed(44)
+
+# --------------------------
+# Data Preparation
+# --------------------------
+# Get unique splicing events (remove NA events) and convert selected PSI columns to matrix
+
+ssa_exons_df <- exons_ssa_tub$PSI %>% 
+  filter(complete.cases(select(., c(7:9, 13:15))))
+
+ssa_unique <- ssa_exons_df %>% distinct(EVENT, .keep_all = TRUE)
+rownames(ssa_unique) <- ssa_unique$EVENT
+
+ssa_unique_all<-ssa_unique
+# Filter rows based on differential events (|dPSI| >= 0.1)
+filtered_events <- unique(c(
+  differential_ssa_exons$EVENT[abs(differential_ssa_exons$deltapsi)>=0.2],
+  differential_ssa_introns$EVENT[abs(differential_ssa_introns$deltapsi)>=0.2]
+))
+ssa_unique <- ssa_unique[rownames(ssa_unique) %in% filtered_events, ] %>%
+  select(c(7:9, 13:15)) %>%
+  as.matrix()
+  
+
+
+# Create a dendrogram for the columns (using hierarchical clustering on the transposed data)
+col_dend <- hclust(dist(t(ssa_unique))) %>%
+  as.dendrogram() %>%
+  color_branches(k = 2)
+
+# Define a color function using a viridis palette.
+# Here we assume the PSI values range from 0 to 100 with a midpoint at 50.
+col_fun <- colorRamp2(
+  c(0, 50, 100),
+  viridis(3)
+)
+
+number_splices <- 4
+
+# Create a reference table for enrichment analysis by combining events and genes
+reference_table <- data.frame(
+  EVENT = ssa_tub_events$PSI$EVENT,
+  GENE = ssa_tub_events$PSI$GENE
   )
 
 
-# Set the upper y-axis limit dynamically
-max_y <- max(spire_df$value, na.rm = TRUE) * 1.1  
+# --------------------------
+# Initial Heatmap and Annotations
+# --------------------------
+# Calculate the initial heatmap to obtain cluster order
+ht <- Heatmap(
+  ssa_unique, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns = col_dend,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = 1:6,
+  row_km = number_splices,
+  row_dend_reorder = FALSE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(8, "mm"),      # increased gap for white space between rows
+  column_gap = unit(8, "mm"),   # increased gap for white space between columns
+  rect_gp = gpar(col = "white", lwd = 0.3),
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(20, 30),
+    legend_direction = "vertical"
+  )
+)
+ht <- draw(ht)
+clustered_events <- row_order(ht)
 
-# Plot with refined settings
-impact_psi_plot<-ggplot(summary_df, 
-       aes(x = condition, y = mean_value, group = protein_impact, color = protein_impact, fill = protein_impact)) +
-  geom_point(data = spire_df, aes(x = condition, y = value), color = "grey70", alpha = 0.4, size = 1) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
-  
+# Build the left annotation: Protein impact points.
+protein_impact <- read.table("PROT_IMPACT-mm10-v2.3.tab", sep = "\t",
+                             header = TRUE, stringsAsFactors = FALSE, fill = TRUE, quote = "")
+events_for_impact <- rownames(ssa_unique)
+final_impact <- data.frame(EventID = rownames(ssa_unique)) %>%  
+  left_join(protein_impact %>% filter(EventID %in% events_for_impact), by = "EventID") %>%
+  mutate(ONTO = ifelse(grepl("isoform", ONTO, ignore.case = TRUE), "-1", ONTO)) %>%
+  mutate(ONTO = ifelse(grepl("UTR", ONTO, ignore.case = TRUE), "-2", ONTO)) %>%
+  mutate(ONTO = case_when(
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("inclusion", ONTO, ignore.case = TRUE) ~ "2",
+    grepl("ORF", ONTO, ignore.case = TRUE) & grepl("exclusion", ONTO, ignore.case = TRUE) ~ "1",
+    TRUE ~ ONTO
+  )) %>%
+  mutate(ONTO = as.numeric(ONTO)) %>%
+  replace_na(list(ONTO = 0))
+left_annotation <- rowAnnotation(
+  Impact = anno_points(
+    final_impact$ONTO,
+    width = unit(4, "cm"),
+    size = unit(4, "mm"),
+    axis_param = list(
+      side = "top",
+      at = -2:2,
+      labels = c(
+        "Regulatory (5´UTR)",
+        "Alternative Isoform",
+        "Unknown/NonCoding",
+        "ORF disruption upon exclusion",
+        "ORF disruption upon inclusion"
+      ),
+      labels_rot = 45,
+      gp = gpar(fontsize = 15)
+    )
+  )
+)
+
+# Perform enrichment analysis for each cluster and prepare right annotation text.
+text_list <- list()
+for (i in 1:length(clustered_events)) {
+  enrich_events <- enrichr(
+    reference_table$GENE[reference_table$EVENT %in% rownames(spire_unique)[clustered_events[[i]]]],
+    databases = c("GO_Biological_Process_2023", "GO_Cellular_Component_2023", "GO_Molecular_Function_2023")
+  )
+  text_list[[paste0("text", i)]] <- paste(
+    enrich_events$GO_Cellular_Component_2023$Term[1],
+    enrich_events$GO_Cellular_Component_2023$Term[2],
+    enrich_events$GO_Cellular_Component_2023$Term[3],
+    enrich_events$GO_Molecular_Function_2023$Term[1],
+    enrich_events$GO_Molecular_Function_2023$Term[2],
+    enrich_events$GO_Molecular_Function_2023$Term[3],
+    sep = "; \n"
+  )
+}
 
 
-  # Facet by protein impact
-  facet_wrap(~ protein_impact) +
 
-  # Adjust x and y axes
-  scale_y_continuous(limits = c(0, max_y), expand = expansion(mult = c(0.05, 0.05))) +
-
-  # Clean and minimal theme
-  theme_minimal(base_size = 14) +
-  theme(
-    panel.grid.major = element_line(color = "grey85", size = 0.3),
-    panel.grid.minor = element_blank(),
-    strip.text = element_text(face = "bold", size = 12),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(size = 10)
-  ) +
-  
-  # Labels
-  labs(x = "Condition", 
-       y = "Mean PSI", 
-       color = "Protein Impact", 
-       fill = "Protein Impact")
-ggsave("final_plots/protein_impact_plot_spire.svg", impact_psi_plot, width = 12, height = 8)
-
-impact_psi_plot
 ```
 
+### Heatmap showcasing the PSI of every candidate EX and IN
+
+**Note**: Gene ontology of *Cellular Component* and *Molecular Function* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
+
+```{r heatmap_plot ssa, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+# --------------------------
+# Final Heatmap with Annotations
+# --------------------------
+#colnames(spire_unique) <- c("Control 1", "Control 2", "Control 3", "Spire KO 1", "Spire KO 2", "Spire KO 3")
+
+ht <- Heatmap(
+  ssa_unique, name = "PSI",
+  clustering_distance_rows = "pearson",
+  col = col_fun,
+  cluster_columns = col_dend,
+  column_title = "Oocytes Spire Samples",
+  column_title_gp = gpar(fontsize = 18, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.2",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = 1:6,
+  row_km = number_splices,
+  left_annotation = left_annotation,    # Protein impact annotation on left
+  right_annotation = right_annotation,  # Enrichment annotation on right
+  row_dend_reorder = FALSE,
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "black"),
+  show_row_names = FALSE,
+  row_gap = unit(5, "mm"),      # Increased white space between rows
+  column_gap = unit(5,"mm"),   # Increased white space between columns
+  rect_gp = gpar(col = "white", lwd = 0.1),  # Adjusted white grid visibility
+  
+)
+ht <- draw(ht)
+
+# Decorate the right annotation slices with the enrichment text.
+for (i in seq_along(clustered_events)) {
+  decorate_annotation("foo", slice = i, {
+    grid.rect(x = 0, width = unit(2, "mm"), gp = gpar(fill = i, col = NA), just = "left")
+    grid.text(paste(text_list[[i]], collapse = "\n"), x = unit(4, "mm"), just = "left", gp = gpar(fontsize = 20))
+  })
+}
+```
+
+### Table of Events from Heatmap
+
+**Note**: the *heatmap_cluster* column references to the heatmap row cluster (from top to bottom) that specific event belongs to.
+
+```{r, table heatmap final ssa}
+row_order <- unlist(row_order(ht), use.names = F)
+col_order <- unlist(column_order(ht), use.names = F)
+
+
+cluster_index <- unlist(lapply(seq_along(row_order(ht)), function(i) rep(i, length(row_order(ht)[[i]]))))
+
+# Reorder the original matrix based on clustering
+clustered_matrix <- ssa_unique[row_order, col_order]
+
+final_impact_string<-protein_impact %>%
+  filter(EventID %in% events_for_impact) %>%
+  arrange(match(EventID, events_for_impact))
+final_impact_string<- final_impact_string[match(rownames(clustered_matrix),final_impact_string$EventID),]
+
+
+heatmap_dataframe<-tibble(EVENT=rownames(clustered_matrix), heatmap_cluster=cluster_index, protein_impact=final_impact_string$ONTO)
+heatmap_dataframe$GENE<-reference_table$GENE[match(heatmap_dataframe$EVENT, reference_table$EVENT)]
+heatmap_dataframe<-select(heatmap_dataframe, GENE, EVENT, protein_impact, heatmap_cluster)
+
+heatmap_dataframe_ssa<-heatmap_dataframe
+# Render DataTable with enhancements
+datatable(
+  heatmap_dataframe,
+  options = list(
+    pageLength = 10,                      # Rows per page
+    autoWidth = TRUE,                     # Adjust column widths automatically
+    dom = 'Bfrtip',                       # Add buttons for export
+    buttons = c("copy", "csv", "excel", "pdf"),  # Simplified button definitions
+  rownames = FALSE,                       # Disable row names
+  extensions = "Buttons"                  # Enable export buttons
+))
+
+
+```
+
+
+### Same Heatmap but averaging PSI values from same condition
+
+```{r heatmap_plot short ssa, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
+set.seed(44)
+
+ssa_unique_short <- cbind(
+  rowMeans(ssa_unique[, 1:3]),
+  rowMeans(ssa_unique[, 4:6])
+)
+
+# Convert to matrix and print result
+colnames(ssa_unique_short) <- c("Control", "Spliceostatin")
+
+spire_unique_short <- ssa_unique_short[row_order,]
+
+ht <- Heatmap(
+  ssa_unique_short,
+  name = "PSI",
+  col = col_fun,
+  column_title = "Oocytes Samples",
+  column_title_gp = gpar(fontsize = 24, fontface = "bold"),
+  row_title = "Splicing Events of |dPSI| >= 0.1",
+  row_title_gp = gpar(fontsize = 28, fontface = "italic"),
+  column_names_rot = 45,
+  column_dend_reorder = c(1:3),
+  cluster_rows = FALSE,   # <-- This disables row clustering
+  cluster_columns = FALSE, # Optionally disable column clustering if desired
+  column_names_gp = gpar(fontsize = 18, fontface = "bold", col = "darkblue"),
+  show_row_names = FALSE,
+  row_gap = unit(6, "mm"),      # Adjust the gap size between rows
+  left_annotation = left_annotation[row_order],   # Add the points on the left
+  right_annotation = right_annotation[row_order],
+  column_gap = unit(4, "mm"),   # Adjust the gap size between columns
+  heatmap_legend_param = list(
+    title = "PSI Value",
+    title_gp = gpar(fontsize = 30),
+    labels_gp = gpar(fontsize = 30),
+    legend_position = c(-20, 0),  # Move the legend closer to the center (x, y coordinates)
+    legend_direction = "vertical" # Align the legend vertically
+  )
+)
+
+# Draw the heatmap
+ht <- draw(ht)
+
+# Draw the heatmap
+
+
+
+
+```
+
+
+### Protein Impact on Splicing Events
+
+I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
+
+```{r protein impact psi ssa, out.width="100%"}
+# Load required libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+
+# Filter and reshape data
+filtered_events <- unique(c(
+  differential_ssa_exons$EVENT,
+  differential_ssa_introns$EVENT
+))
+
+ssa_mat <- ssa_unique_all[rownames(ssa_unique_all) %in% filtered_events, ] %>%
+  select(c(7:9, 13:15)) %>%
+  as.matrix()
+
+original_cols <- colnames(ssa_mat)
+
+ssa_df <- as.data.frame(ssa_mat) %>%
+  rownames_to_column("EVENT") %>%
+  pivot_longer(
+    cols = -EVENT,
+    names_to = "sample",
+    values_to = "value"
+  ) %>%
+  mutate(
+    group_idx = match(sample, original_cols),
+    protein_impact = final_impact_string$ONTO[match(EVENT, final_impact_string$EventID)],
+    protein_impact = case_when(
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
+      grepl("Alternative", protein_impact) ~ "Alternative",
+      grepl("In the CDS", protein_impact) ~ "CDS impacted",
+      grepl("UTR", protein_impact) ~ "UTR",
+      TRUE ~ "Unknown"
+    ),
+    group = ceiling(group_idx/3),
+    condition = factor(if_else(str_detect(sample, "ssa"), "Spliceostatin", "Control"),
+                       levels = c("Control", "Spliceostatin"))
+  ) %>%
+  select(-group_idx)
+
+# Bootstrap confidence intervals
+bootstrap_ci <- function(x, nboot = 1000, conf = 0.95) {
+  boots <- replicate(nboot, mean(sample(x, replace = TRUE)))
+  quantile(boots, c((1 - conf) / 2, 1 - (1 - conf) / 2), na.rm = TRUE)
+}
+
+# Summaries per group with direct CI extraction
+summary_df <- ssa_df %>%
+  group_by(protein_impact, condition) %>%
+  summarise(
+    mean_val   = mean(value),
+    n          = n(),
+    ci_lower   = bootstrap_ci(value)[1],
+    ci_upper   = bootstrap_ci(value)[2],
+    .groups    = "drop"
+  )
+
+# Statistical tests per facet
+tests <- ssa_df %>%
+  group_by(protein_impact) %>%
+  t_test(value ~ condition) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance() %>%
+  add_xy_position(x = "condition")
+
+# Determine y-axis upper limit
+y_max <- max(ssa_df$value, na.rm = TRUE) * 1.1
+
+# Create the plot
+impact_psi_plot <- ggplot(summary_df, aes(x = condition, y = mean_val, color = protein_impact, fill = protein_impact)) +
+  # raw points
+  geom_jitter(data = ssa_df, aes(x = condition, y = value), width = 0.15, size = 1, alpha = 0.5, color = "grey50") +
+  # mean lines & points
+  geom_line(aes(group = protein_impact), size = 1) +
+  geom_point(size = 3) +
+  # confidence ribbons
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  # add p-value bars & stars
+  stat_pvalue_manual(tests, label = "p.adj.signif", tip.length = 0.02, bracket.size = 0.4) +
+  # facets
+  facet_wrap(~ protein_impact, scales = "free_y", ncol = 3) +
+  # axes and limits
+  scale_y_continuous(limits = c(0, y_max), expand = expansion(mult = c(0.02, 0.05))) +
+  # color palette
+  scale_color_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2") +
+  # theme
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_line(color = "grey90"),
+    strip.text        = element_text(face = "bold", size = 12),
+    axis.title        = element_text(face = "bold"),
+    legend.position   = "bottom"
+  ) +
+  labs(
+    x               = "Condition",
+    y               = "Mean PSI",
+    color           = "Protein Impact",
+    fill            = "Protein Impact"
+  )
+
+# Save
+ggsave("final_plots/protein_impact_plot_ssa_improved.svg", impact_psi_plot, width = 12, height = 8)
+
+impact_psi_plot
+
+
+```
 
 
 # Splicing Dynamics Heatmap FMN2
