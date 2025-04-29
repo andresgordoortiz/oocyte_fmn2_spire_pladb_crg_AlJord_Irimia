@@ -50,7 +50,7 @@ singularity exec --bind $VASTDB_PATH:/usr/local/vast-tools/VASTDB \
     --bind $PWD/data/processed/erwing_PRJNA549593:/erwing_PRJNA549593 \
     $singularity_image bash -c "vast-tools combine /erwing_PRJNA549593/vast_out/to_combine -sp hg19 -o /erwing_PRJNA549593/vast_out"
 
-mv $PWD/data/processed/erwing_PRJNA549593/vast_out/INCLUSION_LEVELS_FULL* $PWD/notebooks/inclusion_tables/erwing_PRJNA549593_INCLUSION_LEVELS_FULL-mm10.tab
+mv $PWD/data/processed/erwing_PRJNA549593/vast_out/INCLUSION_LEVELS_FULL* $PWD/notebooks/inclusion_tables/erwing_PRJNA549593_INCLUSION_LEVELS_FULL-hg19.tab
 ###############
 # end message #
 ###############
