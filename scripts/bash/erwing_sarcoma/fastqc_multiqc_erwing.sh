@@ -50,7 +50,7 @@ mkdir -p $PWD/data/processed/erwing_PRJNA549593/fastqc
 original_dir="$PWD"
 
 # Change to processed directory - looking directly at processed files
-processed_dir="$PWD/data/processed/erwing_PRJNA549593"
+processed_dir="$PWD/data/raw/erwing_PRJNA549593"
 cd $processed_dir
 
 # Get a list of all unique sample base names (without _1 or _2 suffix)
@@ -79,11 +79,11 @@ echo "Processing paired-end files: $file1 and $file2"
 
 # Run trim_galore in paired-end mode using absolute paths
 echo "Trimming files..."
-singularity exec --bind "$processed_dir:/data/processed/erwing_PRJNA549593" \
+singularity exec --bind "$processed_dir:/data/raw/erwing_PRJNA549593" \
     https://depot.galaxyproject.org/singularity/trim-galore:0.6.9--hdfd78af_0 \
     trim_galore --paired \
-    "/data/processed/erwing_PRJNA549593/$file1" \
-    "/data/processed/erwing_PRJNA549593/$file2" \
+    "/data/raw/erwing_PRJNA549593/$file1" \
+    "/data/raw/erwing_PRJNA549593/$file2" \
     --fastqc -j 8 -o /data/processed/erwing_PRJNA549593/trimmed -q 20 \
     --fastqc_args "-t 8 --outdir /data/processed/erwing_PRJNA549593/fastqc"
 
