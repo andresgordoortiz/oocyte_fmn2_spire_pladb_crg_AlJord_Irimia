@@ -46,10 +46,9 @@ set -o pipefail
 processed_dir="$PWD/data/processed/erwing_PRJNA549593"
 trimmed_dir="$processed_dir/trimmed"
 
-# Get a list of all unique sample base names (without _val_1 or _val_2 suffix)
-# TrimGalore in paired mode produces files with _val_1 and _val_2 suffixes
+# Get a list of all unique sample base names (without _1 or _2 suffix)
 cd $trimmed_dir
-mapfile -t base_names < <(ls *_val_1.fq.gz | sed 's/_val_1\.fq\.gz$//')
+mapfile -t base_names < <(ls *_val_1.fq.gz | sed 's/_1_val_1\.fq\.gz$//')
 
 # Exit if array index is out of bounds
 if [ $SLURM_ARRAY_TASK_ID -ge ${#base_names[@]} ]; then
@@ -61,8 +60,8 @@ fi
 current_base=${base_names[$SLURM_ARRAY_TASK_ID]}
 
 # Set file names for the pair of trimmed files
-file1="${current_base}_val_1.fq.gz"
-file2="${current_base}_val_2.fq.gz"
+file1="${current_base}_1_val_1.fq.gz"
+file2="${current_base}_2_val_2.fq.gz"
 
 # Verify both files exist
 if [ ! -f "$file1" ] || [ ! -f "$file2" ]; then
