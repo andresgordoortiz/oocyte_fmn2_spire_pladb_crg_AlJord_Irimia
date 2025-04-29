@@ -28,6 +28,7 @@ data/processed/*
 *star_index/
 *multiqc_data/
 *rMATS/
+*nextflow_splicing/
 
 # ---------------------------
 # Results and Analysis
@@ -38,7 +39,7 @@ results/**/*.png
 /results/*
 
 # Notebooks and temporary outputs
-/notebooks/oocyte_transcript_analysis_files/*
+*notebooks/
 *combination_table*
 # ---------------------------
 # Temporary and Log Files
