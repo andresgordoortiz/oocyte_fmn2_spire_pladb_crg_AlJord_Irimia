@@ -23,7 +23,7 @@ VASTDB_PATH=$1
 
 
 echo "Submitting first job: Downloading Files..."
-jid1=$(sbatch $PWD/scripts/bash/erwing_sarcoma/download_files.sh | tr -cd '[:digit:].')
+jid1=$(sbatch $PWD/scripts/bash/erwing_sarcoma/download_erwing.sh | tr -cd '[:digit:].')
 echo "...first job ID is $jid1"
 
 echo "Submitting second job: Trim reads..."
