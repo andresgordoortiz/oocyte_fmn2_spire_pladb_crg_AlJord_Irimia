@@ -1572,7 +1572,7 @@ colsGroup_ssa <- convertCols(ssa_tub_events$PSI, samples_ssa)
 set.seed(42) #Setting seed for downstream simulations of the beta distribution
 
 # Prepare table for fmn2dko
-tub_fdr <- prepareTableVolcanoFDR(
+tub_fdr_df <- prepareTableVolcanoFDR(
   psitable = ssa_tub_events$PSI,
   qualtable = ssa_tub_events$Qual,
   npoints = 500,
@@ -1588,7 +1588,7 @@ tub_fdr <- prepareTableVolcanoFDR(
   CoverageWeight = FALSE
 )
 
-pladb_fdr <- prepareTableVolcanoFDR(
+pladb_fdr_df <- prepareTableVolcanoFDR(
   psitable = pladb_events$PSI,
   qualtable = pladb_events$Qual,
   npoints = 500,
@@ -1604,7 +1604,7 @@ pladb_fdr <- prepareTableVolcanoFDR(
   CoverageWeight = FALSE
 )
 
-ssa_fdr <- prepareTableVolcanoFDR(
+ssa_fdr_df <- prepareTableVolcanoFDR(
   psitable = ssa_tub_events$PSI,
   qualtable = ssa_tub_events$Qual,
   npoints = 500,
@@ -1621,9 +1621,9 @@ ssa_fdr <- prepareTableVolcanoFDR(
 )
 
 
-write.csv(tub_fdr,"tub_fdr.csv")
-write.csv(pladb_fdr,"pladb_fdr.csv")
-write.csv(ssa_fdr,"ssa_fdr.csv")
+write.csv(tub_fdr_df,"tub_fdr.csv")
+write.csv(pladb_fdr_df,"pladb_fdr.csv")
+write.csv(ssa_fdr_df,"ssa_fdr.csv")
 
       
 
