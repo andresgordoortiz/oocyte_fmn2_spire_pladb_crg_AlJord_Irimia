@@ -39,7 +39,7 @@ results/**/*.png
 /results/*
 
 # Notebooks and temporary outputs
-*notebooks/
+
 *combination_table*
 # ---------------------------
 # Temporary and Log Files
