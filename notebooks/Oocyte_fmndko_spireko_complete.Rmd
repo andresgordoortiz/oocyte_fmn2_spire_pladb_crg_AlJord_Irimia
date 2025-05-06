@@ -339,8 +339,10 @@ colnames(exons_per_gene)<-c("gene","exons")
 
 
 
-
-
+len_genes<-read.table("gene_avg_exons.txt", header = T)
+len_genes$GENE_ID<-gsub("\\..*","",len_genes$GENE_ID)
+len_genes_with_introns<-read.table("gene_avg_introns_exons.txt", header = T)
+len_genes_with_introns$GENE_ID<-gsub("\\..*","",len_genes_with_introns$GENE_ID)
 
 ```
 
@@ -457,7 +459,7 @@ gene_conversion <- getBM(
 )
 
 # Merge gene symbols and exon counts
-spire_exons_df <- spire_exons_df %>%
+spire_exons_df_number <- spire_exons_df %>%
   left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id), by = c("GENE" = "mgi_symbol")) %>%
   left_join(exons_per_gene %>% select(gene, exons), by = c("ensembl_gene_id" = "gene")) %>%
   rename(numb_exons = exons)
@@ -479,7 +481,7 @@ skewness_manual <- function(x) {
 }
 
 # 2. Bin the data
-binned <- spire_exons_df %>%
+binned <- spire_exons_df_number %>%
   filter(abs(difference) > 0, !is.na(numb_exons)) %>%
   mutate(
     exon_bin = cut(numb_exons,
@@ -506,28 +508,6 @@ boot_results <- binned %>%
     significant   = (ci_lower > 0) | (ci_upper < 0)
   )
 
-# 4. Plot with significance highlighting
-ggplot(boot_results, aes(x = exon_bin, y = skew_estimate)) +
-  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper),
-                width = 0.2, color = "gray40") +
-  geom_point(aes(color = significant, shape = significant), size = 4) +
-  scale_color_manual(
-    values = c(`TRUE` = "firebrick", `FALSE` = "steelblue"),
-    guide = guide_legend(title = "Significant\nskew?" )
-  ) +
-  scale_shape_manual(
-    values = c(`TRUE` = 17, `FALSE` = 16),
-    guide = guide_legend(title = "Significant\nskew?" )
-  ) +
-  labs(
-    title = "Bootstrapped Skewness of ΔPSI by Exon-Count Bin",
-    x = "Number of exons per gene (binned)",
-    y = "Skewness of ΔPSI (with 95% CI)"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(legend.position = "right")
-
-
 
 # 1. Compute per‐bin stats including manual skewness
 skew_manual <- function(x) {
@@ -538,7 +518,7 @@ skew_manual <- function(x) {
   sum((x - m)^3) / n / (s^3)
 }
 
-bin_stats <- spire_exons_df %>%
+bin_stats <- spire_exons_df_number %>%
   filter(abs(difference) > 0) %>%
   mutate(
     exon_bin = cut(numb_exons, breaks = c(0,10,50,Inf),
@@ -563,36 +543,6 @@ bin_stats <- spire_exons_df %>%
   ) %>%
   select(exon_bin, n, skewness, test_used, test_p, pct_below, pct_above)
 
-# 2. Prepare plotting data
-plot_df <- spire_exons_df %>%
-  filter(abs(difference) > 0) %>%
-  mutate(
-    exon_bin = cut(numb_exons, breaks = c(0,10,50,Inf),
-                   labels = c("1–10","11–50","51+"), right = TRUE)
-  ) %>%
-  filter(!is.na(exon_bin))
-
-# 3. Plot with skewness annotation
-numbexons_plot<-ggplot(plot_df, aes(x = difference)) +
-  geom_histogram(aes(y = ..density.., fill = difference > 0),
-                 bins = 50, alpha = 0.8, color = "black") +
-  scale_fill_manual(values = c("#4BA3C3","#D62839")) +
-  facet_wrap(~ exon_bin, scales = "free_y") +
-  theme_classic() +
-  theme(strip.text = element_text(face="bold")) +
-  labs(x = expression(Delta*"PSI"), y = "Density") +
-  geom_text(
-    data = bin_stats,
-    aes(
-      x = Inf, y = Inf,
-      label = sprintf(
-        "Skewness = %.2f\n%s p=%.3g\nn=%d",
-        skewness, test_used, test_p, n
-      )
-    ),
-    hjust = 1.05, vjust = 1.05, size = 3.5
-  )
-print(numbexons_plot)
 
 
 library(ggplot2)
@@ -710,6 +660,207 @@ ggsave("spire_exons.svg",
 
 ```
 
+```{r skewness len}
+# Merge gene symbols and exon counts
+spire_exons_df_len <- spire_exons_df %>%
+  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id), by = c("GENE" = "mgi_symbol")) %>%
+  left_join(len_genes, by = c("ensembl_gene_id" = "GENE_ID"))
+
+
+library(dplyr)
+library(ggplot2)
+library(purrr)
+
+set.seed(123)
+
+# 1. Manual skewness
+skewness_manual <- function(x) {
+  x <- na.omit(x)
+  n <- length(x)
+  if (n < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / n / (s^3)
+}
+
+# 2. Bin the data
+binned <- spire_exons_df_number %>%
+  filter(abs(difference) > 0, !is.na(numb_exons)) %>%
+  mutate(
+    exon_bin = cut(numb_exons,
+                   breaks = c(0, 10, 50, Inf),
+                   labels = c("1–10", "11–50", "51+"),
+                   right = TRUE)
+  ) %>%
+  filter(!is.na(exon_bin))
+
+# 3. Bootstrap skewness per bin
+boot_results <- binned %>%
+  group_by(exon_bin) %>%
+  summarise(
+    boot_skews = list(replicate(
+      1000,
+      skewness_manual(sample(difference, replace = TRUE))
+    )),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    skew_estimate = map_dbl(boot_skews, ~ mean(.x, na.rm = TRUE)),
+    ci_lower      = map_dbl(boot_skews, ~ quantile(.x, 0.025, na.rm = TRUE)),
+    ci_upper      = map_dbl(boot_skews, ~ quantile(.x, 0.975, na.rm = TRUE)),
+    significant   = (ci_lower > 0) | (ci_upper < 0)
+  )
+
+
+# 1. Compute per‐bin stats including manual skewness
+skew_manual <- function(x) {
+  x <- na.omit(x)
+  n <- length(x)
+  if (n < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / n / (s^3)
+}
+
+bin_stats <- spire_exons_df_number %>%
+  filter(abs(difference) > 0) %>%
+  mutate(
+    exon_bin = cut(numb_exons, breaks = c(0,10,50,Inf),
+                   labels = c("1–10","11–50","51+"), right = TRUE)
+  ) %>%
+  filter(!is.na(exon_bin)) %>%
+  group_by(exon_bin) %>%
+  summarise(
+    sample_vec = list(if(n() > 5000) sample(difference,5000) else difference),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    skewness = skew_manual(sample_vec),
+    shapiro_p = shapiro.test(sample_vec)$p.value,
+    test_used = if(shapiro_p > .05) "t-test" else "Wilcoxon",
+    test_p   = if(test_used=="t-test") t.test(sample_vec,mu=0)$p.value
+               else wilcox.test(sample_vec,mu=0)$p.value,
+    pct_below = mean(sample_vec < 0)*100,
+    pct_above = mean(sample_vec > 0)*100
+  ) %>%
+  select(exon_bin, n, skewness, test_used, test_p, pct_below, pct_above)
+
+
+
+library(ggplot2)
+library(dplyr)
+
+# Make sure your font is available:
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+font_add_google(name = "Courier Prime", family = "Courier Prime") 
+library(showtext)
+showtext_auto()
+
+boot_long <- boot_results %>%
+  mutate(exon_bin = factor(exon_bin,
+                           levels = c("1–10", "11–50", "51+"))) %>%
+  unnest(boot_skews)
+
+p <- ggplot(boot_results,
+            aes(x = exon_bin, y = skew_estimate)) +
+  
+  # jittered bootstraps
+  geom_jitter(data = boot_long,
+              aes(fill = exon_bin, y = boot_skews),
+              position = position_jitter(width = 0.15, height = 0),
+              shape = 21,
+              color = "gray30", 
+              size = 2,
+              alpha = 0.05,
+              stroke = 0.8) +
+
+  # polynomial regression (2nd degree)
+  geom_smooth(data = boot_long,
+              aes(x = as.numeric(exon_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x, 2),
+              se = FALSE,
+              linetype = "dashed",
+              color = "grey40",    # grey line
+              size = 1.5) +        # thicker
+
+  # main points
+  geom_point(aes(fill = exon_bin, color = significant, shape = significant),
+             size = 4, alpha = 0.9, stroke = 1) +
+
+  scale_fill_manual(values = c(
+    "1–10"  = "#d1cbe5",
+    "11–50" = "#9671bd",
+    "51+"   = "#6a408d"
+  ), name = "Exon Bin",
+     guide = guide_legend(override.aes = list(shape = 21, 
+                                             alpha = 1,
+                                             size = 4,
+                                             color = "gray30"))) +
+            
+
+  # significance aesthetics
+  scale_color_manual(values = c(`TRUE`  = "#378d94",
+                                `FALSE` = "grey60"),
+                     name = "Significant") +
+  scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
+                     name = "Significant") +
+
+  # densify grid on y-axis
+  scale_y_continuous(
+    breaks = pretty_breaks(n = 5),         # fewer major
+    minor_breaks = waiver(),               # you can specify seq(min, max, length.out) here
+    expand = expansion(add = 0.1)
+  ) +
+
+  # densify grid on x-axis
+  scale_x_discrete(expand = expansion(add = 0.5)) +
+
+  # labels
+  labs(
+    title = "Bootstrapped Skewness of Spire KO Splicing",
+    x     = "Number of exons per gene",
+    y     = "Skewness of ΔPSI Distribution"
+  ) +
+
+  # theme tweaks
+  # theme tweaks
+  theme_minimal(base_family = "Courier Prime") +
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "top",
+    legend.direction = "horizontal",
+
+    # Remove grid lines, but keep the square
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # add a border around the panel
+    panel.border     = element_rect(fill = NA,
+                                    color = alpha("black", 0.3),
+                                    size = 0.5),
+
+    plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title       = element_text(size = 12),
+    axis.text        = element_text(size = 10),
+  ) +
+
+  # Add a grey line at y = 0
+  geom_hline(yintercept = 0, color = "grey50", linetype = "solid", size = 0.5)
+
+print(p)
+
+
+ggsave("spire_exons.svg",
+       plot   = p,
+       width  = 6,
+       height = 6)
+
+```
 
 
 ### FMN2
