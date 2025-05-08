@@ -446,7 +446,6 @@ print(plot_psi_distribution)
 ```
 
 ```{r skewness spire}
-
 # Connect to Ensembl BioMart for mouse
 ensembl <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
 
@@ -660,47 +659,72 @@ ggsave("spire_exons.svg",
 
 ```
 
-```{r skewness len}
-# Merge gene symbols and exon counts
-spire_exons_df_len <- spire_exons_df %>%
-  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id), by = c("GENE" = "mgi_symbol")) %>%
-  left_join(len_genes, by = c("ensembl_gene_id" = "GENE_ID"))
-
-
+```{r skewness len spire}
+library(biomaRt)
 library(dplyr)
-library(ggplot2)
 library(purrr)
+library(ggplot2)
+library(tidyr)
+library(scales)
+library(showtext)
 
-set.seed(123)
+# Connect to Ensembl & get gene IDs as before
+ensembl <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+gene_conversion <- getBM(
+  attributes = c("mgi_symbol","ensembl_gene_id"),
+  filters    = "mgi_symbol",
+  values     = spire_exons_df$GENE,
+  mart       = ensembl
+)
 
-# 1. Manual skewness
+# Join in AVG_TRANSCRIPT_LENGTH
+spire_exons_df_len <- spire_exons_df %>%
+  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id),
+            by = c("GENE" = "mgi_symbol")) %>%
+  left_join(len_genes %>% select(GENE_ID, AVG_TRANSCRIPT_LENGTH),
+            by = c("ensembl_gene_id" = "GENE_ID")) %>%
+  rename(transcript_len = AVG_TRANSCRIPT_LENGTH)
+
+# Prepare data: filter out NAs and zero‐difference
+data_len <- spire_exons_df_len %>%
+  filter(abs(difference) > 0, !is.na(transcript_len))
+
+# Define length‐based bins at tertiles
+breaks_len <- quantile(data_len$transcript_len,
+                       probs = c(0, 1/3, 2/3, 1),
+                       na.rm = TRUE)
+labels_len <- c("Short", "Medium", "Long")
+
+binned_len <- data_len %>%
+  mutate(
+    len_bin = cut(transcript_len,
+                  breaks = breaks_len,
+                  labels = labels_len,
+                  include.lowest = TRUE,
+                  right = TRUE)
+  ) %>%
+  filter(!is.na(len_bin))
+
+# Manual skewness function
 skewness_manual <- function(x) {
   x <- na.omit(x)
-  n <- length(x)
-  if (n < 3) return(NA_real_)
+  if (length(x) < 3) return(NA_real_)
   m <- mean(x); s <- sd(x)
-  sum((x - m)^3) / n / (s^3)
+  sum((x - m)^3) / length(x) / (s^3)
 }
 
-# 2. Bin the data
-binned <- spire_exons_df_number %>%
-  filter(abs(difference) > 0, !is.na(numb_exons)) %>%
-  mutate(
-    exon_bin = cut(numb_exons,
-                   breaks = c(0, 10, 50, Inf),
-                   labels = c("1–10", "11–50", "51+"),
-                   right = TRUE)
-  ) %>%
-  filter(!is.na(exon_bin))
-
-# 3. Bootstrap skewness per bin
-boot_results <- binned %>%
-  group_by(exon_bin) %>%
+set.seed(123)
+# Bootstrap per bin
+boot_len <- binned_len %>%
+  group_by(len_bin) %>%
   summarise(
-    boot_skews = list(replicate(
-      1000,
-      skewness_manual(sample(difference, replace = TRUE))
-    )),
+    boot_skews = list(
+      replicate(1000,
+                skewness_manual(
+                  sample(difference, replace = TRUE)
+                )
+      )
+    ),
     .groups = "drop"
   ) %>%
   mutate(
@@ -710,155 +734,61 @@ boot_results <- binned %>%
     significant   = (ci_lower > 0) | (ci_upper < 0)
   )
 
-
-# 1. Compute per‐bin stats including manual skewness
-skew_manual <- function(x) {
-  x <- na.omit(x)
-  n <- length(x)
-  if (n < 3) return(NA_real_)
-  m <- mean(x); s <- sd(x)
-  sum((x - m)^3) / n / (s^3)
-}
-
-bin_stats <- spire_exons_df_number %>%
-  filter(abs(difference) > 0) %>%
-  mutate(
-    exon_bin = cut(numb_exons, breaks = c(0,10,50,Inf),
-                   labels = c("1–10","11–50","51+"), right = TRUE)
-  ) %>%
-  filter(!is.na(exon_bin)) %>%
-  group_by(exon_bin) %>%
-  summarise(
-    sample_vec = list(if(n() > 5000) sample(difference,5000) else difference),
-    n = n(),
-    .groups = "drop"
-  ) %>%
-  rowwise() %>%
-  mutate(
-    skewness = skew_manual(sample_vec),
-    shapiro_p = shapiro.test(sample_vec)$p.value,
-    test_used = if(shapiro_p > .05) "t-test" else "Wilcoxon",
-    test_p   = if(test_used=="t-test") t.test(sample_vec,mu=0)$p.value
-               else wilcox.test(sample_vec,mu=0)$p.value,
-    pct_below = mean(sample_vec < 0)*100,
-    pct_above = mean(sample_vec > 0)*100
-  ) %>%
-  select(exon_bin, n, skewness, test_used, test_p, pct_below, pct_above)
-
-
-
-library(ggplot2)
-library(dplyr)
-
-# Make sure your font is available:
-
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(scales)
-
-font_add_google(name = "Courier Prime", family = "Courier Prime") 
-library(showtext)
-showtext_auto()
-
-boot_long <- boot_results %>%
-  mutate(exon_bin = factor(exon_bin,
-                           levels = c("1–10", "11–50", "51+"))) %>%
+# Expand for plotting
+boot_long_len <- boot_len %>%
   unnest(boot_skews)
 
-p <- ggplot(boot_results,
-            aes(x = exon_bin, y = skew_estimate)) +
-  
-  # jittered bootstraps
-  geom_jitter(data = boot_long,
-              aes(fill = exon_bin, y = boot_skews),
-              position = position_jitter(width = 0.15, height = 0),
-              shape = 21,
-              color = "gray30", 
-              size = 2,
-              alpha = 0.05,
-              stroke = 0.8) +
+# Plot
+font_add_google(name = "Courier Prime", family = "Courier Prime")
+showtext_auto()
 
-  # polynomial regression (2nd degree)
-  geom_smooth(data = boot_long,
-              aes(x = as.numeric(exon_bin), y = boot_skews),
-              method = "lm", formula = y ~ poly(x, 2),
-              se = FALSE,
-              linetype = "dashed",
-              color = "grey40",    # grey line
-              size = 1.5) +        # thicker
-
-  # main points
-  geom_point(aes(fill = exon_bin, color = significant, shape = significant),
+ggplot(boot_len, aes(x = len_bin, y = skew_estimate)) +
+  geom_jitter(data = boot_long_len,
+              aes(y = boot_skews, fill = len_bin),
+              position = position_jitter(width = 0.15),
+              shape = 21, color = "gray30",
+              size = 2, alpha = 0.05, stroke = 0.8) +
+  geom_smooth(data = boot_long_len,
+              aes(x = as.numeric(len_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x,2),
+              se = FALSE, linetype = "dashed", color = "grey40", size = 1.2) +
+  geom_point(aes(fill = len_bin, color = significant, shape = significant),
              size = 4, alpha = 0.9, stroke = 1) +
-
   scale_fill_manual(values = c(
-    "1–10"  = "#d1cbe5",
-    "11–50" = "#9671bd",
-    "51+"   = "#6a408d"
-  ), name = "Exon Bin",
-     guide = guide_legend(override.aes = list(shape = 21, 
-                                             alpha = 1,
-                                             size = 4,
-                                             color = "gray30"))) +
-            
-
-  # significance aesthetics
-  scale_color_manual(values = c(`TRUE`  = "#378d94",
-                                `FALSE` = "grey60"),
+    Short  = "#d1cbe5",
+    Medium = "#9671bd",
+    Long   = "#6a408d"
+  ), name = "Transcript‑Length Bin") +
+  scale_color_manual(values = c(`TRUE` = "#378d94", `FALSE` = "grey60"),
                      name = "Significant") +
   scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
                      name = "Significant") +
-
-  # densify grid on y-axis
-  scale_y_continuous(
-    breaks = pretty_breaks(n = 5),         # fewer major
-    minor_breaks = waiver(),               # you can specify seq(min, max, length.out) here
-    expand = expansion(add = 0.1)
-  ) +
-
-  # densify grid on x-axis
+  scale_y_continuous(breaks = pretty_breaks(5), expand = expansion(add = 0.1)) +
   scale_x_discrete(expand = expansion(add = 0.5)) +
-
-  # labels
+  geom_hline(yintercept = 0, color = "grey50") +
   labs(
-    title = "Bootstrapped Skewness of Spire KO Splicing",
-    x     = "Number of exons per gene",
-    y     = "Skewness of ΔPSI Distribution"
+    title = "Bootstrapped Skewness of ΔPSI by Transcript‑Length Bin",
+    x     = "Average Transcript Length Bin",
+    y     = "Skewness of ΔPSI"
   ) +
-
-  # theme tweaks
-  # theme tweaks
   theme_minimal(base_family = "Courier Prime") +
   theme(
     aspect.ratio     = 1,
     legend.position  = "top",
     legend.direction = "horizontal",
-
-    # Remove grid lines, but keep the square
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-
-    # add a border around the panel
     panel.border     = element_rect(fill = NA,
                                     color = alpha("black", 0.3),
                                     size = 0.5),
-
     plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
     axis.title       = element_text(size = 12),
-    axis.text        = element_text(size = 10),
-  ) +
+    axis.text        = element_text(size = 10)
+  )
 
-  # Add a grey line at y = 0
-  geom_hline(yintercept = 0, color = "grey50", linetype = "solid", size = 0.5)
+# Save
+ggsave("spire_exons_length_bins.svg", width = 6, height = 6)
 
-print(p)
-
-
-ggsave("spire_exons.svg",
-       plot   = p,
-       width  = 6,
-       height = 6)
 
 ```
 
@@ -1126,7 +1056,137 @@ ggsave("fmn2_exons.svg",
 
 ```
 
+```{r skewness len fmn}
+library(biomaRt)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(tidyr)
+library(scales)
+library(showtext)
 
+# Connect to Ensembl & get gene IDs as before
+ensembl <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+gene_conversion <- getBM(
+  attributes = c("mgi_symbol","ensembl_gene_id"),
+  filters    = "mgi_symbol",
+  values     = fmndko_exons_df$GENE,
+  mart       = ensembl
+)
+
+# Join in AVG_TRANSCRIPT_LENGTH
+fmndko_exons_df_len <- fmndko_exons_df %>%
+  left_join(gene_conversion %>% select(mgi_symbol, ensembl_gene_id),
+            by = c("GENE" = "mgi_symbol")) %>%
+  left_join(len_genes %>% select(GENE_ID, AVG_TRANSCRIPT_LENGTH),
+            by = c("ensembl_gene_id" = "GENE_ID")) %>%
+  rename(transcript_len = AVG_TRANSCRIPT_LENGTH)
+
+# Prepare data: filter out NAs and zero‐difference
+data_len <- fmndko_exons_df_len %>%
+  filter(abs(difference) > 0, !is.na(transcript_len))
+
+# Define length‐based bins at tertiles
+breaks_len <- quantile(data_len$transcript_len,
+                       probs = c(0, 1/3, 2/3, 1),
+                       na.rm = TRUE)
+labels_len <- c("Short", "Medium", "Long")
+
+binned_len <- data_len %>%
+  mutate(
+    len_bin = cut(transcript_len,
+                  breaks = breaks_len,
+                  labels = labels_len,
+                  include.lowest = TRUE,
+                  right = TRUE)
+  ) %>%
+  filter(!is.na(len_bin))
+
+# Manual skewness function
+skewness_manual <- function(x) {
+  x <- na.omit(x)
+  if (length(x) < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / length(x) / (s^3)
+}
+
+set.seed(123)
+# Bootstrap per bin
+boot_len <- binned_len %>%
+  group_by(len_bin) %>%
+  summarise(
+    boot_skews = list(
+      replicate(1000,
+                skewness_manual(
+                  sample(difference, replace = TRUE)
+                )
+      )
+    ),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    skew_estimate = map_dbl(boot_skews, ~ mean(.x, na.rm = TRUE)),
+    ci_lower      = map_dbl(boot_skews, ~ quantile(.x, 0.025, na.rm = TRUE)),
+    ci_upper      = map_dbl(boot_skews, ~ quantile(.x, 0.975, na.rm = TRUE)),
+    significant   = (ci_lower > 0) | (ci_upper < 0)
+  )
+
+# Expand for plotting
+boot_long_len <- boot_len %>%
+  unnest(boot_skews)
+
+# Plot
+font_add_google(name = "Courier Prime", family = "Courier Prime")
+showtext_auto()
+
+ggplot(boot_len, aes(x = len_bin, y = skew_estimate)) +
+  geom_jitter(data = boot_long_len,
+              aes(y = boot_skews, fill = len_bin),
+              position = position_jitter(width = 0.15),
+              shape = 21, color = "gray30",
+              size = 2, alpha = 0.05, stroke = 0.8) +
+  geom_smooth(data = boot_long_len,
+              aes(x = as.numeric(len_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x,2),
+              se = FALSE, linetype = "dashed", color = "grey40", size = 1.2) +
+  geom_point(aes(fill = len_bin, color = significant, shape = significant),
+             size = 4, alpha = 0.9, stroke = 1) +
+  scale_fill_manual(values = c(
+    Short  = "#d1cbe5",
+    Medium = "#9671bd",
+    Long   = "#6a408d"
+  ), name = "Transcript‑Length Bin") +
+  scale_color_manual(values = c(`TRUE` = "#378d94", `FALSE` = "grey60"),
+                     name = "Significant") +
+  scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
+                     name = "Significant") +
+  scale_y_continuous(breaks = pretty_breaks(5), expand = expansion(add = 0.1)) +
+  scale_x_discrete(expand = expansion(add = 0.5)) +
+  geom_hline(yintercept = 0, color = "grey50") +
+  labs(
+    title = "Bootstrapped Skewness of ΔPSI by Transcript‑Length Bin",
+    x     = "Average Transcript Length Bin",
+    y     = "Skewness of ΔPSI"
+  ) +
+  theme_minimal(base_family = "Courier Prime") +
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "top",
+    legend.direction = "horizontal",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border     = element_rect(fill = NA,
+                                    color = alpha("black", 0.3),
+                                    size = 0.5),
+    plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title       = element_text(size = 12),
+    axis.text        = element_text(size = 10)
+  )
+
+# Save
+ggsave("fmndko_exons_length_bins.svg", width = 6, height = 6)
+
+```
 
 ## Introns
 
