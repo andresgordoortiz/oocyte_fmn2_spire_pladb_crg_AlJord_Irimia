@@ -126,6 +126,20 @@ executor {
 
 process.executor = 'slurm'
 
+process.queue = 'genoa64'
+
+process.clusterOptions = '--qos=pipelines'
+
+
+
+singularity {
+
+  enabled = true
+
+  autoMounts = true
+
+}
+
 EOF
 
 
@@ -156,11 +170,11 @@ echo "Additional parameters: $@"
 
 
 
-# Always add the -profile crg parameter and executor override
+# Always add executor override but REMOVE the -profile crg parameter
 
-echo "Running Nextflow with executor=slurm and profile=crg"
+echo "Running Nextflow with executor=slurm"
 
-CMD="nextflow run -ansi-log false -profile crg -c nextflow_executor_override.config --executor slurm -with-trace -name oocyte_fmn2_spire_analysis $WORKFLOW_FILE $@"
+CMD="nextflow run -ansi-log false -c nextflow_executor_override.config -with-trace -name oocyte_fmn2_spire_analysis $WORKFLOW_FILE $@"
 
 echo "Executing: $CMD"
 
