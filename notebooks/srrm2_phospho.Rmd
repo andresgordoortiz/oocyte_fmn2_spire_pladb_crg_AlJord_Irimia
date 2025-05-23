@@ -1,6 +1,6 @@
 ---
 title: "Alternative Splicing Analysis"
-subtitle: "Erwing sarcoma"
+subtitle: "SRRM2 Phospho"
 author: "Andrés Gordo Ortiz @Al Jord Lab CRG"
 date: "`r Sys.Date()`"
 output:
@@ -182,7 +182,7 @@ All the code history can be accessed through its [GitHub Repository](https://git
 
 ```{r inclusion tables}
 
-splicing_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/erwing_PRJNA549593_INCLUSION_LEVELS_FULL-hg19.tab"), tool = "vast-tools")
+splicing_data <- getDataset(pathTables = paste0(getwd(),"/inclusion_tables/SRRM2_phospho_INCLUSION_LEVELS_FULL-hg19.tab"), tool = "vast-tools")
 
 splicing_events <- filterEvents(getEvents(splicing_data, tool = "vast-tools"), N = 10) 
 
@@ -202,8 +202,18 @@ alt <- filterEvents(splicing_events, types = c("Alt5", "Alt3"), N = 10)
 ### PladB
 
 ```{r metadata pladb}
-# Load metadata file containing sample information
-metadata<-data.frame(samples=colnames(splicing_events$PSI)[7:10],condition=rep(c("control","siEWS-FLI1"), each=2))
+
+metadata <- data.frame(
+  samples = c("SRR31951851", "SRR31951855", "SRR31951849", 
+                    "SRR31951852", "SRR31951854", "SRR31951848", 
+                    "SRR31951850", "SRR31951853", "SRR31951856"),
+  condition = c("SA", "WT", "SD", 
+                "SA", "WT", "SD", 
+                "SD", "SA", "WT"),
+  stringsAsFactors = FALSE
+) %>%
+  arrange(samples)
+
 DT::datatable(metadata, options = list(pageLength = nrow(metadata), scrollX = TRUE))
 ```
 
@@ -259,20 +269,20 @@ These plots show the distribution of the splicing change (dPSI) comparing the KO
 
 ## Exons 
 
-### Tubercidin
+### SRRM2_SA
 
-```{r inclusionumber of exons tub, fig.width=12, fig.height=8}
+```{r inclusionumber of exons sa, fig.width=12, fig.height=8}
 # ---- Prepare Data -----------------------------------------------------------
 # Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
 exons_df <- exons$PSI %>% 
-  filter(complete.cases(select(., 7:10)))
+  filter(complete.cases(select(., 7:15)))
 
 # Compute the averages and PSI difference for each row
 exons_df <- exons_df %>% 
   mutate(
-    avg_control = rowMeans(select(., 7:8)),
-    avg_siEWS_FLI1 = rowMeans(select(., 9:10)),
-    difference = avg_siEWS_FLI1 - avg_control
+    avg_control = rowMeans(select(., 13:15)),
+    avg_sa = rowMeans(select(., 10:12)),
+    difference = avg_sa - avg_control
   ) %>% 
   filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
   mutate(group = if_else(difference < 0, "Skipped", "Included"))
@@ -314,7 +324,7 @@ plot_psi_distribution <- ggplot(
   labs(
     title = "PSI Difference Distribution of Exons",
     subtitle = paste(test_used, "p-value:", format(test_result$p.value, digits = 3), "| n:", n_samples),
-    x = "ΔPSI (siEWS-FLI1 - Control)",
+    x = "ΔPSI (SRRM2_SA - Control)",
     y = "Density",
     fill = "Splicing Direction"
   ) +
@@ -347,14 +357,14 @@ plot_psi_distribution <- ggplot(
            label.size = 0.5)
 
 # Save and display the plot
-ggsave("final_plots/erwing_psi_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
+ggsave("final_plots/sa_srrm2_phospho_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
 
 print(plot_psi_distribution)
 
 
 ```
 
-```{r skewness tub}
+```{r skewness sa}
 
 ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
 
@@ -487,7 +497,7 @@ p <- ggplot(boot_results,
 
   # labels
   labs(
-    title = "Bootstrapped Skewness of Splicing Ewing Sarcoma",
+    title = "Bootstrapped Skewness of Splicing SRRM2",
     x     = "Number of exons per gene",
     y     = "Skewness of ΔPSI Distribution"
   ) +
@@ -520,13 +530,278 @@ p <- ggplot(boot_results,
 print(p)
 
 
-ggsave("erwing_exons.svg",
+ggsave("sa_srrm2_exons.svg",
        width  = 6,
        height = 6)
 
 ```
 
+### SRRM2_SD
 
+```{r inclusionumber of exons sd, fig.width=12, fig.height=8}
+# ---- Prepare Data -----------------------------------------------------------
+# Remove rows with NA in any of the columns needed (columns 7, 8, 9, 10)
+exons_df <- exons$PSI %>% 
+  filter(complete.cases(select(., 7:15)))
+
+# Compute the averages and PSI difference for each row
+exons_df <- exons_df %>% 
+  mutate(
+    avg_control = rowMeans(select(., 13:15)),
+    avg_sa = rowMeans(select(., 7:9)),
+    difference = avg_sa - avg_control
+  ) %>% 
+  filter(difference >= 1 | difference <= -1) %>%  # Filter for differences > 10 or < -10
+  mutate(group = if_else(difference < 0, "Skipped", "Included"))
+
+# ---- Normality Check -----------------------------------------------------------
+# Use a subset of the data if sample size > 5000 for the Shapiro-Wilk test
+set.seed(123)  # For reproducibility
+if(nrow(exons_df) > 5000) {
+  shapiro_sample <- sample(exons_df$difference, 5000)
+  shapiro_test <- shapiro.test(shapiro_sample)
+} else {
+  shapiro_test <- shapiro.test(exons_df$difference)
+}
+
+# Choose statistical test based on normality (alpha = 0.05)
+if (shapiro_test$p.value > 0.05) {
+  test_result <- t.test(exons_df$difference, mu = 0)
+  test_used <- "Student's t-test"
+} else {
+  test_result <- wilcox.test(exons_df$difference, mu = 0)
+  test_used <- "Wilcoxon signed-rank test"
+}
+
+# Calculate percentages for inclusion and exclusion
+pct_below <- round(mean(exons_df$difference < 0) * 100, 1)
+pct_above <- round(mean(exons_df$difference > 0) * 100, 1)
+n_samples <- nrow(exons_df)
+
+# ---- Plot -------------------------------------------------------------------
+
+plot_psi_distribution <- ggplot(
+  exons_df[abs(exons_df$difference) > 0, ], 
+  aes(x = difference)
+) +
+  geom_histogram(
+    aes(y = ..density.., fill = difference > 0), 
+    bins = 100, position = "identity", alpha = 0.9, color = "black"
+  ) +
+  labs(
+    title = "PSI Difference Distribution of Exons",
+    subtitle = paste(test_used, "p-value:", format(test_result$p.value, digits = 3), "| n:", n_samples),
+    x = "ΔPSI (SRRM2_SD - Control)",
+    y = "Density",
+    fill = "Splicing Direction"
+  ) +
+  theme_classic(base_family = "sans") +
+  theme(
+    legend.position = "right",
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.text.x = element_text(size = 12),
+    # Remove grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 14, face = "bold")
+  ) +
+  scale_x_continuous(
+    breaks = c(-100, -75, -50, -25, 0, 25, 50, 75, 100)
+  ) +
+  # Assign colors explicitly to match annotations
+  scale_fill_manual(
+    values = c("#4BA3C3", "#D62839"),
+    labels = c("ΔPSI < 0", "ΔPSI > 0")
+  ) +
+  # Annotate the percentages with polished label boxes
+  annotate("label", x = -65, y = 0.1, hjust = 0, vjust = 0,
+           label = sprintf("ΔPSI < 0: %.1f%%", pct_below),
+           fill = alpha("white", 0.8), color = "#4BA3C3", size = 5, fontface = "bold",
+           label.size = 0.5) +
+  annotate("label", x = 65, y = 0.1, hjust = 1, vjust = 0,
+           label = sprintf("ΔPSI > 0: %.1f%%", pct_above),
+           fill = alpha("white", 0.8), color = "#D62839", size = 5, fontface = "bold",
+           label.size = 0.5)
+
+# Save and display the plot
+ggsave("final_plots/sd_srrm2_phospho_distribution.svg", plot_psi_distribution, width = 12, height = 8, dpi = 300)
+
+print(plot_psi_distribution)
+
+
+```
+
+```{r skewness sd}
+
+ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+# Retrieve gene symbols
+gene_conversion <- getBM(
+  attributes = c("hgnc_symbol", "ensembl_gene_id"),
+  filters = "hgnc_symbol",
+  values = exons_df$GENE,
+  mart = ensembl
+)
+
+# Merge gene symbols and exon counts
+exons_df <- exons_df %>%
+  left_join(gene_conversion %>% select(hgnc_symbol, ensembl_gene_id), by = c("GENE" = "hgnc_symbol")) %>%
+  left_join(exons_per_gene %>% select(gene, exons), by = c("ensembl_gene_id" = "gene")) %>%
+  rename(numb_exons = exons)
+
+
+library(dplyr)
+library(ggplot2)
+library(purrr)
+
+set.seed(123)
+
+# 1. Manual skewness
+skewness_manual <- function(x) {
+  x <- na.omit(x)
+  n <- length(x)
+  if (n < 3) return(NA_real_)
+  m <- mean(x); s <- sd(x)
+  sum((x - m)^3) / n / (s^3)
+}
+
+# 2. Bin the data
+binned <- exons_df %>%
+  filter(abs(difference) > 0, !is.na(numb_exons)) %>%
+  mutate(
+    exon_bin = cut(numb_exons,
+                   breaks = c(0, 10, 50, Inf),
+                   labels = c("1–10", "11–50", "51+"),
+                   right = TRUE)
+  ) %>%
+  filter(!is.na(exon_bin))
+
+# 3. Bootstrap skewness per bin
+boot_results <- binned %>%
+  group_by(exon_bin) %>%
+  summarise(
+    boot_skews = list(replicate(
+      1000,
+      skewness_manual(sample(difference, replace = TRUE))
+    )),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    skew_estimate = map_dbl(boot_skews, ~ mean(.x, na.rm = TRUE)),
+    ci_lower      = map_dbl(boot_skews, ~ quantile(.x, 0.025, na.rm = TRUE)),
+    ci_upper      = map_dbl(boot_skews, ~ quantile(.x, 0.975, na.rm = TRUE)),
+    significant   = (ci_lower > 0) | (ci_upper < 0)
+  )
+
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+font_add_google(name = "Courier Prime", family = "Courier Prime") 
+library(showtext)
+showtext_auto()
+
+boot_long <- boot_results %>%
+  mutate(exon_bin = factor(exon_bin,
+                           levels = c("1–10", "11–50", "51+"))) %>%
+  unnest(boot_skews)
+
+p <- ggplot(boot_results,
+            aes(x = exon_bin, y = skew_estimate)) +
+  
+  # jittered bootstraps
+  geom_jitter(data = boot_long,
+              aes(fill = exon_bin, y = boot_skews),
+              position = position_jitter(width = 0.15, height = 0),
+              shape = 21,
+              color = "gray30", 
+              size = 2,
+              alpha = 0.05,
+              stroke = 0.8) +
+
+  # polynomial regression (2nd degree)
+  geom_smooth(data = boot_long,
+              aes(x = as.numeric(exon_bin), y = boot_skews),
+              method = "lm", formula = y ~ poly(x, 2),
+              se = FALSE,
+              linetype = "dashed",
+              color = "grey40",    # grey line
+              size = 1.5) +        # thicker
+
+  # main points
+  geom_point(aes(fill = exon_bin, color = significant, shape = significant),
+             size = 4, alpha = 0.9, stroke = 1) +
+
+  scale_fill_manual(values = c(
+    "1–10"  = "#d1cbe5",
+    "11–50" = "#9671bd",
+    "51+"   = "#6a408d"
+  ), name = "Exon Bin",
+     guide = guide_legend(override.aes = list(shape = 21, 
+                                             alpha = 1,
+                                             size = 4,
+                                             color = "gray30"))) +
+            
+
+  # significance aesthetics
+  scale_color_manual(values = c(`TRUE`  = "#378d94",
+                                `FALSE` = "grey60"),
+                     name = "Significant") +
+  scale_shape_manual(values = c(`TRUE` = 17, `FALSE` = 16),
+                     name = "Significant") +
+
+  # densify grid on y-axis
+  scale_y_continuous(
+    breaks = pretty_breaks(n = 5),         # fewer major
+    minor_breaks = waiver(),               # you can specify seq(min, max, length.out) here
+    expand = expansion(add = 0.1)
+  ) +
+
+  # densify grid on x-axis
+  scale_x_discrete(expand = expansion(add = 0.5)) +
+
+  # labels
+  labs(
+    title = "Bootstrapped Skewness of Splicing SRRM2",
+    x     = "Number of exons per gene",
+    y     = "Skewness of ΔPSI Distribution"
+  ) +
+
+  # theme tweaks
+  # theme tweaks
+  theme_minimal(base_family = "Courier Prime") +
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "top",
+    legend.direction = "horizontal",
+
+    # Remove grid lines, but keep the square
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # add a border around the panel
+    panel.border     = element_rect(fill = NA,
+                                    color = alpha("black", 0.3),
+                                    size = 0.5),
+
+    plot.title       = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.title       = element_text(size = 12),
+    axis.text        = element_text(size = 10),
+  ) +
+
+  # Add a grey line at y = 0
+  geom_hline(yintercept = 0, color = "grey50", linetype = "solid", size = 0.5)
+
+print(p)
+
+
+ggsave("sd_srrm2_exons.svg",
+       width  = 6,
+       height = 6)
+
+```
 
 # PCA Plot { .tabset}
 
@@ -604,21 +879,24 @@ names(groupList) <- groups
 
 
 
-group_control<-"control"
-group_si<-"siEWS-FLI1"
+group_control<-"WT"
+group_sa<-"SA"
+group_sd<-"SD"
 
 
 
 #samples_controlpladb <- groupList[[group_controlpladb]]$samples
 samples_control <- groupList[[group_control]]$samples
 #samples_pladb <- groupList[[group_pladB]]$samples
-samples_si <- groupList[[group_si]]$samples
+samples_sa <- groupList[[group_sa]]$samples
+samples_sd <- groupList[[group_sd]]$samples
 
 
 #colsGroup_controlpladb <- convertCols(splicing_events$PSI, samples_controlpladb)
 colsGroup_control <- convertCols(splicing_events$PSI, samples_control)
 #colsGroup_pladb <- convertCols(splicing_events$PSI, samples_pladb)
-colsGroup_si<- convertCols(splicing_events$PSI, samples_si)
+colsGroup_sa<- convertCols(splicing_events$PSI, samples_sa)
+colsGroup_sd<- convertCols(splicing_events$PSI, samples_sd)
 
 
 ```
@@ -629,14 +907,14 @@ colsGroup_si<- convertCols(splicing_events$PSI, samples_si)
 set.seed(42) #Setting seed for downstream simulations of the beta distribution
 
 # Prepare table for fmn2dko
-erwing_fdr <- prepareTableVolcanoFDR(
+sa_fdr <- prepareTableVolcanoFDR(
   psitable = splicing_events$PSI,
   qualtable = splicing_events$Qual,
   npoints = 500,
   colsA = colsGroup_control,
-  colsB = colsGroup_si,
+  colsB = colsGroup_sa,
   labA = colsGroup_control,
-  labB = colsGroup_si,
+  labB = colsGroup_sa,
   basalColor = "#89C0AE",
   interestColor = "#E69A9C",
   maxDevTable = maxDevSimulationN100,
@@ -646,8 +924,26 @@ erwing_fdr <- prepareTableVolcanoFDR(
 )
 
 
-write.csv(erwing_fdr,"erwing_fdr.csv")
+write.csv(sa_fdr,"sa_fdr.csv")
 
+sd_fdr <- prepareTableVolcanoFDR(
+  psitable = splicing_events$PSI,
+  qualtable = splicing_events$Qual,
+  npoints = 500,
+  colsA = colsGroup_control,
+  colsB = colsGroup_sd,
+  labA = colsGroup_control,
+  labB = colsGroup_sd,
+  basalColor = "#89C0AE",
+  interestColor = "#E69A9C",
+  maxDevTable = maxDevSimulationN100,
+  nsim = 1000,
+  seed = TRUE,
+  CoverageWeight = FALSE
+)
+
+
+write.csv(sd_fdr,"sd_fdr.csv")
 
 erwing_fdr<-read.csv("tables_10n/erwing_fdr.csv")[,-1]
 
