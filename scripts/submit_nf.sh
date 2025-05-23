@@ -114,36 +114,6 @@ fi
 
 
 
-# Create a custom config to force SLURM executor
-
-cat <<EOF > nextflow_executor_override.config
-
-executor {
-
-  name = 'slurm'
-
-}
-
-process.executor = 'slurm'
-
-process.queue = 'genoa64'
-
-process.clusterOptions = '--qos=pipelines'
-
-
-
-singularity {
-
-  enabled = true
-
-  autoMounts = true
-
-}
-
-EOF
-
-
-
 # Extract the workflow file (should be first argument)
 
 WORKFLOW_FILE="$1"
@@ -174,7 +144,7 @@ echo "Additional parameters: $@"
 
 echo "Running Nextflow with executor=slurm"
 
-CMD="nextflow run -ansi-log false -c nextflow_executor_override.config -with-trace -name oocyte_fmn2_spire_analysis $WORKFLOW_FILE $@"
+CMD="nextflow run -ansi-log false -c nextflow_executor_override.config -with-trace $WORKFLOW_FILE $@"
 
 echo "Executing: $CMD"
 
