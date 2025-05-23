@@ -431,7 +431,7 @@ process align_reads {
     // Resource requirements - as per your specifications
     cpus 8
     memory { 50.GB }
-    time { 2.hour + 30.min }
+    time { 3.hours}
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
