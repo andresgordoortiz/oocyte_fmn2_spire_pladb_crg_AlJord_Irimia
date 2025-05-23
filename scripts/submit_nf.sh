@@ -22,13 +22,15 @@ set -o pipefail # ensure bash pipelines return non-zero status if any of their c
 
 # Setup trap function to be run when canceling the pipeline job. It will propagate the SIGTERM signal
 
-# to Nextlflow so that all jobs launche by the pipeline will be cancelled too.
+# to Nextflow so that all jobs launched by the pipeline will be cancelled too.
 
 _term() {
 
         echo "Caught SIGTERM signal!"
 
-        kill -s SIGTERM $pid
+        # Send SIGTERM to the entire process group to ensure Tower gets the signal
+
+        kill -s SIGTERM -$pid 2>/dev/null || kill -s SIGTERM $pid
 
         wait $pid
 
@@ -36,7 +38,7 @@ _term() {
 
 
 
-trap _term TERM
+trap _term TERM INT
 
 
 
@@ -83,6 +85,10 @@ export NXF_CLUSTER_SEED=531684
 # Ensure all relevant SLURM environment variables are preserved and passed to Nextflow
 
 export SLURM_EXPORT_ENV=ALL
+
+# Preserve additional SLURM variables that Tower might need
+
+export SLURM_JOB_ID SLURM_JOB_NAME SLURM_CLUSTER_NAME
 
 
 
@@ -148,15 +154,31 @@ CMD="nextflow run -ansi-log false $WORKFLOW_FILE $@"
 
 echo "Executing: $CMD"
 
-eval "$CMD" & pid=$!
 
 
+# Run Nextflow in foreground when using Tower to ensure proper signal handling
 
-# Wait for the pipeline to finish
+if [[ "$*" == *"-with-tower"* ]]; then
 
-echo "Waiting for Nextflow process ${pid}"
+    echo "Tower detected - running in foreground for proper signal handling"
 
-wait $pid
+    eval "$CMD"
+
+    exit_code=$?
+
+else
+
+    eval "$CMD" & pid=$!
+
+    # Wait for the pipeline to finish
+
+    echo "Waiting for Nextflow process ${pid}"
+
+    wait $pid
+
+    exit_code=$?
+
+fi
 
 
 
@@ -174,6 +196,6 @@ fi
 
 
 
-# Return 0 exit-status if everything went well
+# Return the actual exit status
 
-exit 0
+exit $exit_code
