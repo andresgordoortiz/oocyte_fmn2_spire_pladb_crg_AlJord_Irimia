@@ -718,10 +718,9 @@ workflow {
         .mix(prepared_paired)
         .mix(prepared_single)
 
-    // Process flow depends on whether trimming and/or FastQC are skipped
-    // If trimming is enabled, we run trim_galore (which can optionally include FastQC)
-    // If trimming is disabled but FastQC is enabled, we run standalone FastQC
-    // If both are disabled, we proceed directly to alignment
+    // Process flow depends on whether trimming is enabled
+    // If trimming is enabled, trim_galore can run FastQC automatically
+    // If trimming is disabled, we might run standalone FastQC
 
     if (!params.skip_trimming) {
         // Run trim_galore on all samples
@@ -730,35 +729,34 @@ workflow {
         // Use the trimmed reads for downstream processes
         samples_for_alignment = trimmed_results.trimmed_reads
 
-        // Collect FastQC results from trimming if FastQC was included
+        // Get FastQC results from trim_galore if fastqc in trimming isn't skipped
         fastqc_results = params.skip_fastqc_in_trimming ?
-            (params.skip_fastqc ? Channel.empty() : run_fastqc(all_prepared_samples)) :
+            Channel.empty() :
             trimmed_results.fastqc_results
     } else {
         // Skip trimming - use the raw reads
         samples_for_alignment = all_prepared_samples
 
-        // Run FastQC on raw reads if not skipped
+        // Only run standalone FastQC if trimming is skipped (to avoid duplicate FastQC runs)
         fastqc_results = params.skip_fastqc ? Channel.empty() : run_fastqc(all_prepared_samples)
     }
 
     // Align all samples with VAST-tools
-    aligned_samples = align_reads(samples_for_alignment, local_vastdb_dir)
+    align_results = align_reads(samples_for_alignment, local_vastdb_dir)
 
-    // Collect all vast_out directories for combining
-    vast_out_dirs = aligned_samples.map { it[2] }.collect()
+    // Use the named output channels directly
+    vast_out_dirs = align_results.vast_out_dir.collect()
 
     // Get a unique name for the output based on the project name or custom parameter
-    // For now we'll use a hardcoded default, but you could make this a parameter
     output_name = "splicing_analysis"
 
     // Combine all alignment results
     inclusion_table = combine_results(vast_out_dirs, local_vastdb_dir, output_name)
 
-    // Run MultiQC if FastQC was run
-    if (!params.skip_fastqc || (!params.skip_trimming && !params.skip_fastqc_in_trimming)) {
-        // Collect all QC files properly
-        vast_dirs_for_multiqc = aligned_samples.map { it[2] }.collect()
+    // Run MultiQC if FastQC was run (either standalone or via trim_galore)
+    if ((!params.skip_trimming && !params.skip_fastqc_in_trimming) || (params.skip_trimming && !params.skip_fastqc)) {
+        // Use the named output channel directly - no need to map again
+        vast_dirs_for_multiqc = align_results.vast_out_dir.collect()
 
         // Handle optional channels properly
         trim_logs = params.skip_trimming ?
