@@ -100,6 +100,20 @@ env | grep -E 'SLURM|NXF'
 
 
 
+# Check if any arguments are provided
+
+if [ $# -eq 0 ]; then
+
+    echo "ERROR: No workflow file specified."
+
+    echo "Usage: sbatch submit_nf.sh path/to/workflow.nf [additional parameters]"
+
+    exit 1
+
+fi
+
+
+
 # Create a custom config to force SLURM executor
 
 cat <<EOF > nextflow_executor_override.config
@@ -116,21 +130,41 @@ EOF
 
 
 
-# Always add the -profile crg parameter and executor override unless it's already specified
+# Extract the workflow file (should be first argument)
 
-if [[ "$@" != *"-profile"* ]] && [[ "$@" != *"-config"* ]]; then
+WORKFLOW_FILE="$1"
 
-    echo "Adding -profile crg and executor=slurm to nextflow command"
+shift
 
-    nextflow run -ansi-log false -profile crg -c nextflow_executor_override.config --executor slurm -with-trace "$@" & pid=$!
 
-else
 
-    echo "Running with existing profile/config setting plus executor=slurm"
+# Check if the workflow file exists or is a valid Nextflow workflow name
 
-    nextflow run -ansi-log false -c nextflow_executor_override.config --executor slurm -with-trace "$@" & pid=$!
+if [[ ! -f "$WORKFLOW_FILE" && ! "$WORKFLOW_FILE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+
+    echo "WARNING: The specified workflow file '$WORKFLOW_FILE' does not exist as a file."
+
+    echo "Nextflow will attempt to resolve it as a named workflow or URL."
 
 fi
+
+
+
+echo "Workflow file/name: $WORKFLOW_FILE"
+
+echo "Additional parameters: $@"
+
+
+
+# Always add the -profile crg parameter and executor override
+
+echo "Running Nextflow with executor=slurm and profile=crg"
+
+CMD="nextflow run -ansi-log false -profile crg -c nextflow_executor_override.config --executor slurm -with-trace $WORKFLOW_FILE $@"
+
+echo "Executing: $CMD"
+
+eval "$CMD" & pid=$!
 
 
 
