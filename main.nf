@@ -291,7 +291,7 @@ process run_trim_galore {
 
     script:
     def fastqc_option = params.skip_fastqc_in_trimming ? "" : "--fastqc"
-    def fastqc_args = params.skip_fastqc_in_trimming ? "" : "--fastqc_args \\\"-t ${task.cpus}\\\""
+    def fastqc_args = params.skip_fastqc_in_trimming ? "" : "--fastqc_args '-t ${task.cpus}'"
 
     if (sample_type == 'paired') {
         // For paired-end data
@@ -631,7 +631,7 @@ process run_rmarkdown_report {
     """
 }
 
-// Function to get VASTDB directory name from species code
+// Function to get VASTDB directory from species code
 def getVastdbDirName(species) {
     // Map species names to VASTDB folder names
     def speciesDirectoryMap = [
