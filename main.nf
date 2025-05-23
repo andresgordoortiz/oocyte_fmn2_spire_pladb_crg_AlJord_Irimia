@@ -19,11 +19,16 @@ params.vastdb_path = "/path/to/vastdb"
 params.sample_csv = null   // CSV file with sample info (replaces reads_dir)
 params.help = false
 params.skip_fastqc = false  // Option to skip FastQC step
+params.skip_trimming = false  // Option to skip trimming step
+params.skip_fastqc_in_trimming = false  // Option to skip FastQC within trim_galore
 params.skip_rmarkdown = false  // Option to skip the final Rmarkdown report
 params.rmd_file = "$projectDir/scripts/R/notebooks/Oocyte_fmndko_spireko_complete.Rmd"
 params.prot_impact_url = "https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"
 params.species = "mm10"  // Default species for VAST-tools alignment
 params.multiqc_config = null  // Path to multiqc config file (optional)
+
+// Change from default value to null to make it mandatory
+params.data_dir = null  // Now mandatory - directory containing input FASTQ files
 
 // Display help message
 def helpMessage() {
@@ -33,11 +38,12 @@ def helpMessage() {
     ============================================================
     Usage:
 
-    nextflow run main.nf --sample_csv sample_sheet.csv --vastdb_path /path/to/vastdb
+    nextflow run main.nf --sample_csv sample_sheet.csv --vastdb_path /path/to/vastdb --data_dir /path/to/data
 
     Mandatory Arguments:
       --sample_csv          Path to CSV file defining samples to analyze
-      --vastdb_path         Path to VAST-DB directory
+      --vastdb_path         Path to VASTDB directory
+      --data_dir            Path to directory containing FASTQ files referenced in sample_csv
 
     Sample CSV Format:
       The CSV file should contain the following columns:
@@ -54,12 +60,14 @@ def helpMessage() {
       --outdir              Output directory (default: ${params.outdir})
       --species             Species for VAST-tools alignment (default: ${params.species})
       --skip_fastqc         Skip FastQC quality control (default: ${params.skip_fastqc})
+      --skip_trimming       Skip trimming of reads (default: ${params.skip_trimming})
+      --skip_fastqc_in_trimming  Skip FastQC within trim_galore (default: ${params.skip_fastqc_in_trimming})
       --skip_rmarkdown      Skip RMarkdown report generation (default: ${params.skip_rmarkdown})
       --rmd_file            Path to RMarkdown file for report (default: ${params.rmd_file})
       --multiqc_config      Path to MultiQC config file (default: none)
 
     Example Command:
-      nextflow run main.nf --sample_csv samples.csv --vastdb_path /path/to/vastdb --species mm10 --outdir results
+      nextflow run main.nf --sample_csv samples.csv --vastdb_path /path/to/vastdb --data_dir /path/to/data --species mm10 --outdir results
     ============================================================
     """.stripIndent()
 }
@@ -75,6 +83,22 @@ def validateParameters() {
 
     if (params.sample_csv == null) {
         log.error "ERROR: No sample CSV file has been specified. Please set the --sample_csv parameter to the location of your sample sheet CSV file (e.g., --sample_csv /path/to/samples.csv)."
+        exit 1
+    }
+
+    if (params.data_dir == null) {
+        log.error "ERROR: No data directory has been specified. Please set the --data_dir parameter to the location containing your FASTQ files (e.g., --data_dir /path/to/fastq_files)."
+        exit 1
+    }
+
+    def dataDir = file(params.data_dir)
+    if (!dataDir.exists()) {
+        log.error "ERROR: The specified data directory '${params.data_dir}' does not exist. Please verify the path."
+        exit 1
+    }
+
+    if (!dataDir.isDirectory()) {
+        log.error "ERROR: The specified path '${params.data_dir}' is not a directory."
         exit 1
     }
 
@@ -96,12 +120,28 @@ def validateParameters() {
         log.error "Where type must be 'single', 'paired', or 'technical_replicate'"
         exit 1
     }
+
+    // Additional validation: Check that paired samples have fastq_2
+    def csvData = sampleCsv.withReader { reader ->
+        reader.readLines().drop(1) // Skip header
+    }
+
+    csvData.each { line ->
+        def values = line.split(',')
+        if (values.size() >= 4 && values[3].trim().toLowerCase() == 'paired') {
+            if (values.size() < 3 || !values[2] || values[2].trim().isEmpty()) {
+                log.error "ERROR: Sample '${values[0]}' is marked as 'paired' but missing fastq_2 column or value."
+                exit 1
+            }
+        }
+    }
 }
 
 
 process concatenate_technical_replicates {
     tag "Concatenating technical replicates: ${sample_id}"
     label 'process_medium'
+    container 'ubuntu:20.04' // Basic container for file operations
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -123,6 +163,7 @@ process concatenate_technical_replicates {
 // Process to handle paired-end reads
 process prepare_paired_reads {
     tag "Preparing paired-end reads: ${sample_id}"
+    container 'ubuntu:20.04' // Basic container for file operations
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -144,6 +185,7 @@ process prepare_paired_reads {
 // Process to handle single-end reads
 process prepare_single_reads {
     tag "Preparing single-end reads: ${sample_id}"
+    container 'ubuntu:20.04' // Basic container for file operations
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -163,6 +205,7 @@ process prepare_single_reads {
 
 process verify_files {
     debug true
+    container 'ubuntu:20.04' // Basic container for file operations
 
     input:
     path dir
@@ -179,6 +222,7 @@ process run_fastqc {
     tag "Quality control: ${sample_id}"
     label 'process_medium'
     publishDir "${params.outdir}/qc/fastqc", mode: 'copy'
+    container 'quay.io/biocontainers/fastqc:0.11.9--0' // Using biocontainer for FastQC
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -194,14 +238,84 @@ process run_fastqc {
     """
 }
 
+process run_trim_galore {
+    tag "Trimming: ${sample_id}"
+    label 'process_medium'
+    publishDir "${params.outdir}/trimmed_reads", mode: 'copy', pattern: "*.{fq.gz,fastq.gz}"
+    publishDir "${params.outdir}/qc/trimming_reports", mode: 'copy', pattern: "*_trimming_report.txt"
+    publishDir "${params.outdir}/qc/fastqc_trimmed", mode: 'copy', pattern: "*_fastqc.{html,zip}"
+    container 'https://depot.galaxyproject.org/singularity/trim-galore:0.6.9--hdfd78af_0' // Using galaxyproject container for trim_galore
+
+    input:
+    tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
+
+    output:
+    tuple val(sample_id), val(sample_type), path("*_trimmed.{fq.gz,fastq.gz}"), val(group), emit: trimmed_reads
+    path "*_trimming_report.txt", emit: trim_log
+    path "*_fastqc.{zip,html}", optional: true, emit: fastqc_results
+
+    script:
+    def fastqc_option = params.skip_fastqc_in_trimming ? "" : "--fastqc"
+    def fastqc_args = params.skip_fastqc_in_trimming ? "" : "--fastqc_args \\\"-t ${task.cpus}\\\""
+
+    if (sample_type == 'paired') {
+        // For paired-end data
+        """
+        echo "Trimming paired-end reads for sample ${sample_id}..."
+        trim_galore ${fastqc_option} -j ${task.cpus} ${fastqc_args} \\
+            --paired --quality 20 ${fastq_files[0]} ${fastq_files[1]} \\
+            --basename ${sample_id}
+
+        # More robust renaming with error checking
+        if [ -f "${sample_id}_val_1.fq.gz" ]; then
+            mv "${sample_id}_val_1.fq.gz" "${sample_id}_R1_trimmed.fq.gz"
+        else
+            echo "ERROR: Expected output file ${sample_id}_val_1.fq.gz not found"
+            ls -la
+            exit 1
+        fi
+
+        if [ -f "${sample_id}_val_2.fq.gz" ]; then
+            mv "${sample_id}_val_2.fq.gz" "${sample_id}_R2_trimmed.fq.gz"
+        else
+            echo "ERROR: Expected output file ${sample_id}_val_2.fq.gz not found"
+            ls -la
+            exit 1
+        fi
+
+        echo "Trimming complete for ${sample_id}."
+        """
+    } else {
+        // For single-end data - fix the naming logic
+        """
+        echo "Trimming single-end reads for sample ${sample_id}..."
+        trim_galore ${fastqc_option} -j ${task.cpus} ${fastqc_args} \\
+            --quality 20 ${fastq_files}
+
+        # More robust file renaming
+        TRIMMED_FILE=\$(find . -name "*_trimmed.fq.gz" -o -name "*_trimmed.fastq.gz" | head -n 1)
+        if [ -n "\$TRIMMED_FILE" ]; then
+            mv "\$TRIMMED_FILE" "${sample_id}_trimmed.fq.gz"
+        else
+            echo "ERROR: No trimmed output file found"
+            ls -la
+            exit 1
+        fi
+
+        echo "Trimming complete for ${sample_id}."
+        """
+    }
+}
+
 process run_multiqc {
     tag "MultiQC Report"
     label 'process_low'
     publishDir "${params.outdir}/qc", mode: 'copy'
+    container 'multiqc/multiqc:latest' // Using the multiqc container
 
     input:
     path ('fastqc/*')
-    path ('vast_out/')
+    path ('*')
     path multiqc_config
 
     output:
@@ -212,6 +326,14 @@ process run_multiqc {
     def config_arg = multiqc_config ? "--config ${multiqc_config}" : ''
     """
     echo "Generating MultiQC report..."
+    # Make sure the directory structure is preserved for MultiQC to recognize file types
+    mkdir -p trim_galore_reports
+    mkdir -p vast_out
+
+    # Move files to appropriate directories based on naming patterns
+    find . -name "*trimming_report.txt" -exec mv {} ./trim_galore_reports/ \\;
+    find . -name "*.tab" -o -name "*.log" | grep -v trimming | xargs -I{} mv {} ./vast_out/ 2>/dev/null || true
+
     multiqc . ${config_arg} -f -n multiqc_report.html
     echo "MultiQC report generated."
     """
@@ -219,6 +341,7 @@ process run_multiqc {
 
 process prepare_vastdb {
     tag "Prepare VASTDB"
+    container 'ubuntu:20.04' // Basic container for file operations
 
     input:
     val vastdb_path
@@ -258,6 +381,7 @@ process align_reads {
     tag "VAST-tools alignment: ${sample_id}"
     label 'process_high'
     publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/${sample_id}_*.tab"
+    container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -307,6 +431,7 @@ process combine_results {
     tag "VAST-tools combine"
     label 'process_medium'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
+    container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
 
     input:
     path vast_out_dirs
@@ -372,6 +497,7 @@ process run_rmarkdown_report {
     tag "Generate R analysis report"
     label 'process_high'
     publishDir "${params.outdir}/report", mode: 'copy', pattern: '*.html'
+    container 'andresgordoortiz/splicing_analysis_r_crg:v1.5' // Using biocontainer for R with rmarkdown
 
     input:
     path inclusion_table
@@ -476,7 +602,6 @@ def getVastdbDirName(species) {
 
 // Define a function to parse the sample CSV and create channels
 def parseSamplesCsv(sampleCsv) {
-    // Create a channel from the sample CSV file
     Channel.fromPath(sampleCsv)
         .splitCsv(header: true, strip: true)
         .map { row ->
@@ -493,10 +618,24 @@ def parseSamplesCsv(sampleCsv) {
             }
 
             def sampleId = row.sample
-            def fastq1 = file(row.fastq_1, checkIfExists: true)
+
+            // FIX: Handle relative paths by prepending the data directory if needed
+            def fastq1Path = row.fastq_1
+            if (!fastq1Path.startsWith("/") && !fastq1Path.startsWith("./") && !fastq1Path.startsWith("../")) {
+                fastq1Path = "${params.data_dir}/${fastq1Path}"
+            }
+            def fastq1 = file(fastq1Path, checkIfExists: true)
 
             // For paired-end reads, check if fastq_2 is provided
-            def fastq2 = row.fastq_2 ? file(row.fastq_2, checkIfExists: true) : null
+            def fastq2 = null
+            if (row.fastq_2) {
+                def fastq2Path = row.fastq_2
+                if (!fastq2Path.startsWith("/") && !fastq2Path.startsWith("./") && !fastq2Path.startsWith("../")) {
+                    fastq2Path = "${params.data_dir}/${fastq2Path}"
+                }
+                fastq2 = file(fastq2Path, checkIfExists: true)
+            }
+
             if (row.type.toLowerCase() == 'paired' && fastq2 == null) {
                 log.error "ERROR: Type is set to 'paired' for sample '${sampleId}' but 'fastq_2' is missing."
                 exit 1
@@ -508,10 +647,17 @@ def parseSamplesCsv(sampleCsv) {
                 fastq_files.add(fastq1)
                 if (fastq2) fastq_files.add(fastq2)
 
-                // Check for additional technical replicates (using a functional approach instead of a loop)
+                // Check for additional technical replicates (handle relative paths)
                 def additionalFastqs = (3..10).collect { i ->
                     def key = "fastq_${i}"
-                    return row.containsKey(key) && row[key] ? file(row[key], checkIfExists: true) : null
+                    if (row.containsKey(key) && row[key]) {
+                        def fastqPath = row[key]
+                        if (!fastqPath.startsWith("/") && !fastqPath.startsWith("./") && !fastqPath.startsWith("../")) {
+                            fastqPath = "${params.data_dir}/${fastqPath}"
+                        }
+                        return file(fastqPath, checkIfExists: true)
+                    }
+                    return null
                 }
                 additionalFastqs.removeAll([null])
                 fastq_files.addAll(additionalFastqs)
@@ -542,9 +688,12 @@ workflow {
     Starting pipeline with parameters:
       - Sample CSV:        ${params.sample_csv}
       - VASTDB path:       ${params.vastdb_path}
+      - Data directory:    ${params.data_dir} (MANDATORY)
       - Output directory:  ${params.outdir}
       - Species:           ${params.species}
       - Skip FastQC:       ${params.skip_fastqc}
+      - Skip Trimming:     ${params.skip_trimming}
+      - Skip FastQC in Trimming: ${params.skip_fastqc_in_trimming}
       - Skip RMarkdown:    ${params.skip_rmarkdown}
     """
 
@@ -569,11 +718,32 @@ workflow {
         .mix(prepared_paired)
         .mix(prepared_single)
 
-    // Run FastQC on all prepared samples if not skipped
-    fastqc_results = params.skip_fastqc ? Channel.empty() : run_fastqc(all_prepared_samples)
+    // Process flow depends on whether trimming and/or FastQC are skipped
+    // If trimming is enabled, we run trim_galore (which can optionally include FastQC)
+    // If trimming is disabled but FastQC is enabled, we run standalone FastQC
+    // If both are disabled, we proceed directly to alignment
+
+    if (!params.skip_trimming) {
+        // Run trim_galore on all samples
+        trimmed_results = run_trim_galore(all_prepared_samples)
+
+        // Use the trimmed reads for downstream processes
+        samples_for_alignment = trimmed_results.trimmed_reads
+
+        // Collect FastQC results from trimming if FastQC was included
+        fastqc_results = params.skip_fastqc_in_trimming ?
+            (params.skip_fastqc ? Channel.empty() : run_fastqc(all_prepared_samples)) :
+            trimmed_results.fastqc_results
+    } else {
+        // Skip trimming - use the raw reads
+        samples_for_alignment = all_prepared_samples
+
+        // Run FastQC on raw reads if not skipped
+        fastqc_results = params.skip_fastqc ? Channel.empty() : run_fastqc(all_prepared_samples)
+    }
 
     // Align all samples with VAST-tools
-    aligned_samples = align_reads(all_prepared_samples, local_vastdb_dir)
+    aligned_samples = align_reads(samples_for_alignment, local_vastdb_dir)
 
     // Collect all vast_out directories for combining
     vast_out_dirs = aligned_samples.map { it[2] }.collect()
@@ -586,22 +756,30 @@ workflow {
     inclusion_table = combine_results(vast_out_dirs, local_vastdb_dir, output_name)
 
     // Run MultiQC if FastQC was run
-    if (!params.skip_fastqc) {
-        // We need to provide a channel with the vast_out directories for MultiQC
+    if (!params.skip_fastqc || (!params.skip_trimming && !params.skip_fastqc_in_trimming)) {
+        // Collect all QC files properly
         vast_dirs_for_multiqc = aligned_samples.map { it[2] }.collect()
 
-        // Collect FastQC results for MultiQC
+        // Handle optional channels properly
+        trim_logs = params.skip_trimming ?
+            Channel.empty() :
+            run_trim_galore.out.trim_log.collect()
+
         fastqc_for_multiqc = fastqc_results.collect()
 
-        // Check if multiqc config file exists
         multiqc_config = params.multiqc_config ?
-            Channel.fromPath(params.multiqc_config, checkIfExists: true) :
-            Channel.value(null)
+            file(params.multiqc_config, checkIfExists: true) :
+            file("NO_FILE") // Use placeholder instead of null
 
-        // Run MultiQC
+        // Combine all QC inputs
+        all_qc_files = fastqc_for_multiqc
+            .mix(trim_logs)
+            .mix(vast_dirs_for_multiqc)
+            .collect()
+
         multiqc_report = run_multiqc(
             fastqc_for_multiqc,
-            vast_dirs_for_multiqc,
+            all_qc_files,
             multiqc_config
         )
     }
