@@ -30,6 +30,9 @@ params.multiqc_config = null  // Path to multiqc config file (optional)
 // Change from default value to null to make it mandatory
 params.data_dir = null  // Now mandatory - directory containing input FASTQ files
 
+// Add project name parameter
+params.project_name = "splicing_analysis"
+
 // Display help message
 def helpMessage() {
     log.info"""
@@ -106,6 +109,15 @@ def validateParameters() {
     if (!sampleCsv.exists()) {
         log.error "ERROR: The specified sample CSV file '${params.sample_csv}' does not exist. Please verify the path."
         exit 1
+    }
+
+    // Validate RMarkdown file if not skipping
+    if (!params.skip_rmarkdown) {
+        def rmdFile = file(params.rmd_file)
+        if (!rmdFile.exists()) {
+            log.warn "WARNING: The specified RMarkdown file '${params.rmd_file}' does not exist. RMarkdown report will be skipped."
+            params.skip_rmarkdown = true
+        }
     }
 
     // Check if the CSV file is properly formatted (header check)
@@ -839,15 +851,10 @@ workflow {
 
     // Run the RMarkdown report if not skipped
     if (!params.skip_rmarkdown) {
-        // Check if the RMarkdown file exists
-        rmd_file = file(params.rmd_file)
-        if (rmd_file.exists()) {
-            report = run_rmarkdown_report(inclusion_table, params.rmd_file)
-        } else {
-            log.warn "RMarkdown file not found: ${params.rmd_file}. Skipping report generation."
-        }
+        // Use the params.rmd_file directly since we validated it exists
+        report = run_rmarkdown_report(inclusion_table, params.rmd_file)
     } else {
-        log.info "Skipping RMarkdown report as per user request."
+        log.info "Skipping RMarkdown report as per user request or missing RMarkdown file."
     }
 
     log.info """
