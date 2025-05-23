@@ -72,37 +72,63 @@ echo "Using SLURM configuration: $SLURM_CONF"
 
 
 
+# Make absolutely sure Nextflow sees this is a SLURM environment
+
+export NXF_EXECUTOR=slurm
+
+export NXF_CLUSTER_SEED=531684
+
+
+
+# Ensure all relevant SLURM environment variables are preserved and passed to Nextflow
+
+export SLURM_EXPORT_ENV=ALL
+
+
+
 # limit the RAM that can be used by nextflow
 
-export NXF_JVM_ARGS="-Xms2g -Xmx5g"
+export NXF_JVM_ARGS="-Xms2g -Xmx5g -Dexecutor.name=slurm"
 
 
 
-# Run the pipeline. The command uses the arguments passed to this script, e.g:
+# Debug output
 
-#
+echo "Environment variables for Nextflow:"
 
-# $ sbatch submit_nf.sh nextflow/rnatoy -with-singularity
-
-#
-
-# will use "nextflow/rnatoy -with-singularity" as arguments
+env | grep -E 'SLURM|NXF'
 
 
 
-# Always add the -profile crg parameter unless it's already specified
+# Create a custom config to force SLURM executor
+
+cat <<EOF > nextflow_executor_override.config
+
+executor {
+
+  name = 'slurm'
+
+}
+
+process.executor = 'slurm'
+
+EOF
+
+
+
+# Always add the -profile crg parameter and executor override unless it's already specified
 
 if [[ "$@" != *"-profile"* ]] && [[ "$@" != *"-config"* ]]; then
 
-    echo "Adding -profile crg to nextflow command"
+    echo "Adding -profile crg and executor=slurm to nextflow command"
 
-    nextflow run -ansi-log false -profile crg "$@" & pid=$!
+    nextflow run -ansi-log false -profile crg -c nextflow_executor_override.config --executor slurm -with-trace "$@" & pid=$!
 
 else
 
-    echo "Running with existing profile/config setting"
+    echo "Running with existing profile/config setting plus executor=slurm"
 
-    nextflow run -ansi-log false "$@" & pid=$!
+    nextflow run -ansi-log false -c nextflow_executor_override.config --executor slurm -with-trace "$@" & pid=$!
 
 fi
 
@@ -113,6 +139,20 @@ fi
 echo "Waiting for Nextflow process ${pid}"
 
 wait $pid
+
+
+
+# Print executor information from the trace file if available
+
+if [ -f "trace.txt" ]; then
+
+    echo "Executor information from trace file:"
+
+    head -n 1 trace.txt
+
+    grep -m 1 "executor" trace.txt || echo "No executor info found in trace file"
+
+fi
 
 
 
