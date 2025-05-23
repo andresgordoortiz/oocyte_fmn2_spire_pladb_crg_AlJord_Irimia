@@ -1,0 +1,16 @@
+sample,fastq_1,fastq_2,type,group
+sample1-ctl,reads_1-ctl-11-03-25-a.fastq.gz,reads_1-ctl-11-03-25-b.fastq.gz,technical_replicate,control
+sample2-ctl,reads_2-ctl-11-03-25-a.fastq.gz,reads_2-ctl-11-03-25-b.fastq.gz,technical_replicate,control
+sample3-ctl,reads_3-ctl-11-03-25-a.fastq.gz,reads_3-ctl-11-03-25-b.fastq.gz,technical_replicate,control
+sample4-tub,reads_4-tub-10mm-11-03-25-a.fastq.gz,reads_4-tub-10mm-11-03-25-b.fastq.gz,technical_replicate,tubulin
+sample5-tub,reads_5-tub-10mm-11-03-25-a.fastq.gz,reads_5-tub-10mm-11-03-25-b.fastq.gz,technical_replicate,tubulin
+sample6-tub,reads_6-tub-10mm-11-03-25-a.fastq.gz,reads_6-tub-10mm-11-03-25-b.fastq.gz,technical_replicate,tubulin
+sample7-ssa,reads_7-ssa-1mm-11-03-25-a.fastq.gz,reads_7-ssa-1mm-11-03-25-b.fastq.gz,technical_replicate,ssa
+sample8-ssa,reads_8-ssa-1mm-11-03-25-a.fastq.gz,reads_8-ssa-1mm-11-03-25-b.fastq.gz,technical_replicate,ssa
+sample9-ssa,reads_9-ssa-1mm-11-03-25-a.fastq.gz,reads_9-ssa-1mm-11-03-25-b.fastq.gz,technical_replicate,ssa
+sample10-ctl,reads_10-ctl-13-03-25-a.fastq.gz,reads_10-ctl-13-03-25-b.fastq.gz,technical_replicate,control
+sample11-ctl,reads_11-ctl-13-03-25-a.fastq.gz,reads_11-ctl-13-03-25-b.fastq.gz,technical_replicate,control
+sample12-ctl,reads_12-ctl-13-03-25-a.fastq.gz,reads_12-ctl-13-03-25-b.fastq.gz,technical_replicate,control
+sample13-pladb,reads_13-pladb-3mm-13-03-25-a.fastq.gz,reads_13-pladb-3mm-13-03-25-b.fastq.gz,technical_replicate,pladb
+sample14-pladb,reads_14-pladb-3mm-13-03-25-a.fastq.gz,reads_14-pladb-3mm-13-03-25-b.fastq.gz,technical_replicate,pladb
+sample15-pladb,reads_15-pladb-3mm-13-03-25-a.fastq.gz,reads_15-pladb-3mm-13-03-25-b.fastq.gz,technical_replicate,pladb
