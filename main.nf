@@ -152,7 +152,7 @@ process concatenate_technical_replicates {
     label 'process_medium'
 
     // Resource requirements
-    cpus 1
+    cpus 4
     memory { 4.GB }
     time { 30.min }
 
