@@ -380,59 +380,47 @@ process run_multiqc {
 }
 
 process prepare_vastdb {
-    tag "Prepare VASTDB"
+    tag "Validate VASTDB"
 
     // Resource requirements
     cpus 1
-    memory { 4.GB }
-    time { 15.min }
+    memory { 1.GB }
+    time { 5.min }
 
     input:
     val vastdb_path
 
     output:
-    path "local_vastdb", emit: local_vastdb_dir
+    val vastdb_path, emit: vastdb_path
 
     script:
     def species_dir = getVastdbDirName(params.species)
     """
-    echo "Creating a local copy of VASTDB from ${vastdb_path}"
+    echo "Validating VASTDB structure at ${vastdb_path}"
     echo "Using species directory: ${species_dir} for ${params.species}"
-    mkdir -p local_vastdb
 
-    if [ -d "${vastdb_path}" ]; then
-        echo "Copying only the required species directory from VASTDB"
-
-        # Check if the species directory exists in the source
-        if [ -d "${vastdb_path}/${species_dir}" ]; then
-            echo "Found species directory ${species_dir}, copying..."
-            cp -r ${vastdb_path}/${species_dir} local_vastdb/ || {
-                echo "ERROR: Failed to copy species directory"
-                exit 1
-            }
-
-            # Also copy essential VASTDB files if they exist
-            [ -f "${vastdb_path}/VASTDB.VERSION" ] && cp ${vastdb_path}/VASTDB.VERSION local_vastdb/
-            [ -d "${vastdb_path}/TEMPLATES" ] && cp -r ${vastdb_path}/TEMPLATES local_vastdb/
-
-        else
-            echo "ERROR: Species directory ${species_dir} not found in VASTDB ${vastdb_path}"
-            echo "Available directories in VASTDB:"
-            ls -la ${vastdb_path}/
-            exit 1
-        fi
-
-        # Verify what was copied
-        echo "Local VASTDB contents:"
-        ls -la local_vastdb/
-        echo "Species-specific directory contents:"
-        ls -la local_vastdb/${species_dir}/
-        echo "Total size of copied VASTDB:"
-        du -sh local_vastdb/
-    else
-        echo "ERROR: Source VASTDB directory ${vastdb_path} not found!"
+    # Verify the VASTDB path exists
+    if [ ! -d "${vastdb_path}" ]; then
+        echo "ERROR: VASTDB directory ${vastdb_path} does not exist!"
         exit 1
     fi
+
+    # Check if the species directory exists in VASTDB
+    if [ ! -d "${vastdb_path}/${species_dir}" ]; then
+        echo "ERROR: Species directory ${species_dir} not found in VASTDB ${vastdb_path}"
+        echo "Available directories in VASTDB:"
+        ls -la ${vastdb_path}/
+        exit 1
+    fi
+
+    # Verify key files and directories exist
+    echo "Verifying VASTDB structure..."
+    ls -la ${vastdb_path}/${species_dir}/ || {
+        echo "ERROR: Cannot list contents of species directory"
+        exit 1
+    }
+
+    echo "VASTDB structure validated successfully"
     """
 }
 
@@ -449,7 +437,7 @@ process align_reads {
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
-    path local_vastdb_dir
+    val vastdb_path  // This is now a value, not a path
 
     output:
     tuple val(sample_id), val(group), path("vast_out"), emit: alignment_output
@@ -457,72 +445,22 @@ process align_reads {
 
     script:
     def vast_options = "--IR_version 2 -c ${task.cpus} -n ${sample_id} -sp ${params.species} --verbose"
-    def species_dir = getVastdbDirName(params.species)
 
     if (sample_type == 'paired') {
         // Paired-end alignment - fastq_files will have R1 and R2
         """
         mkdir -p vast_out
         echo "Starting VAST-tools alignment for paired-end sample ${sample_id}..."
+        echo "VASTDB is bound to the container at /usr/local/vast-tools/VASTDB"
 
-        # Create the expected VASTDB directory structure in the container
-        CONTAINER_VASTDB="/usr/local/vast-tools/VASTDB"
-        echo "Setting up VASTDB in the container's expected location: \$CONTAINER_VASTDB"
-
-        # Create the directory if it doesn't exist (it might be read-only in the container)
-        mkdir -p \$CONTAINER_VASTDB || true
-
-        # Create symlinks from our local copy to the expected location
-        echo "Creating symbolic links from local copy to \$CONTAINER_VASTDB"
-
-        # Check if our local copy has the required directories
-        if [ -d "${local_vastdb_dir}/${species_dir}" ]; then
-            # Either symlink the entire directory or its contents based on permissions
-            if ln -sf "\$PWD/${local_vastdb_dir}/${species_dir}" "\$CONTAINER_VASTDB/" 2>/dev/null; then
-                echo "Successfully linked ${species_dir} directory"
-            else
-                # If symlink fails (container path might be read-only), try to create the dir and copy
-                mkdir -p "\$CONTAINER_VASTDB/${species_dir}" 2>/dev/null || true
-                cp -rf "\$PWD/${local_vastdb_dir}/${species_dir}"/* "\$CONTAINER_VASTDB/${species_dir}/" || {
-                    echo "WARNING: Failed to copy data to container path. Will try to use local path."
-                }
-            fi
-        else
-            echo "ERROR: Required species directory ${species_dir} not found in local VASTDB"
-            exit 1
-        fi
-
-        # Also link/copy essential VASTDB files if they exist
-        [ -f "${local_vastdb_dir}/VASTDB.VERSION" ] && cp "${local_vastdb_dir}/VASTDB.VERSION" "\$CONTAINER_VASTDB/" 2>/dev/null || true
-        [ -d "${local_vastdb_dir}/TEMPLATES" ] && cp -rf "${local_vastdb_dir}/TEMPLATES" "\$CONTAINER_VASTDB/" 2>/dev/null || true
-
-        # Set VASTDB to the expected container location
-        export VASTDB=\$CONTAINER_VASTDB
-        echo "VASTDB set to: \$VASTDB"
-
-        # Verify container VASTDB setup
-        echo "Container VASTDB contents:"
-        ls -la \$CONTAINER_VASTDB/ || true
-        echo "Container VASTDB species directory contents:"
-        ls -la \$CONTAINER_VASTDB/${species_dir}/ || true
-
-        # As a fallback, also set the environment variable to our local copy
-        export VASTDB_BACKUP=\$PWD/${local_vastdb_dir}
-        echo "Backup VASTDB path: \$VASTDB_BACKUP"
-
+        # When using Singularity bind mounts, we don't need to set VASTDB
+        # The container will find it at the default location
         vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options} || {
-            echo "Alignment failed for ${sample_id} - trying with backup VASTDB path..."
-            export VASTDB=\$VASTDB_BACKUP
-            echo "Now using VASTDB=\$VASTDB"
-
-            # Try again with the backup path
-            vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options} || {
-                echo "Alignment failed again - debugging information:"
-                echo "VASTDB directory tried: \$VASTDB"
-                echo "Expected species directory: \$VASTDB/${species_dir}"
-                vast-tools --version || true
-                exit 1;
-            }
+            echo "Alignment failed for ${sample_id}"
+            echo "Debugging information:"
+            ls -la /usr/local/vast-tools/VASTDB/ || true
+            ls -la /usr/local/vast-tools/VASTDB/${getVastdbDirName(params.species)}/ || true
+            exit 1
         }
 
         echo "VAST-tools alignment complete for ${sample_id}."
@@ -532,65 +470,16 @@ process align_reads {
         """
         mkdir -p vast_out
         echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
+        echo "VASTDB is bound to the container at /usr/local/vast-tools/VASTDB"
 
-        # Create the expected VASTDB directory structure in the container
-        CONTAINER_VASTDB="/usr/local/vast-tools/VASTDB"
-        echo "Setting up VASTDB in the container's expected location: \$CONTAINER_VASTDB"
-
-        # Create the directory if it doesn't exist (it might be read-only in the container)
-        mkdir -p \$CONTAINER_VASTDB || true
-
-        # Create symlinks from our local copy to the expected location
-        echo "Creating symbolic links from local copy to \$CONTAINER_VASTDB"
-
-        # Check if our local copy has the required directories
-        if [ -d "${local_vastdb_dir}/${species_dir}" ]; then
-            # Either symlink the entire directory or its contents based on permissions
-            if ln -sf "\$PWD/${local_vastdb_dir}/${species_dir}" "\$CONTAINER_VASTDB/" 2>/dev/null; then
-                echo "Successfully linked ${species_dir} directory"
-            else
-                # If symlink fails (container path might be read-only), try to create the dir and copy
-                mkdir -p "\$CONTAINER_VASTDB/${species_dir}" 2>/dev/null || true
-                cp -rf "\$PWD/${local_vastdb_dir}/${species_dir}"/* "\$CONTAINER_VASTDB/${species_dir}/" || {
-                    echo "WARNING: Failed to copy data to container path. Will try to use local path."
-                }
-            fi
-        else
-            echo "ERROR: Required species directory ${species_dir} not found in local VASTDB"
-            exit 1
-        fi
-
-        # Also link/copy essential VASTDB files if they exist
-        [ -f "${local_vastdb_dir}/VASTDB.VERSION" ] && cp "${local_vastdb_dir}/VASTDB.VERSION" "\$CONTAINER_VASTDB/" 2>/dev/null || true
-        [ -d "${local_vastdb_dir}/TEMPLATES" ] && cp -rf "${local_vastdb_dir}/TEMPLATES" "\$CONTAINER_VASTDB/" 2>/dev/null || true
-
-        # Set VASTDB to the expected container location
-        export VASTDB=\$CONTAINER_VASTDB
-        echo "VASTDB set to: \$VASTDB"
-
-        # Verify container VASTDB setup
-        echo "Container VASTDB contents:"
-        ls -la \$CONTAINER_VASTDB/ || true
-        echo "Container VASTDB species directory contents:"
-        ls -la \$CONTAINER_VASTDB/${species_dir}/ || true
-
-        # As a fallback, also set the environment variable to our local copy
-        export VASTDB_BACKUP=\$PWD/${local_vastdb_dir}
-        echo "Backup VASTDB path: \$VASTDB_BACKUP"
-
+        # When using Singularity bind mounts, we don't need to set VASTDB
+        # The container will find it at the default location
         vast-tools align ${fastq_files} -o vast_out ${vast_options} || {
-            echo "Alignment failed for ${sample_id} - trying with backup VASTDB path..."
-            export VASTDB=\$VASTDB_BACKUP
-            echo "Now using VASTDB=\$VASTDB"
-
-            # Try again with the backup path
-            vast-tools align ${fastq_files} -o vast_out ${vast_options} || {
-                echo "Alignment failed again - debugging information:"
-                echo "VASTDB directory tried: \$VASTDB"
-                echo "Expected species directory: \$VASTDB/${species_dir}"
-                vast-tools --version || true
-                exit 1;
-            }
+            echo "Alignment failed for ${sample_id}"
+            echo "Debugging information:"
+            ls -la /usr/local/vast-tools/VASTDB/ || true
+            ls -la /usr/local/vast-tools/VASTDB/${getVastdbDirName(params.species)}/ || true
+            exit 1
         }
 
         echo "VAST-tools alignment complete for ${sample_id}."
@@ -604,14 +493,14 @@ process combine_results {
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
 
-    // Resource requirements - as per your specifications
+    // Resource requirements
     cpus 4
     memory { 10.GB }
     time { 30.min }
 
     input:
     path vast_out_dirs
-    path local_vastdb_dir
+    val vastdb_path
     val output_name
 
     output:
@@ -619,7 +508,7 @@ process combine_results {
 
     script:
     """
-    echo "Using local VASTDB at: \$PWD/${local_vastdb_dir}"
+    echo "VASTDB is bound to the container at /usr/local/vast-tools/VASTDB"
 
     # Create a directory to collect all to_combine subdirectories
     mkdir -p combined_input_dir
@@ -641,59 +530,12 @@ process combine_results {
     # Proceed only if there are files to combine
     if [ \$file_count -gt 0 ]; then
         echo "Combining VAST-tools results..."
-
-        # Create the expected VASTDB directory structure in the container
-        CONTAINER_VASTDB="/usr/local/vast-tools/VASTDB"
-        echo "Setting up VASTDB in the container's expected location: \$CONTAINER_VASTDB"
-
-        # Create the directory if it doesn't exist (it might be read-only in the container)
-        mkdir -p \$CONTAINER_VASTDB || true
-
-        # Create symlinks from our local copy to the expected location
-        echo "Creating symbolic links from local copy to \$CONTAINER_VASTDB"
-
-        # Get species directory name
-        species_dir="${getVastdbDirName(params.species)}"
-        echo "Using species directory: \$species_dir for ${params.species}"
-
-        # Check if our local copy has the required directories
-        if [ -d "${local_vastdb_dir}/\$species_dir" ]; then
-            # Either symlink the entire directory or its contents based on permissions
-            if ln -sf "\$PWD/${local_vastdb_dir}/\$species_dir" "\$CONTAINER_VASTDB/" 2>/dev/null; then
-                echo "Successfully linked \$species_dir directory"
-            else
-                # If symlink fails (container path might be read-only), try to create the dir and copy
-                mkdir -p "\$CONTAINER_VASTDB/\$species_dir" 2>/dev/null || true
-                cp -rf "\$PWD/${local_vastdb_dir}/\$species_dir"/* "\$CONTAINER_VASTDB/\$species_dir/" || {
-                    echo "WARNING: Failed to copy data to container path. Will try to use local path."
-                }
-            fi
-        else
-            echo "ERROR: Required species directory \$species_dir not found in local VASTDB"
-            ls -la ${local_vastdb_dir}/
-            exit 1
-        fi
-
-        # Also link/copy essential VASTDB files if they exist
-        [ -f "${local_vastdb_dir}/VASTDB.VERSION" ] && cp "${local_vastdb_dir}/VASTDB.VERSION" "\$CONTAINER_VASTDB/" 2>/dev/null || true
-        [ -d "${local_vastdb_dir}/TEMPLATES" ] && cp -rf "${local_vastdb_dir}/TEMPLATES" "\$CONTAINER_VASTDB/" 2>/dev/null || true
-
-        # Set VASTDB to the expected container location
-        export VASTDB=\$CONTAINER_VASTDB
-        echo "VASTDB set to: \$VASTDB"
-
-        # Try with the container path first
-        export VASTDB=\$CONTAINER_VASTDB
         vast-tools combine combined_input_dir -sp ${params.species} -o results_dir || {
-            echo "VAST-tools combine failed with container path - trying with local path..."
-            # Try with the local path as a fallback
-            export VASTDB=\$PWD/${local_vastdb_dir}
-            echo "Now using VASTDB=\$VASTDB"
-            vast-tools combine combined_input_dir -sp ${params.species} -o results_dir || {
-                echo "VAST-tools combine failed again - debugging:"
-                vast-tools --version
-                exit 1;
-            }
+            echo "VAST-tools combine failed - debugging:"
+            ls -la /usr/local/vast-tools/VASTDB/ || true
+            ls -la /usr/local/vast-tools/VASTDB/${getVastdbDirName(params.species)}/ || true
+            vast-tools --version
+            exit 1;
         }
 
         # Find the generated inclusion table
@@ -927,8 +769,8 @@ workflow {
       - Skip RMarkdown:    ${params.skip_rmarkdown}
     """
 
-    // Prepare VASTDB
-    local_vastdb_dir = prepare_vastdb(params.vastdb_path)
+    // Prepare VASTDB - now just validates paths
+    vastdb_path = prepare_vastdb(params.vastdb_path)
 
     // Parse sample CSV and create sample channels
     sample_channel = parseSamplesCsv(params.sample_csv)
@@ -972,7 +814,7 @@ workflow {
     }
 
     // Align all samples with VAST-tools
-    align_results = align_reads(samples_for_alignment, local_vastdb_dir)
+    align_results = align_reads(samples_for_alignment, vastdb_path)
 
     // Use the named output channels directly
     vast_out_dirs = align_results.vast_out_dir.collect()
@@ -981,7 +823,7 @@ workflow {
     output_name = "splicing_analysis"
 
     // Combine all alignment results
-    inclusion_table = combine_results(vast_out_dirs, local_vastdb_dir, output_name)
+    inclusion_table = combine_results(vast_out_dirs, vastdb_path, output_name)
 
     // Run MultiQC if FastQC was run (either standalone or via trim_galore)
     if ((!params.skip_trimming && !params.skip_fastqc_in_trimming) || (params.skip_trimming && !params.skip_fastqc)) {
