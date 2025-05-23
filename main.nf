@@ -143,6 +143,11 @@ process concatenate_technical_replicates {
     label 'process_medium'
     container 'ubuntu:20.04' // Basic container for file operations
 
+    // Resource requirements
+    cpus 1
+    memory { 4.GB }
+    time { 30.min }
+
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
 
@@ -164,6 +169,11 @@ process concatenate_technical_replicates {
 process prepare_paired_reads {
     tag "Preparing paired-end reads: ${sample_id}"
     container 'ubuntu:20.04' // Basic container for file operations
+
+    // Resource requirements
+    cpus 1
+    memory { 2.GB }
+    time { 10.min }
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -187,6 +197,11 @@ process prepare_single_reads {
     tag "Preparing single-end reads: ${sample_id}"
     container 'ubuntu:20.04' // Basic container for file operations
 
+    // Resource requirements
+    cpus 1
+    memory { 2.GB }
+    time { 10.min }
+
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
 
@@ -207,6 +222,11 @@ process verify_files {
     debug true
     container 'ubuntu:20.04' // Basic container for file operations
 
+    // Resource requirements
+    cpus 1
+    memory { 1.GB }
+    time { 5.min }
+
     input:
     path dir
 
@@ -223,6 +243,11 @@ process run_fastqc {
     label 'process_medium'
     publishDir "${params.outdir}/qc/fastqc", mode: 'copy'
     container 'quay.io/biocontainers/fastqc:0.11.9--0' // Using biocontainer for FastQC
+
+    // Resource requirements
+    cpus 4
+    memory { 8.GB }
+    time { 1.hour }
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -245,6 +270,11 @@ process run_trim_galore {
     publishDir "${params.outdir}/qc/trimming_reports", mode: 'copy', pattern: "*_trimming_report.txt"
     publishDir "${params.outdir}/qc/fastqc_trimmed", mode: 'copy', pattern: "*_fastqc.{html,zip}"
     container 'https://depot.galaxyproject.org/singularity/trim-galore:0.6.9--hdfd78af_0' // Using galaxyproject container for trim_galore
+
+    // Resource requirements
+    cpus 4
+    memory { 16.GB }
+    time { 2.hours }
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -313,6 +343,11 @@ process run_multiqc {
     publishDir "${params.outdir}/qc", mode: 'copy'
     container 'multiqc/multiqc:latest' // Using the multiqc container
 
+    // Resource requirements
+    cpus 2
+    memory { 4.GB }
+    time { 20.min }
+
     input:
     path ('fastqc/*')
     path ('*')
@@ -342,6 +377,11 @@ process run_multiqc {
 process prepare_vastdb {
     tag "Prepare VASTDB"
     container 'ubuntu:20.04' // Basic container for file operations
+
+    // Resource requirements
+    cpus 1
+    memory { 4.GB }
+    time { 15.min }
 
     input:
     val vastdb_path
@@ -382,6 +422,11 @@ process align_reads {
     label 'process_high'
     publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/${sample_id}_*.tab"
     container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
+
+    // Resource requirements - as per your specifications
+    cpus 8
+    memory { 50.GB }
+    time { 2.hour + 30.min }
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
@@ -432,6 +477,11 @@ process combine_results {
     label 'process_medium'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
+
+    // Resource requirements - as per your specifications
+    cpus 4
+    memory { 10.GB }
+    time { 30.min }
 
     input:
     path vast_out_dirs
@@ -498,6 +548,11 @@ process run_rmarkdown_report {
     label 'process_high'
     publishDir "${params.outdir}/report", mode: 'copy', pattern: '*.html'
     container 'andresgordoortiz/splicing_analysis_r_crg:v1.5' // Using biocontainer for R with rmarkdown
+
+    // Resource requirements - as per your specifications
+    cpus 2
+    memory { 30.GB }
+    time { 72.hours } // 3 days
 
     input:
     path inclusion_table
