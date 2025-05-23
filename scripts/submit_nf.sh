@@ -144,7 +144,7 @@ echo "Additional parameters: $@"
 
 echo "Running Nextflow with executor=slurm"
 
-CMD="nextflow run -ansi-log false -c nextflow_executor_override.config -with-trace $WORKFLOW_FILE $@"
+CMD="nextflow run -ansi-log false $WORKFLOW_FILE $@"
 
 echo "Executing: $CMD"
 
