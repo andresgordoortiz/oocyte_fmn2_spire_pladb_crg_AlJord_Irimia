@@ -30,9 +30,6 @@ params.multiqc_config = null  // Path to multiqc config file (optional)
 // Change from default value to null to make it mandatory
 params.data_dir = null  // Now mandatory - directory containing input FASTQ files
 
-// Add project name parameter
-params.project_name = "splicing_analysis"
-
 // Display help message
 def helpMessage() {
     log.info"""
