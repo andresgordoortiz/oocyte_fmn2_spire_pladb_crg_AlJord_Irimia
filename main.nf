@@ -402,10 +402,11 @@ process prepare_vastdb {
 
     if [ -d "${vastdb_path}" ]; then
         echo "Copying VASTDB content from ${vastdb_path}"
-        cp -r ${vastdb_path}/* local_vastdb/ || echo "Warning: Some files could not be copied"
 
-        # Create the specific species directory structure if it doesn't exist
         mkdir -p local_vastdb/${species_dir}
+
+        cp -r ${vastdb_path}/${species_dir} local_vastdb/ || echo "Warning: Some files could not be copied"
+
 
         # Check what was copied
         echo "Local VASTDB contents:"
