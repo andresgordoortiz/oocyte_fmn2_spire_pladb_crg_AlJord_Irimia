@@ -150,7 +150,6 @@ def validateParameters() {
 process concatenate_technical_replicates {
     tag "Concatenating technical replicates: ${sample_id}"
     label 'process_medium'
-    container 'ubuntu:20.04' // Basic container for file operations
 
     // Resource requirements
     cpus 1
@@ -177,7 +176,6 @@ process concatenate_technical_replicates {
 // Process to handle paired-end reads
 process prepare_paired_reads {
     tag "Preparing paired-end reads: ${sample_id}"
-    container 'ubuntu:20.04' // Basic container for file operations
 
     // Resource requirements
     cpus 1
@@ -204,7 +202,6 @@ process prepare_paired_reads {
 // Process to handle single-end reads
 process prepare_single_reads {
     tag "Preparing single-end reads: ${sample_id}"
-    container 'ubuntu:20.04' // Basic container for file operations
 
     // Resource requirements
     cpus 1
@@ -229,7 +226,6 @@ process prepare_single_reads {
 
 process verify_files {
     debug true
-    container 'ubuntu:20.04' // Basic container for file operations
 
     // Resource requirements
     cpus 1
@@ -385,7 +381,6 @@ process run_multiqc {
 
 process prepare_vastdb {
     tag "Prepare VASTDB"
-    container 'ubuntu:20.04' // Basic container for file operations
 
     // Resource requirements
     cpus 1
