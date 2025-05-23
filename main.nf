@@ -403,14 +403,23 @@ process prepare_vastdb {
     if [ -d "${vastdb_path}" ]; then
         echo "Copying VASTDB content from ${vastdb_path}"
 
-        mkdir -p local_vastdb/${species_dir}
+        # Copy the entire VASTDB structure
+        cp -r ${vastdb_path}/* local_vastdb/ || echo "Warning: Some files could not be copied"
 
-        cp -r ${vastdb_path}/${species_dir} local_vastdb/ || echo "Warning: Some files could not be copied"
-
+        # Ensure the species directory exists
+        if [ ! -d "local_vastdb/${species_dir}" ]; then
+            echo "Species directory ${species_dir} not found in VASTDB"
+            echo "Available directories in VASTDB:"
+            ls -la local_vastdb/
+            echo "Creating minimal directory structure for ${species_dir}"
+            mkdir -p local_vastdb/${species_dir}
+        fi
 
         # Check what was copied
         echo "Local VASTDB contents:"
         ls -la local_vastdb/
+        echo "Species-specific directory contents:"
+        ls -la local_vastdb/${species_dir}/ || echo "Species directory ${species_dir} is empty or doesn't exist"
         find local_vastdb -type d | sort
     else
         echo "ERROR: Source VASTDB directory ${vastdb_path} not found!"
@@ -443,6 +452,7 @@ process align_reads {
 
     script:
     def vast_options = "--IR_version 2 -c ${task.cpus} -n ${sample_id} -sp ${params.species} --verbose"
+    def species_dir = getVastdbDirName(params.species)
 
     if (sample_type == 'paired') {
         // Paired-end alignment - fastq_files will have R1 and R2
@@ -450,10 +460,27 @@ process align_reads {
         mkdir -p vast_out
         echo "Starting VAST-tools alignment for paired-end sample ${sample_id}..."
 
-        echo "Using local VASTDB copy at: \$PWD/${local_vastdb_dir}"
-        VASTDB=\$PWD/${local_vastdb_dir} vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options} || {
-            echo "Alignment failed for ${sample_id} - trying to understand why:"
-            VASTDB=\$PWD/${local_vastdb_dir} vast-tools --version || true
+        # Set up VASTDB environment variable to point to our local copy
+        export VASTDB=\$PWD/${local_vastdb_dir}
+        echo "VASTDB set to: \$VASTDB"
+
+        # Debug: Check if the species directory exists
+        echo "Checking for species directory: \$VASTDB/${species_dir}"
+        if [ ! -d "\$VASTDB/${species_dir}" ]; then
+            echo "ERROR: Species directory \$VASTDB/${species_dir} does not exist"
+            echo "Available directories in VASTDB:"
+            ls -la \$VASTDB/
+            exit 1
+        fi
+
+        echo "Species directory found. Contents:"
+        ls -la \$VASTDB/${species_dir}/
+
+        vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options} || {
+            echo "Alignment failed for ${sample_id} - debugging information:"
+            echo "VASTDB directory: \$VASTDB"
+            echo "Expected species directory: \$VASTDB/${species_dir}"
+            vast-tools --version || true
             exit 1;
         }
 
@@ -465,10 +492,27 @@ process align_reads {
         mkdir -p vast_out
         echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
 
-        echo "Using local VASTDB copy at: \$PWD/${local_vastdb_dir}"
-        VASTDB=\$PWD/${local_vastdb_dir} vast-tools align ${fastq_files} -o vast_out ${vast_options} || {
-            echo "Alignment failed for ${sample_id} - trying to understand why:"
-            VASTDB=\$PWD/${local_vastdb_dir} vast-tools --version || true
+        # Set up VASTDB environment variable to point to our local copy
+        export VASTDB=\$PWD/${local_vastdb_dir}
+        echo "VASTDB set to: \$VASTDB"
+
+        # Debug: Check if the species directory exists
+        echo "Checking for species directory: \$VASTDB/${species_dir}"
+        if [ ! -d "\$VASTDB/${species_dir}" ]; then
+            echo "ERROR: Species directory \$VASTDB/${species_dir} does not exist"
+            echo "Available directories in VASTDB:"
+            ls -la \$VASTDB/
+            exit 1
+        fi
+
+        echo "Species directory found. Contents:"
+        ls -la \$VASTDB/${species_dir}/
+
+        vast-tools align ${fastq_files} -o vast_out ${vast_options} || {
+            echo "Alignment failed for ${sample_id} - debugging information:"
+            echo "VASTDB directory: \$VASTDB"
+            echo "Expected species directory: \$VASTDB/${species_dir}"
+            vast-tools --version || true
             exit 1;
         }
 
