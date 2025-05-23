@@ -428,16 +428,15 @@ process align_reads {
     tag "VAST-tools alignment: ${sample_id}"
     label 'process_high'
     publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/${sample_id}_*.tab"
-    container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
 
-    // Resource requirements - as per your specifications
+    // Resource requirements
     cpus 8
     memory { 50.GB }
-    time { 3.hours}
+    time { 3.hours }
 
     input:
     tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
-    val vastdb_path  // This is now a value, not a path
+    val vastdb_path
 
     output:
     tuple val(sample_id), val(group), path("vast_out"), emit: alignment_output
@@ -447,42 +446,80 @@ process align_reads {
     def vast_options = "--IR_version 2 -c ${task.cpus} -n ${sample_id} -sp ${params.species} --verbose"
 
     if (sample_type == 'paired') {
-        // Paired-end alignment - fastq_files will have R1 and R2
+        // Paired-end alignment
         """
         mkdir -p vast_out
         echo "Starting VAST-tools alignment for paired-end sample ${sample_id}..."
-        echo "VASTDB is bound to the container at /usr/local/vast-tools/VASTDB"
+        echo "Using VASTDB path: ${vastdb_path}"
 
-        # When using Singularity bind mounts, we don't need to set VASTDB
-        # The container will find it at the default location
-        vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options} || {
-            echo "Alignment failed for ${sample_id}"
-            echo "Debugging information:"
-            ls -la /usr/local/vast-tools/VASTDB/ || true
-            ls -la /usr/local/vast-tools/VASTDB/${getVastdbDirName(params.species)}/ || true
-            exit 1
-        }
+        # Debug info
+        echo "Container environment:"
+        env | grep SINGULARITY || true
 
-        echo "VAST-tools alignment complete for ${sample_id}."
+        # Ensure VASTDB is correctly set, with multiple fallback options
+        export VASTDB=/usr/local/vast-tools/VASTDB
+        echo "VASTDB set to \$VASTDB"
+
+        # Multiple command options for robustness
+        if vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options}; then
+            echo "VAST-tools alignment completed successfully"
+        else
+            echo "First attempt failed, trying with explicit VASTDB path..."
+            export VASTDB=${vastdb_path}
+            echo "VASTDB now set to \$VASTDB"
+
+            if vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options}; then
+                echo "VAST-tools alignment completed successfully with explicit path"
+            else
+                echo "Both alignment attempts failed - debugging information:"
+                echo "Container filesystem:"
+                ls -la /usr/local/vast-tools/ || true
+                echo "VASTDB location:"
+                ls -la \$VASTDB || true
+                vast-tools --version || true
+                exit 1
+            fi
+        fi
+
+        echo "VAST-tools alignment complete for ${sample_id}"
         """
     } else {
-        // Single-end alignment (also for concatenated technical replicates)
+        // Single-end alignment
         """
         mkdir -p vast_out
         echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
-        echo "VASTDB is bound to the container at /usr/local/vast-tools/VASTDB"
+        echo "Using VASTDB path: ${vastdb_path}"
 
-        # When using Singularity bind mounts, we don't need to set VASTDB
-        # The container will find it at the default location
-        vast-tools align ${fastq_files} -o vast_out ${vast_options} || {
-            echo "Alignment failed for ${sample_id}"
-            echo "Debugging information:"
-            ls -la /usr/local/vast-tools/VASTDB/ || true
-            ls -la /usr/local/vast-tools/VASTDB/${getVastdbDirName(params.species)}/ || true
-            exit 1
-        }
+        # Debug info
+        echo "Container environment:"
+        env | grep SINGULARITY || true
 
-        echo "VAST-tools alignment complete for ${sample_id}."
+        # Ensure VASTDB is correctly set, with multiple fallback options
+        export VASTDB=/usr/local/vast-tools/VASTDB
+        echo "VASTDB set to \$VASTDB"
+
+        # Multiple command options for robustness
+        if vast-tools align ${fastq_files} -o vast_out ${vast_options}; then
+            echo "VAST-tools alignment completed successfully"
+        else
+            echo "First attempt failed, trying with explicit VASTDB path..."
+            export VASTDB=${vastdb_path}
+            echo "VASTDB now set to \$VASTDB"
+
+            if vast-tools align ${fastq_files} -o vast_out ${vast_options}; then
+                echo "VAST-tools alignment completed successfully with explicit path"
+            else
+                echo "Both alignment attempts failed - debugging information:"
+                echo "Container filesystem:"
+                ls -la /usr/local/vast-tools/ || true
+                echo "VASTDB location:"
+                ls -la \$VASTDB || true
+                vast-tools --version || true
+                exit 1
+            fi
+        fi
+
+        echo "VAST-tools alignment complete for ${sample_id}"
         """
     }
 }
@@ -491,7 +528,6 @@ process combine_results {
     tag "VAST-tools combine"
     label 'process_medium'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
-    container 'andresgordoortiz/vast-tools:latest' // Using the VAST-tools container
 
     // Resource requirements
     cpus 4
@@ -508,12 +544,16 @@ process combine_results {
 
     script:
     """
-    echo "VASTDB is bound to the container at /usr/local/vast-tools/VASTDB"
+    echo "Using VASTDB path: ${vastdb_path}"
 
-    # Create a directory to collect all to_combine subdirectories
+    # Debug info
+    echo "Container environment:"
+    env | grep SINGULARITY || true
+
+    # Create directory for combining results
     mkdir -p combined_input_dir
 
-    # Find all to_combine directories in the vast_out directories
+    # Find and copy all to_combine files
     for dir in ${vast_out_dirs}; do
         if [ -d "\$dir/to_combine" ]; then
             echo "Found to_combine directory in \$dir, copying contents..."
@@ -530,13 +570,31 @@ process combine_results {
     # Proceed only if there are files to combine
     if [ \$file_count -gt 0 ]; then
         echo "Combining VAST-tools results..."
-        vast-tools combine combined_input_dir -sp ${params.species} -o results_dir || {
-            echo "VAST-tools combine failed - debugging:"
-            ls -la /usr/local/vast-tools/VASTDB/ || true
-            ls -la /usr/local/vast-tools/VASTDB/${getVastdbDirName(params.species)}/ || true
-            vast-tools --version
-            exit 1;
-        }
+
+        # Ensure VASTDB is correctly set, with multiple fallback options
+        export VASTDB=/usr/local/vast-tools/VASTDB
+        echo "VASTDB set to \$VASTDB"
+
+        # Try with default path first, then explicit path if needed
+        if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir; then
+            echo "VAST-tools combine completed successfully"
+        else
+            echo "First combine attempt failed, trying with explicit VASTDB path..."
+            export VASTDB=${vastdb_path}
+            echo "VASTDB now set to \$VASTDB"
+
+            if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir; then
+                echo "VAST-tools combine completed successfully with explicit path"
+            else
+                echo "Both combine attempts failed - debugging information:"
+                echo "Container filesystem:"
+                ls -la /usr/local/vast-tools/ || true
+                echo "VASTDB location:"
+                ls -la \$VASTDB || true
+                vast-tools --version || true
+                exit 1
+            fi
+        fi
 
         # Find the generated inclusion table
         inclusion_file=\$(find results_dir -name "INCLUSION_LEVELS_FULL*" | head -n 1)
@@ -550,8 +608,6 @@ process combine_results {
         fi
     else
         echo "ERROR: No files found to combine."
-        echo "This could indicate that the alignment step failed to produce any output."
-        echo "Check previous logs for potential alignment issues."
         echo "Creating an empty placeholder file and marking it as potentially problematic."
         echo "# WARNING: This file is empty because no input files were found to combine" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
