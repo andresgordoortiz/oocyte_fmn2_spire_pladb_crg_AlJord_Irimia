@@ -160,7 +160,7 @@ echo "Additional parameters: $@"
 
 echo "Running Nextflow with executor=slurm and profile=crg"
 
-CMD="nextflow run -ansi-log false -profile crg -c nextflow_executor_override.config --executor slurm -with-trace $WORKFLOW_FILE $@"
+CMD="nextflow run -ansi-log false -profile crg -c nextflow_executor_override.config --executor slurm -with-trace -name oocyte_fmn2_spire_analysis $WORKFLOW_FILE $@"
 
 echo "Executing: $CMD"
 
