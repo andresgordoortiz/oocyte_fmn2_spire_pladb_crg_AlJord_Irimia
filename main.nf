@@ -16,12 +16,55 @@ nextflow.enable.dsl=2
 // Default parameters
 params.outdir = "$projectDir/nextflow_results"
 params.vastdb_path = "/path/to/vastdb"
-params.reads_dir = null  // This is now mandatory
+params.sample_csv = null   // CSV file with sample info (replaces reads_dir)
 params.help = false
 params.skip_fastqc = false  // Option to skip FastQC step
+params.skip_rmarkdown = false  // Option to skip the final Rmarkdown report
 params.rmd_file = "$projectDir/scripts/R/notebooks/Oocyte_fmndko_spireko_complete.Rmd"
 params.prot_impact_url = "https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"
 params.species = "mm10"  // Default species for VAST-tools alignment
+params.multiqc_config = null  // Path to multiqc config file (optional)
+
+// Display help message
+def helpMessage() {
+    log.info"""
+    ============================================================
+     FMN2/SPIRE ALTERNATIVE SPLICING ANALYSIS PIPELINE
+    ============================================================
+    Usage:
+
+    nextflow run main.nf --sample_csv sample_sheet.csv --vastdb_path /path/to/vastdb
+
+    Mandatory Arguments:
+      --sample_csv          Path to CSV file defining samples to analyze
+      --vastdb_path         Path to VAST-DB directory
+
+    Sample CSV Format:
+      The CSV file should contain the following columns:
+      - sample: Unique sample identifier (required)
+      - fastq_1: Path to FASTQ file (R1 for paired-end data) (required)
+      - fastq_2: Path to FASTQ file for R2 (required for paired-end data)
+      - type: One of 'single', 'paired', 'technical_replicate' (required)
+      - group: Group identifier for the sample (optional)
+
+      For technical replicates, additional columns (fastq_3, fastq_4, etc.) can
+      be added to define more files to concatenate.
+
+    Optional Arguments:
+      --outdir              Output directory (default: ${params.outdir})
+      --species             Species for VAST-tools alignment (default: ${params.species})
+      --skip_fastqc         Skip FastQC quality control (default: ${params.skip_fastqc})
+      --skip_rmarkdown      Skip RMarkdown report generation (default: ${params.skip_rmarkdown})
+      --rmd_file            Path to RMarkdown file for report (default: ${params.rmd_file})
+      --multiqc_config      Path to MultiQC config file (default: none)
+
+    Example Command:
+      nextflow run main.nf --sample_csv samples.csv --vastdb_path /path/to/vastdb --species mm10 --outdir results
+    ============================================================
+    """.stripIndent()
+}
+
+// Help message function is defined above, will be called from the workflow
 
 // Define parameter validation function
 def validateParameters() {
@@ -30,108 +73,91 @@ def validateParameters() {
         exit 1
     }
 
-    if (params.reads_dir == null) {
-        log.error "ERROR: No reads directory has been specified. Please set the --reads_dir parameter to the location of your FASTQ files (e.g., --reads_dir /path/to/fastq)."
+    if (params.sample_csv == null) {
+        log.error "ERROR: No sample CSV file has been specified. Please set the --sample_csv parameter to the location of your sample sheet CSV file (e.g., --sample_csv /path/to/samples.csv)."
         exit 1
     }
 
-    def readsDir = file(params.reads_dir)
-    if (!readsDir.exists() || !readsDir.isDirectory()) {
-        log.error "ERROR: The specified reads directory '${params.reads_dir}' does not exist or is not a directory. Please verify the path."
+    def sampleCsv = file(params.sample_csv)
+    if (!sampleCsv.exists()) {
+        log.error "ERROR: The specified sample CSV file '${params.sample_csv}' does not exist. Please verify the path."
         exit 1
     }
 
-    // Check for fastq files in the reads directory
-    def fastqFiles = readsDir.listFiles().findAll { it.name.endsWith('.fastq.gz') }
-    if (fastqFiles.size() == 0) {
-        log.error "ERROR: No .fastq.gz files found in the specified reads directory: ${params.reads_dir}"
+    // Check if the CSV file is properly formatted (header check)
+    def firstLine = sampleCsv.withReader { it.readLine() }
+    def requiredColumns = ['sample', 'fastq_1', 'type']
+    def headers = firstLine.split(',').collect { it.trim().toLowerCase() }
+
+    def missingColumns = requiredColumns.findAll { !headers.contains(it) }
+    if (missingColumns) {
+        log.error "ERROR: The sample CSV is missing required columns: ${missingColumns.join(', ')}."
+        log.error "Required format: sample,fastq_1,fastq_2,type,group"
+        log.error "Where type must be 'single', 'paired', or 'technical_replicate'"
         exit 1
     }
 }
 
 
-process concatenate_reads {
-    tag "Concatenating read files in triples"
+process concatenate_technical_replicates {
+    tag "Concatenating technical replicates: ${sample_id}"
     label 'process_medium'
-    // No publishDir directive as we don't want to publish these files
 
     input:
-    path raw_dir
+    tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
 
     output:
-    path "processed_files", emit: processed_dir
+    tuple val(sample_id), val('single'), path("${sample_id}.fastq.gz"), val(group), emit: sample_data
+
+    when:
+    sample_type == 'technical_replicate'
 
     script:
     """
-    mkdir -p processed_files
+    echo "Concatenating ${fastq_files.size()} technical replicate files for sample ${sample_id}..."
+    zcat ${fastq_files.join(' ')} | gzip > ${sample_id}.fastq.gz
+    echo "✓ Created merged file for ${sample_id}"
+    """
+}
 
-    echo "Starting to concatenate read files in triples..."
+// Process to handle paired-end reads
+process prepare_paired_reads {
+    tag "Preparing paired-end reads: ${sample_id}"
 
-    # List all fastq.gz files in the input directory
-    ls -1 ${raw_dir}/*.fastq.gz > all_fastq_files.txt || {
-        echo "ERROR: No fastq.gz files found in ${raw_dir}!"
-        exit 1
-    }
+    input:
+    tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
 
-    # Count total files and create an array
-    total_files=\$(wc -l < all_fastq_files.txt)
-    echo "Found \$total_files fastq.gz files to process"
+    output:
+    tuple val(sample_id), val('paired'), path("${sample_id}_R{1,2}.fastq.gz"), val(group), emit: sample_data
 
-    # Check if we have files to process
-    if [ \$total_files -eq 0 ]; then
-        echo "ERROR: No fastq.gz files found to process!"
-        exit 1
-    fi
+    when:
+    sample_type == 'paired'
 
-    # Read files into array
-    i=1
-    files=()
-    while read -r file; do
-        files[\$((i-1))]="\$file"
-        i=\$((i+1))
-    done < all_fastq_files.txt
+    script:
+    """
+    # Link files with standard names for downstream processing
+    ln -s ${fastq_files[0]} ${sample_id}_R1.fastq.gz
+    ln -s ${fastq_files[1]} ${sample_id}_R2.fastq.gz
+    """
+}
 
-    # Iterate over the files in triples
-    for ((i=0; i<\$total_files; i+=3)); do
-        # Check if we have a complete triple
-        if [ \$((i+2)) -lt \$total_files ]; then
-            # We have a complete triple
-            file1=\${files[i]}
-            file2=\${files[i+1]}
-            file3=\${files[i+2]}
+// Process to handle single-end reads
+process prepare_single_reads {
+    tag "Preparing single-end reads: ${sample_id}"
 
-            # Get basenames for the three files
-            base1=\$(basename \$file1 .fastq.gz)
-            base2=\$(basename \$file2 .fastq.gz)
-            base3=\$(basename \$file3 .fastq.gz)
+    input:
+    tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
 
-            # Define the output file name
-            output_file="processed_files/\${base1}_\${base2}_\${base3}_merged.fastq.gz"
+    output:
+    tuple val(sample_id), val('single'), path("${sample_id}.fastq.gz"), val(group), emit: sample_data
 
-            echo "Merging files \$((i+1))-\$((i+3)) of \$total_files:"
-            echo " 1: \$(basename \$file1)"
-            echo " 2: \$(basename \$file2)"
-            echo " 3: \$(basename \$file3)"
+    when:
+    sample_type == 'single'
 
-            # Concatenate the triple of files
-            cat "\$file1" "\$file2" "\$file3" > "\$output_file"
-
-            echo "✓ Created merged file: \$(basename \$output_file)"
-        else
-            # Handle remaining files (incomplete triple) if any
-            echo "WARNING: Remaining files will not be processed in this implementation"
-        fi
-    done
-
-    # Count processed files
-    processed_count=\$(ls -1 processed_files/*.fastq.gz 2>/dev/null | wc -l)
-    echo "Concatenation complete. \$processed_count merged files created."
-
-    # Make sure we have files
-    if [ \$processed_count -eq 0 ]; then
-        echo "ERROR: No files were processed!"
-        exit 1
-    fi
+    script:
+    """
+    # Link file with standard name for downstream processing
+    ln -s ${fastq_files[0]} ${sample_id}.fastq.gz
     """
 }
 
@@ -150,22 +176,44 @@ process verify_files {
 }
 
 process run_fastqc {
-    tag "Quality control"
+    tag "Quality control: ${sample_id}"
     label 'process_medium'
-    publishDir "${params.outdir}/qc", mode: 'copy', pattern: 'fastqc_output'
+    publishDir "${params.outdir}/qc/fastqc", mode: 'copy'
 
     input:
-    path processed_dir
+    tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
 
     output:
-    path "fastqc_output", emit: fastqc_dir
+    path "*_fastqc.{zip,html}", emit: fastqc_results
 
     script:
     """
-    mkdir -p fastqc_output
-    echo "Running FastQC quality control..."
-    fastqc -t ${task.cpus} -o fastqc_output ${processed_dir}/*.fastq.gz
-    echo "FastQC analysis complete."
+    echo "Running FastQC quality control on sample ${sample_id}..."
+    fastqc -t ${task.cpus} ${fastq_files}
+    echo "FastQC analysis complete for ${sample_id}."
+    """
+}
+
+process run_multiqc {
+    tag "MultiQC Report"
+    label 'process_low'
+    publishDir "${params.outdir}/qc", mode: 'copy'
+
+    input:
+    path ('fastqc/*')
+    path ('vast_out/')
+    path multiqc_config
+
+    output:
+    path "multiqc_report.html", emit: report
+    path "multiqc_data"
+
+    script:
+    def config_arg = multiqc_config ? "--config ${multiqc_config}" : ''
+    """
+    echo "Generating MultiQC report..."
+    multiqc . ${config_arg} -f -n multiqc_report.html
+    echo "MultiQC report generated."
     """
 }
 
@@ -179,8 +227,10 @@ process prepare_vastdb {
     path "local_vastdb", emit: local_vastdb_dir
 
     script:
+    def species_dir = getVastdbDirName(params.species)
     """
     echo "Creating a local copy of VASTDB from ${vastdb_path}"
+    echo "Using species directory: ${species_dir} for ${params.species}"
     mkdir -p local_vastdb
 
     if [ -d "${vastdb_path}" ]; then
@@ -188,7 +238,7 @@ process prepare_vastdb {
         cp -r ${vastdb_path}/* local_vastdb/ || echo "Warning: Some files could not be copied"
 
         # Create the specific species directory structure if it doesn't exist
-        mkdir -p local_vastdb/Mm2
+        mkdir -p local_vastdb/${species_dir}
 
         # Check what was copied
         echo "Local VASTDB contents:"
@@ -197,7 +247,7 @@ process prepare_vastdb {
     else
         echo "ERROR: Source VASTDB directory ${vastdb_path} not found!"
         echo "Creating minimal directory structure"
-        mkdir -p local_vastdb/Mm2
+        mkdir -p local_vastdb/${species_dir}
         mkdir -p local_vastdb/TEMPLATES
         touch local_vastdb/VASTDB.VERSION
     fi
@@ -205,87 +255,115 @@ process prepare_vastdb {
 }
 
 process align_reads {
-    tag "VAST-tools alignment"
+    tag "VAST-tools alignment: ${sample_id}"
     label 'process_high'
-    debug true
+    publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/${sample_id}_*.tab"
 
     input:
-    path processed_dir
+    tuple val(sample_id), val(sample_type), path(fastq_files), val(group)
     path local_vastdb_dir
 
     output:
+    tuple val(sample_id), val(group), path("vast_out"), emit: alignment_output
     path "vast_out", emit: vast_out_dir
 
     script:
-    """
-    mkdir -p vast_out
-    echo "Starting VAST-tools alignment..."
+    def vast_options = "--IR_version 2 -c ${task.cpus} -n ${sample_id} -sp ${params.species} --verbose"
 
-    echo "Using local VASTDB copy at: \$PWD/${local_vastdb_dir}"
-    echo "VASTDB structure:"
-    find ${local_vastdb_dir} -type d | sort
+    if (sample_type == 'paired') {
+        // Paired-end alignment - fastq_files will have R1 and R2
+        """
+        mkdir -p vast_out
+        echo "Starting VAST-tools alignment for paired-end sample ${sample_id}..."
 
-    # Process each file with enhanced error handling
-    for file in ${processed_dir}/*.fastq.gz; do
-        basename=\$(basename \$file .fastq.gz)
-        echo "Processing sample: \$basename"
-
-        # Use local_vastdb instead of the container's default path
-        VASTDB=\$PWD/${local_vastdb_dir} vast-tools align "\$file" -sp ${params.species} -o vast_out --IR_version 2 -c ${task.cpus} -n "\$basename" --verbose || {
-            echo "Alignment failed for \$basename - trying to understand why:"
-            echo "VAST-tools configuration:"
+        echo "Using local VASTDB copy at: \$PWD/${local_vastdb_dir}"
+        VASTDB=\$PWD/${local_vastdb_dir} vast-tools align ${fastq_files[0]} ${fastq_files[1]} -o vast_out ${vast_options} || {
+            echo "Alignment failed for ${sample_id} - trying to understand why:"
             VASTDB=\$PWD/${local_vastdb_dir} vast-tools --version || true
             exit 1;
         }
-    done
 
-    echo "VAST-tools alignment complete."
-    """
+        echo "VAST-tools alignment complete for ${sample_id}."
+        """
+    } else {
+        // Single-end alignment (also for concatenated technical replicates)
+        """
+        mkdir -p vast_out
+        echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
+
+        echo "Using local VASTDB copy at: \$PWD/${local_vastdb_dir}"
+        VASTDB=\$PWD/${local_vastdb_dir} vast-tools align ${fastq_files} -o vast_out ${vast_options} || {
+            echo "Alignment failed for ${sample_id} - trying to understand why:"
+            VASTDB=\$PWD/${local_vastdb_dir} vast-tools --version || true
+            exit 1;
+        }
+
+        echo "VAST-tools alignment complete for ${sample_id}."
+        """
+    }
 }
 
 process combine_results {
     tag "VAST-tools combine"
     label 'process_medium'
-    debug true
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
 
     input:
-    path vast_out_dir
+    path vast_out_dirs
     path local_vastdb_dir
+    val output_name
 
     output:
-    path "fmndko_INCLUSION_LEVELS_FULL-mm10.tab", optional: true, emit: inclusion_table
+    path "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab", emit: inclusion_table
 
     script:
     """
     echo "Using local VASTDB at: \$PWD/${local_vastdb_dir}"
 
-    echo "Contents of vast_out directory:"
-    ls -la ${vast_out_dir}/
+    # Create a directory to collect all to_combine subdirectories
+    mkdir -p combined_input_dir
 
-    # Check if to_combine directory exists
-    if [ ! -d "${vast_out_dir}/to_combine" ]; then
-        echo "WARNING: to_combine directory not found in ${vast_out_dir}"
-        echo "Contents of ${vast_out_dir}:"
-        find ${vast_out_dir} -type d | sort
-        echo "Creating empty to_combine directory as fallback"
-        mkdir -p ${vast_out_dir}/to_combine
-    fi
+    # Find all to_combine directories in the vast_out directories
+    for dir in ${vast_out_dirs}; do
+        if [ -d "\$dir/to_combine" ]; then
+            echo "Found to_combine directory in \$dir, copying contents..."
+            cp -r \$dir/to_combine/* combined_input_dir/
+        else
+            echo "WARNING: to_combine directory not found in \$dir"
+        fi
+    done
 
-    echo "Combining VAST-tools results..."
-    VASTDB=\$PWD/${local_vastdb_dir} vast-tools combine ${vast_out_dir}/to_combine -sp ${params.species} -o ${vast_out_dir} || {
-        echo "VAST-tools combine failed - debugging:"
-        VASTDB=\$PWD/${local_vastdb_dir} vast-tools --version
-        exit 1;
-    }
+    # Count files to combine
+    file_count=\$(find combined_input_dir -type f | wc -l)
+    echo "Found \$file_count files to combine."
 
-    inclusion_file=\$(find ${vast_out_dir} -name "INCLUSION_LEVELS_FULL*" | head -n 1)
-    if [ -n "\$inclusion_file" ];then
-        cp "\$inclusion_file" fmndko_INCLUSION_LEVELS_FULL-mm10.tab
-        echo "✓ Results successfully combined and inclusion table created"
+    # Proceed only if there are files to combine
+    if [ \$file_count -gt 0 ]; then
+        echo "Combining VAST-tools results..."
+        VASTDB=\$PWD/${local_vastdb_dir} vast-tools combine combined_input_dir -sp ${params.species} -o results_dir || {
+            echo "VAST-tools combine failed - debugging:"
+            VASTDB=\$PWD/${local_vastdb_dir} vast-tools --version
+            exit 1;
+        }
+
+        # Find the generated inclusion table
+        inclusion_file=\$(find results_dir -name "INCLUSION_LEVELS_FULL*" | head -n 1)
+        if [ -n "\$inclusion_file" ]; then
+            cp "\$inclusion_file" "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "✓ Results successfully combined and inclusion table created"
+        else
+            echo "WARNING: No INCLUSION_LEVELS_FULL file was created."
+            echo "Creating an empty placeholder file."
+            touch "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        fi
     else
-        echo "WARNING: No INCLUSION_LEVELS_FULL file was created."
-        touch fmndko_INCLUSION_LEVELS_FULL-mm10.tab  # Create an empty placeholder file
+        echo "ERROR: No files found to combine."
+        echo "This could indicate that the alignment step failed to produce any output."
+        echo "Check previous logs for potential alignment issues."
+        echo "Creating an empty placeholder file and marking it as potentially problematic."
+        echo "# WARNING: This file is empty because no input files were found to combine" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        exit 0  # Continue pipeline but with warning
     fi
     """
 }
@@ -297,82 +375,255 @@ process run_rmarkdown_report {
 
     input:
     path inclusion_table
+    val rmd_file
 
     output:
-    path "Oocyte_fmndko_spireko_complete.html", optional: true
+    path "*.html", optional: true, emit: report_html
+
+    when:
+    !params.skip_rmarkdown
 
     script:
+    def rmd_basename = file(rmd_file).name
+    def html_basename = rmd_basename.replace('.Rmd', '.html')
+
     """
     # Create notebooks directory
     mkdir -p notebooks
 
     URL3="${params.prot_impact_url}"
-    FILE3="notebooks/PROT_IMPACT-mm10-v2.3.tab.gz"
+    FILE3="notebooks/PROT_IMPACT-${params.species}-v2.3.tab.gz"
     UNZIPPED_FILE3="\${FILE3%.gz}"
 
     if [ ! -f "\$UNZIPPED_FILE3" ]; then
         if [ ! -f "\$FILE3" ];then
             echo "\$FILE3 not found. Downloading..."
-            wget "\$URL3" -O "\$FILE3"
+            wget -t 3 --timeout=60 "\$URL3" -O "\$FILE3" || {
+                echo "WARNING: Failed to download \$URL3"
+                echo "The report may be generated with limited functionality."
+                touch "\$FILE3"
+            }
         else
             echo "\$FILE3 already exists. Skipping download."
         fi
-        echo "Unzipping \$FILE3..."
-        gunzip -c "\$FILE3" > "\$UNZIPPED_FILE3"
+
+        if [ -s "\$FILE3" ]; then
+            echo "Unzipping \$FILE3..."
+            gunzip -c "\$FILE3" > "\$UNZIPPED_FILE3" || {
+                echo "WARNING: Failed to unzip \$FILE3"
+                touch "\$UNZIPPED_FILE3"
+            }
+        else
+            echo "WARNING: \$FILE3 is empty. Creating empty file for \$UNZIPPED_FILE3."
+            touch "\$UNZIPPED_FILE3"
+        fi
     else
         echo "\$UNZIPPED_FILE3 already exists. Skipping download and unzip."
     fi
 
     # Copy inclusion table to notebooks directory
     cp ${inclusion_table} notebooks/
+
     # Verify the RMarkdown file exists
-    RMD_FILE="\$PWD/notebooks/Oocyte_fmndko_spireko_complete.Rmd"
+    RMD_FILE="${rmd_file}"
     if [ ! -f "\$RMD_FILE" ]; then
         echo "ERROR: RMarkdown file \$RMD_FILE not found. Cannot generate the report."
         exit 1
     fi
 
+    # Copy the Rmd file to the notebooks directory
+    cp "\$RMD_FILE" notebooks/
+
     # Run the RMarkdown report
-    cd /
-    Rscript -e "rmarkdown::render('\$RMD_FILE')"
-    Rscript -e "rmarkdown::render('\$PWD/notebooks/Oocyte_fmndko_spireko_complete.Rmd')"
+    cd notebooks
+    Rscript -e "rmarkdown::render('${rmd_basename}')"
 
     # Move the HTML report from notebooks to current directory
-    cp notebooks/Oocyte_fmndko_spireko_complete.html ./
+    cp "${html_basename}" ../
+
+    echo "✓ R Markdown report generated: ${html_basename}"
     """
 }
 
-// Add a workflow block to define the execution flow
+// Function to get VASTDB directory name from species code
+def getVastdbDirName(species) {
+    // Map species names to VASTDB folder names
+    def speciesDirectoryMap = [
+        'hg19': 'Hsa',
+        'hg38': 'Hs2',
+        'mm9': 'Mmu',
+        'mm10': 'Mm2',
+        'rn6': 'Rno',
+        'bosTau6': 'Bta',
+        'galGal3': 'Gg3',
+        'galGal4': 'Gg4',
+        'xenTro3': 'Xt1',
+        'danRer10': 'Dre',
+        'braLan2': 'Bl1',
+        'strPur4': 'Spu',
+        'dm6': 'Dme',
+        'strMar1': 'Sma',
+        'ce11': 'Cel',
+        'schMed31': 'Sme',
+        'nemVec1': 'Nve',
+        'araTha10': 'Ath'
+    ]
+
+    return speciesDirectoryMap.containsKey(species) ?
+           speciesDirectoryMap[species] :
+           species
+}
+
+// Define a function to parse the sample CSV and create channels
+def parseSamplesCsv(sampleCsv) {
+    // Create a channel from the sample CSV file
+    Channel.fromPath(sampleCsv)
+        .splitCsv(header: true, strip: true)
+        .map { row ->
+            // Check if the required fields are present
+            if (row.sample == null || row.fastq_1 == null || row.type == null) {
+                log.error "ERROR: Missing required fields in sample CSV. Each row must have 'sample', 'fastq_1', and 'type'."
+                exit 1
+            }
+
+            // Check if the type is valid (single, paired, technical_replicate)
+            if (!['single', 'paired', 'technical_replicate'].contains(row.type.toLowerCase())) {
+                log.error "ERROR: Invalid value for 'type' in sample CSV. Must be 'single', 'paired', or 'technical_replicate'."
+                exit 1
+            }
+
+            def sampleId = row.sample
+            def fastq1 = file(row.fastq_1, checkIfExists: true)
+
+            // For paired-end reads, check if fastq_2 is provided
+            def fastq2 = row.fastq_2 ? file(row.fastq_2, checkIfExists: true) : null
+            if (row.type.toLowerCase() == 'paired' && fastq2 == null) {
+                log.error "ERROR: Type is set to 'paired' for sample '${sampleId}' but 'fastq_2' is missing."
+                exit 1
+            }
+
+            // For technical replicates, get all fastq files
+            def fastq_files = []
+            if (row.type.toLowerCase() == 'technical_replicate') {
+                fastq_files.add(fastq1)
+                if (fastq2) fastq_files.add(fastq2)
+
+                // Check for additional technical replicates (using a functional approach instead of a loop)
+                def additionalFastqs = (3..10).collect { i ->
+                    def key = "fastq_${i}"
+                    return row.containsKey(key) && row[key] ? file(row[key], checkIfExists: true) : null
+                }
+                additionalFastqs.removeAll([null])
+                fastq_files.addAll(additionalFastqs)
+            } else if (row.type.toLowerCase() == 'paired') {
+                fastq_files = [fastq1, fastq2]
+            } else {
+                fastq_files = [fastq1]
+            }
+
+            // Return a tuple with sample info
+            return [sampleId, row.type.toLowerCase(), fastq_files, row.group ?: sampleId]
+        }
+}
+
+// Define the workflow
 workflow {
+    // Show help message if help flag is specified
+    if (params.help) {
+        helpMessage()
+        exit 0
+    }
+
     // Validate parameters first
     validateParameters()
 
     // Execute processes in order with proper logging
-    log.info "Starting pipeline execution..."
+    log.info """
+    Starting pipeline with parameters:
+      - Sample CSV:        ${params.sample_csv}
+      - VASTDB path:       ${params.vastdb_path}
+      - Output directory:  ${params.outdir}
+      - Species:           ${params.species}
+      - Skip FastQC:       ${params.skip_fastqc}
+      - Skip RMarkdown:    ${params.skip_rmarkdown}
+    """
 
-    // Create a channel from the reads directory
-    reads_dir = Channel.fromPath(params.reads_dir, checkIfExists: true, type: 'dir')
-
-    // Prepare VASTDB - this is the new process
+    // Prepare VASTDB
     local_vastdb_dir = prepare_vastdb(params.vastdb_path)
 
-    // Run processes in sequence with proper channel connections
-    verify_files(reads_dir)
-    processed_dir = concatenate_reads(reads_dir)
+    // Parse sample CSV and create sample channels
+    sample_channel = parseSamplesCsv(params.sample_csv)
 
-    // Run FastQC on processed reads if not skipped
+    // Split samples by type to process differently
+    tech_rep_samples = sample_channel.filter { it[1] == 'technical_replicate' }
+    paired_samples = sample_channel.filter { it[1] == 'paired' }
+    single_samples = sample_channel.filter { it[1] == 'single' }
+
+    // Process samples according to their type
+    concatenated_tech_rep = concatenate_technical_replicates(tech_rep_samples)
+    prepared_paired = prepare_paired_reads(paired_samples)
+    prepared_single = prepare_single_reads(single_samples)
+
+    // Combine all prepared samples
+    all_prepared_samples = concatenated_tech_rep
+        .mix(prepared_paired)
+        .mix(prepared_single)
+
+    // Run FastQC on all prepared samples if not skipped
+    fastqc_results = params.skip_fastqc ? Channel.empty() : run_fastqc(all_prepared_samples)
+
+    // Align all samples with VAST-tools
+    aligned_samples = align_reads(all_prepared_samples, local_vastdb_dir)
+
+    // Collect all vast_out directories for combining
+    vast_out_dirs = aligned_samples.map { it[2] }.collect()
+
+    // Get a unique name for the output based on the project name or custom parameter
+    // For now we'll use a hardcoded default, but you could make this a parameter
+    output_name = "splicing_analysis"
+
+    // Combine all alignment results
+    inclusion_table = combine_results(vast_out_dirs, local_vastdb_dir, output_name)
+
+    // Run MultiQC if FastQC was run
     if (!params.skip_fastqc) {
-        run_fastqc(processed_dir)
-    } else {
-        log.info "Skipping FastQC step as per user request."
+        // We need to provide a channel with the vast_out directories for MultiQC
+        vast_dirs_for_multiqc = aligned_samples.map { it[2] }.collect()
+
+        // Collect FastQC results for MultiQC
+        fastqc_for_multiqc = fastqc_results.collect()
+
+        // Check if multiqc config file exists
+        multiqc_config = params.multiqc_config ?
+            Channel.fromPath(params.multiqc_config, checkIfExists: true) :
+            Channel.value(null)
+
+        // Run MultiQC
+        multiqc_report = run_multiqc(
+            fastqc_for_multiqc,
+            vast_dirs_for_multiqc,
+            multiqc_config
+        )
     }
 
-    // Align reads using the local VASTDB copy
-    vast_out_dir = align_reads(processed_dir, local_vastdb_dir)
+    // Run the RMarkdown report if not skipped
+    if (!params.skip_rmarkdown) {
+        // Check if the RMarkdown file exists
+        rmd_file = file(params.rmd_file)
+        if (rmd_file.exists()) {
+            report = run_rmarkdown_report(inclusion_table, params.rmd_file)
+        } else {
+            log.warn "RMarkdown file not found: ${params.rmd_file}. Skipping report generation."
+        }
+    } else {
+        log.info "Skipping RMarkdown report as per user request."
+    }
 
-    // Combine results after alignment using the local VASTDB copy
-    inclusion_table = combine_results(vast_out_dir, local_vastdb_dir)
+    log.info """
+    ======================================
+     Pipeline Execution Complete
+    ======================================
 
-    // Run the Rmarkdown report
-    run_rmarkdown_report(inclusion_table)
+    Results are available in: ${params.outdir}
+    """
 }
