@@ -168,7 +168,7 @@ process concatenate_technical_replicates {
     script:
     """
     echo "Concatenating ${fastq_files.size()} technical replicate files for sample ${sample_id}..."
-    zcat ${fastq_files.join(' ')} | gzip > ${sample_id}.fastq.gz
+    cat ${fastq_files.join(' ')} > ${sample_id}.fastq.gz
     echo "✓ Created merged file for ${sample_id}"
     """
 }
