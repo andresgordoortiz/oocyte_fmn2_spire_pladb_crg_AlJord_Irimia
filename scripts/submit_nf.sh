@@ -48,6 +48,30 @@ module load Java
 
 
 
+# Check if we're running in a SLURM environment
+
+if [ -n "$SLURM_JOB_ID" ]; then
+
+    echo "Running as SLURM job ID: $SLURM_JOB_ID"
+
+    echo "SLURM_CONF is set to: $SLURM_CONF"
+
+else
+
+    echo "Warning: Not running as a SLURM job. Process distribution may be limited."
+
+fi
+
+
+
+# Ensure SLURM_CONF is available to child processes
+
+export SLURM_CONF=${SLURM_CONF:-/etc/slurm/slurm.conf}
+
+echo "Using SLURM configuration: $SLURM_CONF"
+
+
+
 # limit the RAM that can be used by nextflow
 
 export NXF_JVM_ARGS="-Xms2g -Xmx5g"
@@ -64,13 +88,29 @@ export NXF_JVM_ARGS="-Xms2g -Xmx5g"
 
 # will use "nextflow/rnatoy -with-singularity" as arguments
 
-nextflow run -ansi-log false "$@" & pid=$!
+
+
+# Always add the -profile crg parameter unless it's already specified
+
+if [[ "$@" != *"-profile"* ]] && [[ "$@" != *"-config"* ]]; then
+
+    echo "Adding -profile crg to nextflow command"
+
+    nextflow run -ansi-log false -profile crg "$@" & pid=$!
+
+else
+
+    echo "Running with existing profile/config setting"
+
+    nextflow run -ansi-log false "$@" & pid=$!
+
+fi
 
 
 
 # Wait for the pipeline to finish
 
-echo "Waiting for ${pid}"
+echo "Waiting for Nextflow process ${pid}"
 
 wait $pid
 
