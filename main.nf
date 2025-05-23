@@ -401,32 +401,37 @@ process prepare_vastdb {
     mkdir -p local_vastdb
 
     if [ -d "${vastdb_path}" ]; then
-        echo "Copying VASTDB content from ${vastdb_path}"
+        echo "Copying only the required species directory from VASTDB"
 
-        # Copy the entire VASTDB structure
-        cp -r ${vastdb_path}/* local_vastdb/ || echo "Warning: Some files could not be copied"
+        # Check if the species directory exists in the source
+        if [ -d "${vastdb_path}/${species_dir}" ]; then
+            echo "Found species directory ${species_dir}, copying..."
+            cp -r ${vastdb_path}/${species_dir} local_vastdb/ || {
+                echo "ERROR: Failed to copy species directory"
+                exit 1
+            }
 
-        # Ensure the species directory exists
-        if [ ! -d "local_vastdb/${species_dir}" ]; then
-            echo "Species directory ${species_dir} not found in VASTDB"
+            # Also copy essential VASTDB files if they exist
+            [ -f "${vastdb_path}/VASTDB.VERSION" ] && cp ${vastdb_path}/VASTDB.VERSION local_vastdb/
+            [ -d "${vastdb_path}/TEMPLATES" ] && cp -r ${vastdb_path}/TEMPLATES local_vastdb/
+
+        else
+            echo "ERROR: Species directory ${species_dir} not found in VASTDB ${vastdb_path}"
             echo "Available directories in VASTDB:"
-            ls -la local_vastdb/
-            echo "Creating minimal directory structure for ${species_dir}"
-            mkdir -p local_vastdb/${species_dir}
+            ls -la ${vastdb_path}/
+            exit 1
         fi
 
-        # Check what was copied
+        # Verify what was copied
         echo "Local VASTDB contents:"
         ls -la local_vastdb/
         echo "Species-specific directory contents:"
-        ls -la local_vastdb/${species_dir}/ || echo "Species directory ${species_dir} is empty or doesn't exist"
-        find local_vastdb -type d | sort
+        ls -la local_vastdb/${species_dir}/
+        echo "Total size of copied VASTDB:"
+        du -sh local_vastdb/
     else
         echo "ERROR: Source VASTDB directory ${vastdb_path} not found!"
-        echo "Creating minimal directory structure"
-        mkdir -p local_vastdb/${species_dir}
-        mkdir -p local_vastdb/TEMPLATES
-        touch local_vastdb/VASTDB.VERSION
+        exit 1
     fi
     """
 }
