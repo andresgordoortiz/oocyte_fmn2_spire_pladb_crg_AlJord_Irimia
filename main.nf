@@ -655,36 +655,6 @@ process run_rmarkdown_report {
     # Create notebooks directory
     mkdir -p notebooks
 
-    URL3="${params.prot_impact_url}"
-    FILE3="notebooks/PROT_IMPACT-${params.species}-v2.3.tab.gz"
-    UNZIPPED_FILE3="\${FILE3%.gz}"
-
-    if [ ! -f "\$UNZIPPED_FILE3" ]; then
-        if [ ! -f "\$FILE3" ];then
-            echo "\$FILE3 not found. Downloading..."
-            wget -t 3 --timeout=60 "\$URL3" -O "\$FILE3" || {
-                echo "WARNING: Failed to download \$URL3"
-                echo "The report may be generated with limited functionality."
-                touch "\$FILE3"
-            }
-        else
-            echo "\$FILE3 already exists. Skipping download."
-        fi
-
-        if [ -s "\$FILE3" ]; then
-            echo "Unzipping \$FILE3..."
-            gunzip -c "\$FILE3" > "\$UNZIPPED_FILE3" || {
-                echo "WARNING: Failed to unzip \$FILE3"
-                touch "\$UNZIPPED_FILE3"
-            }
-        else
-            echo "WARNING: \$FILE3 is empty. Creating empty file for \$UNZIPPED_FILE3."
-            touch "\$UNZIPPED_FILE3"
-        fi
-    else
-        echo "\$UNZIPPED_FILE3 already exists. Skipping download and unzip."
-    fi
-
     # Copy inclusion table to notebooks directory
     cp ${inclusion_table} notebooks/
 
