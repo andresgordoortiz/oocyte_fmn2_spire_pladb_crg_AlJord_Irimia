@@ -428,6 +428,7 @@ process align_reads {
     tag "VAST-tools alignment: ${sample_id}"
     label 'process_high'
     publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/${sample_id}_*.tab"
+    container 'andresgordoortiz/vast-tools:latest'
 
     // Resource requirements
     cpus 8
@@ -528,6 +529,7 @@ process combine_results {
     tag "VAST-tools combine"
     label 'process_medium'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
+    container 'andresgordoortiz/vast-tools:latest'
 
     // Resource requirements
     cpus 4
@@ -535,7 +537,7 @@ process combine_results {
     time { 30.min }
 
     input:
-    path vast_out_dirs
+    path vast_out_dirs, stageAs: "vast_*"
     val vastdb_path
     val output_name
 
@@ -553,13 +555,18 @@ process combine_results {
     # Create directory for combining results
     mkdir -p combined_input_dir
 
-    # Find and copy all to_combine files
-    for dir in ${vast_out_dirs}; do
+    # Find and copy all to_combine files from staged directories
+    echo "Looking for to_combine directories in staged vast_* directories..."
+    ls -la .
+
+    for dir in vast_*; do
         if [ -d "\$dir/to_combine" ]; then
             echo "Found to_combine directory in \$dir, copying contents..."
             cp -r \$dir/to_combine/* combined_input_dir/
         else
             echo "WARNING: to_combine directory not found in \$dir"
+            echo "Contents of \$dir:"
+            ls -la "\$dir" || true
         fi
     done
 
