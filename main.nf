@@ -449,7 +449,7 @@ process align_reads {
     if (sample_type == 'paired') {
         // Paired-end alignment
         """
-        mkdir -p vast_out
+        mkdir -p vast_out/to_combine
         echo "Starting VAST-tools alignment for paired-end sample ${sample_id}..."
         echo "Using VASTDB path: ${vastdb_path}"
 
@@ -482,12 +482,28 @@ process align_reads {
             fi
         fi
 
+        # Verify alignment outputs and debug
+        echo "Checking alignment outputs..."
+        find vast_out -type f -name "*.tab" | head -10
+        ls -la vast_out/
+
+        # Make sure to_combine files exist
+        if [ -d "vast_out/to_combine" ]; then
+            echo "to_combine directory exists with contents:"
+            ls -la vast_out/to_combine/
+        else
+            echo "WARNING: to_combine directory not found!"
+            # Create it if missing and copy relevant files
+            mkdir -p vast_out/to_combine
+            find vast_out -maxdepth 1 -name "*.tab" -exec cp {} vast_out/to_combine/ \\;
+        fi
+
         echo "VAST-tools alignment complete for ${sample_id}"
         """
     } else {
         // Single-end alignment
         """
-        mkdir -p vast_out
+        mkdir -p vast_out/to_combine
         echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
         echo "Using VASTDB path: ${vastdb_path}"
 
@@ -518,6 +534,22 @@ process align_reads {
                 vast-tools --version || true
                 exit 1
             fi
+        fi
+
+        # Verify alignment outputs and debug
+        echo "Checking alignment outputs..."
+        find vast_out -type f -name "*.tab" | head -10
+        ls -la vast_out/
+
+        # Make sure to_combine files exist
+        if [ -d "vast_out/to_combine" ]; then
+            echo "to_combine directory exists with contents:"
+            ls -la vast_out/to_combine/
+        else
+            echo "WARNING: to_combine directory not found!"
+            # Create it if missing and copy relevant files
+            mkdir -p vast_out/to_combine
+            find vast_out -maxdepth 1 -name "*.tab" -exec cp {} vast_out/to_combine/ \\;
         fi
 
         echo "VAST-tools alignment complete for ${sample_id}"
@@ -562,17 +594,33 @@ process combine_results {
     for dir in vast_*; do
         if [ -d "\$dir/to_combine" ]; then
             echo "Found to_combine directory in \$dir, copying contents..."
-            cp -r \$dir/to_combine/* combined_input_dir/
+            cp -r \$dir/to_combine/* combined_input_dir/ 2>/dev/null || {
+                echo "Contents of \$dir/to_combine:"
+                ls -la "\$dir/to_combine/" || true
+            }
         else
             echo "WARNING: to_combine directory not found in \$dir"
             echo "Contents of \$dir:"
             ls -la "\$dir" || true
+
+            # Try to find .tab files in the main directory and copy them
+            echo "Looking for .tab files in \$dir..."
+            find "\$dir" -name "*.tab" -type f | while read file; do
+                echo "Found tab file: \$file"
+                cp "\$file" combined_input_dir/ 2>/dev/null || true
+            done
         fi
     done
 
     # Count files to combine
     file_count=\$(find combined_input_dir -type f | wc -l)
     echo "Found \$file_count files to combine."
+
+    # List all files found for debugging
+    if [ \$file_count -gt 0 ]; then
+        echo "Files to be combined:"
+        find combined_input_dir -type f -exec basename {} \\; | sort
+    fi
 
     # Proceed only if there are files to combine
     if [ \$file_count -gt 0 ]; then
@@ -586,14 +634,14 @@ process combine_results {
         echo "VASTDB set to \$VASTDB"
 
         # Try with default path first, then explicit path if needed
-        if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir; then
+        if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir --verbose; then
             echo "VAST-tools combine completed successfully"
         else
             echo "First combine attempt failed, trying with explicit VASTDB path..."
             export VASTDB=${vastdb_path}
             echo "VASTDB now set to \$VASTDB"
 
-            if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir; then
+            if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir --verbose; then
                 echo "VAST-tools combine completed successfully with explicit path"
             else
                 echo "Both combine attempts failed - debugging information:"
@@ -601,26 +649,46 @@ process combine_results {
                 ls -la /usr/local/vast-tools/ || true
                 echo "VASTDB location:"
                 ls -la \$VASTDB || true
+                echo "Input files for combine:"
+                ls -la combined_input_dir/
                 vast-tools --version || true
                 exit 1
             fi
         fi
 
         # Find the generated inclusion table
-        inclusion_file=\$(find results_dir -name "INCLUSION_LEVELS_FULL*" | head -n 1)
+        echo "Looking for generated inclusion table..."
+        ls -la results_dir/
+        inclusion_file=\$(find results_dir -name "INCLUSION_LEVELS_FULL*" -type f | head -n 1)
         if [ -n "\$inclusion_file" ]; then
-            cp "\$inclusion_file" "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "✓ Results successfully combined and inclusion table created"
+            echo "Found inclusion file: \$inclusion_file"
+            file_size=\$(stat -c%s "\$inclusion_file")
+            echo "File size: \$file_size bytes"
+            if [ \$file_size -gt 100 ]; then
+                cp "\$inclusion_file" "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "✓ Results successfully combined and inclusion table created"
+            else
+                echo "WARNING: Inclusion file is too small (\$file_size bytes), treating as empty"
+                echo "# WARNING: Generated file was too small (< 100 bytes)" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# File size was: \$file_size bytes" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            fi
         else
             echo "WARNING: No INCLUSION_LEVELS_FULL file was created."
+            echo "Files in results_dir:"
+            find results_dir -type f | head -20
             echo "Creating an empty placeholder file."
-            touch "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# WARNING: No INCLUSION_LEVELS_FULL file was generated" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         fi
     else
         echo "ERROR: No files found to combine."
         echo "Creating an empty placeholder file and marking it as potentially problematic."
         echo "# WARNING: This file is empty because no input files were found to combine" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        echo "# Debug info follows:" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        echo "# Staged directories found:" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        ls -la . | grep "vast_" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" || true
         exit 0  # Continue pipeline but with warning
     fi
     """
