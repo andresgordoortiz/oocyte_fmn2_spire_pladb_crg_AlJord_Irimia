@@ -578,6 +578,9 @@ process combine_results {
     if [ \$file_count -gt 0 ]; then
         echo "Combining VAST-tools results..."
 
+        # Create the output directory before running vast-tools combine
+        mkdir -p results_dir
+
         # Ensure VASTDB is correctly set, with multiple fallback options
         export VASTDB=/usr/local/vast-tools/VASTDB
         echo "VASTDB set to \$VASTDB"
