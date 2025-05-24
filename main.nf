@@ -360,7 +360,7 @@ process run_multiqc {
 
     output:
     path "multiqc_report.html", emit: report
-    path "multiqc_data"
+    path "multiqc_report_data"
 
     script:
     def config_arg = params.multiqc_config ? "--config ${params.multiqc_config}" : ''
@@ -370,9 +370,9 @@ process run_multiqc {
     mkdir -p trim_galore_reports
     mkdir -p vast_out
 
-    # Move files to appropriate directories based on naming patterns
-    find . -name "*trimming_report.txt" -exec mv {} ./trim_galore_reports/ \\;
-    find . -name "*.tab" -o -name "*.log" | grep -v trimming | xargs -I{} mv {} ./vast_out/ 2>/dev/null || true
+    # Move files to appropriate directories based on naming patterns, but avoid moving files to themselves
+    find . -name "*trimming_report.txt" -not -path "./trim_galore_reports/*" -exec mv {} ./trim_galore_reports/ \\;
+    find . -name "*.tab" -o -name "*.log" | grep -v trimming | grep -v "./vast_out/" | xargs -I{} mv {} ./vast_out/ 2>/dev/null || true
 
     multiqc . ${config_arg} -f -n multiqc_report.html
     echo "MultiQC report generated."
