@@ -355,15 +355,15 @@ process run_multiqc {
 
     input:
     path ('fastqc/*')
-    path ('*')
-    path multiqc_config
+    path ('trim_logs/*')
+    path ('vast_dirs/*'), stageAs: 'vast_*'
 
     output:
     path "multiqc_report.html", emit: report
     path "multiqc_data"
 
     script:
-    def config_arg = multiqc_config ? "--config ${multiqc_config}" : ''
+    def config_arg = params.multiqc_config ? "--config ${params.multiqc_config}" : ''
     """
     echo "Generating MultiQC report..."
     # Make sure the directory structure is preserved for MultiQC to recognize file types
@@ -900,20 +900,11 @@ workflow {
 
         fastqc_for_multiqc = fastqc_results.collect()
 
-        multiqc_config = params.multiqc_config ?
-            file(params.multiqc_config, checkIfExists: true) :
-            file("NO_FILE") // Use placeholder instead of null
-
-        // Combine all QC inputs
-        all_qc_files = fastqc_for_multiqc
-            .mix(trim_logs)
-            .mix(vast_dirs_for_multiqc)
-            .collect()
-
+        // Run MultiQC with properly separated inputs
         multiqc_report = run_multiqc(
             fastqc_for_multiqc,
-            all_qc_files,
-            multiqc_config
+            trim_logs,
+            vast_dirs_for_multiqc
         )
     }
 
