@@ -427,7 +427,7 @@ process prepare_vastdb {
 process align_reads {
     tag "VAST-tools alignment: ${sample_id}"
     label 'process_high'
-    publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/${sample_id}_*.tab"
+    publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/**"
     container 'andresgordoortiz/vast-tools:latest'
 
     // Resource requirements
@@ -484,24 +484,40 @@ process align_reads {
 
         # Verify alignment outputs and debug
         echo "Checking alignment outputs..."
-        find vast_out -type f -name "*.tab" | head -10
-        ls -la vast_out/
+        find vast_out -type f | sort | head -20
+        echo "Directory structure:"
+        find vast_out -type d | sort
 
-        # Make sure to_combine files exist
-        if [ -d "vast_out/to_combine" ]; then
-            echo "to_combine directory exists with contents:"
-            ls -la vast_out/to_combine/
-        else
-            echo "WARNING: to_combine directory not found!"
-            # Create it if missing and copy relevant files
-            mkdir -p vast_out/to_combine
-            find vast_out -maxdepth 1 -name "*.tab" -exec cp {} vast_out/to_combine/ \\;
-        fi
+        # Ensure all necessary files are in to_combine directory
+        echo "Ensuring all necessary files are in to_combine directory..."
+        mkdir -p vast_out/to_combine
+
+        # Find all the different file types VAST-tools creates
+        find vast_out -type f -name "*.eej*" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR*" -o -name "*.mic*" -o -name "*.MULTI*" -o -name "*.tab" | while read file; do
+            echo "Found file: \$file"
+            cp "\$file" vast_out/to_combine/ || echo "Failed to copy \$file"
+        done
+
+        # Also look for files directly in cRPKM, to_combine and other subdirectories
+        for subdir in vast_out/*/; do
+            if [ -d "\$subdir" ] && [ "\$subdir" != "vast_out/to_combine/" ]; then
+                echo "Checking subdirectory: \$subdir"
+                find "\$subdir" -maxdepth 1 -type f | while read file; do
+                    echo "Found file in subdir: \$file"
+                    cp "\$file" vast_out/to_combine/ || echo "Failed to copy \$file"
+                done
+            fi
+        done
+
+        # List to_combine contents for verification
+        echo "Contents of to_combine directory:"
+        ls -la vast_out/to_combine/
+        echo "File count in to_combine: \$(find vast_out/to_combine/ -type f | wc -l)"
 
         echo "VAST-tools alignment complete for ${sample_id}"
         """
     } else {
-        // Single-end alignment
+        // Single-end alignment - same changes as paired-end
         """
         mkdir -p vast_out/to_combine
         echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
@@ -538,19 +554,35 @@ process align_reads {
 
         # Verify alignment outputs and debug
         echo "Checking alignment outputs..."
-        find vast_out -type f -name "*.tab" | head -10
-        ls -la vast_out/
+        find vast_out -type f | sort | head -20
+        echo "Directory structure:"
+        find vast_out -type d | sort
 
-        # Make sure to_combine files exist
-        if [ -d "vast_out/to_combine" ]; then
-            echo "to_combine directory exists with contents:"
-            ls -la vast_out/to_combine/
-        else
-            echo "WARNING: to_combine directory not found!"
-            # Create it if missing and copy relevant files
-            mkdir -p vast_out/to_combine
-            find vast_out -maxdepth 1 -name "*.tab" -exec cp {} vast_out/to_combine/ \\;
-        fi
+        # Ensure all necessary files are in to_combine directory
+        echo "Ensuring all necessary files are in to_combine directory..."
+        mkdir -p vast_out/to_combine
+
+        # Find all the different file types VAST-tools creates
+        find vast_out -type f -name "*.eej*" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR*" -o -name "*.mic*" -o -name "*.MULTI*" -o -name "*.tab" | while read file; do
+            echo "Found file: \$file"
+            cp "\$file" vast_out/to_combine/ || echo "Failed to copy \$file"
+        done
+
+        # Also look for files directly in cRPKM, to_combine and other subdirectories
+        for subdir in vast_out/*/; do
+            if [ -d "\$subdir" ] && [ "\$subdir" != "vast_out/to_combine/" ]; then
+                echo "Checking subdirectory: \$subdir"
+                find "\$subdir" -maxdepth 1 -type f | while read file; do
+                    echo "Found file in subdir: \$file"
+                    cp "\$file" vast_out/to_combine/ || echo "Failed to copy \$file"
+                done
+            fi
+        done
+
+        # List to_combine contents for verification
+        echo "Contents of to_combine directory:"
+        ls -la vast_out/to_combine/
+        echo "File count in to_combine: \$(find vast_out/to_combine/ -type f | wc -l)"
 
         echo "VAST-tools alignment complete for ${sample_id}"
         """
@@ -596,7 +628,7 @@ process combine_results {
             echo "Found to_combine directory in \$dir, copying contents..."
             cp -r \$dir/to_combine/* combined_input_dir/ 2>/dev/null || {
                 echo "Contents of \$dir/to_combine:"
-                ls -la "\$dir/to_combine/" || true
+                ls -la "\$dir/to/combine/" || true
             }
         else
             echo "WARNING: to_combine directory not found in \$dir"
