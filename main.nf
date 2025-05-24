@@ -430,6 +430,10 @@ process align_reads {
     publishDir "${params.outdir}/vast_alignment", mode: 'copy', pattern: "vast_out/**"
     container 'andresgordoortiz/vast-tools:latest'
 
+    // Retry configuration - retry once if the process fails
+    maxRetries 1
+    errorStrategy { task.attempt <= maxRetries ? 'retry' : 'terminate' }
+
     // Resource requirements
     cpus 8
     memory { 50.GB }
@@ -449,6 +453,7 @@ process align_reads {
     if (sample_type == 'paired') {
         // Paired-end alignment
         """
+        echo "VAST-tools alignment attempt ${task.attempt} for paired-end sample ${sample_id}..."
         mkdir -p vast_out/to_combine
         echo "Starting VAST-tools alignment for paired-end sample ${sample_id}..."
         echo "Using VASTDB path: ${vastdb_path}"
@@ -519,6 +524,7 @@ process align_reads {
     } else {
         // Single-end alignment - same changes as paired-end
         """
+        echo "VAST-tools alignment attempt ${task.attempt} for single-end sample ${sample_id}..."
         mkdir -p vast_out/to_combine
         echo "Starting VAST-tools alignment for single-end sample ${sample_id}..."
         echo "Using VASTDB path: ${vastdb_path}"
