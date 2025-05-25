@@ -2,7 +2,7 @@
 
 /*
 ==========================================
- FMN2/Spire Alternative Splicing Analysis Pipeline
+ VAST-TOOLS Splicing Analysis Pipeline
 ==========================================
  Authors: Andrés Gordo
  Date: April 2025
