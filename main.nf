@@ -622,8 +622,8 @@ process combine_results {
     echo "Container environment:"
     env | grep SINGULARITY || true
 
-    # Create directory for combining results
-    mkdir -p combined_input_dir
+    # Create the VAST-tools expected directory structure: vast_out/to_combine/
+    mkdir -p vast_out/to_combine
 
     # Find and copy all to_combine files from staged directories
     echo "Looking for to_combine directories in staged vast_* directories..."
@@ -632,8 +632,8 @@ process combine_results {
     for dir in vast_*; do
         if [ -d "\$dir/to_combine" ]; then
             echo "Found to_combine directory in \$dir, copying contents..."
-            cp -r \$dir/to_combine/* combined_input_dir/ 2>/dev/null || {
-                echo "Contents of \$dir/to_combine:"
+            cp -r \$dir/to_combine/* vast_out/to_combine/ 2>/dev/null || {
+                echo "Contents of \$dir/to/combine:"
                 ls -la "\$dir/to/combine/" || true
             }
         else
@@ -645,41 +645,39 @@ process combine_results {
             echo "Looking for .tab files in \$dir..."
             find "\$dir" -name "*.tab" -type f | while read file; do
                 echo "Found tab file: \$file"
-                cp "\$file" combined_input_dir/ 2>/dev/null || true
+                cp "\$file" vast_out/to_combine/ 2>/dev/null || true
             done
         fi
     done
 
     # Count files to combine
-    file_count=\$(find combined_input_dir -type f | wc -l)
+    file_count=\$(find vast_out/to_combine -type f | wc -l)
     echo "Found \$file_count files to combine."
 
     # List all files found for debugging
     if [ \$file_count -gt 0 ]; then
         echo "Files to be combined:"
-        find combined_input_dir -type f -exec basename {} \\; | sort
+        find vast_out/to_combine -type f -exec basename {} \\; | sort
     fi
 
     # Proceed only if there are files to combine
     if [ \$file_count -gt 0 ]; then
         echo "Combining VAST-tools results..."
 
-        # Create the output directory before running vast-tools combine
-        mkdir -p results_dir
-
         # Ensure VASTDB is correctly set, with multiple fallback options
         export VASTDB=/usr/local/vast-tools/VASTDB
         echo "VASTDB set to \$VASTDB"
 
-        # Try with default path first, then explicit path if needed
-        if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir --verbose; then
+        # Use the correct VAST-tools combine command structure:
+        # vast-tools combine vast_out/to_combine/ -sp species -o vast_out
+        if vast-tools combine vast_out/to_combine/ -sp ${params.species} -o vast_out --verbose; then
             echo "VAST-tools combine completed successfully"
         else
             echo "First combine attempt failed, trying with explicit VASTDB path..."
             export VASTDB=${vastdb_path}
             echo "VASTDB now set to \$VASTDB"
 
-            if vast-tools combine combined_input_dir -sp ${params.species} -o results_dir --verbose; then
+            if vast-tools combine vast_out/to_combine/ -sp ${params.species} -o vast_out --verbose; then
                 echo "VAST-tools combine completed successfully with explicit path"
             else
                 echo "Both combine attempts failed - debugging information:"
@@ -688,16 +686,16 @@ process combine_results {
                 echo "VASTDB location:"
                 ls -la \$VASTDB || true
                 echo "Input files for combine:"
-                ls -la combined_input_dir/
+                ls -la vast_out/to_combine/
                 vast-tools --version || true
                 exit 1
             fi
         fi
 
-        # Find the generated inclusion table
+        # Find the generated inclusion table in the vast_out directory
         echo "Looking for generated inclusion table..."
-        ls -la results_dir/
-        inclusion_file=\$(find results_dir -name "INCLUSION_LEVELS_FULL*" -type f | head -n 1)
+        ls -la vast_out/
+        inclusion_file=\$(find vast_out -name "INCLUSION_LEVELS_FULL*" -type f | head -n 1)
         if [ -n "\$inclusion_file" ]; then
             echo "Found inclusion file: \$inclusion_file"
             file_size=\$(stat -c%s "\$inclusion_file")
@@ -713,8 +711,8 @@ process combine_results {
             fi
         else
             echo "WARNING: No INCLUSION_LEVELS_FULL file was created."
-            echo "Files in results_dir:"
-            find results_dir -type f | head -20
+            echo "Files in vast_out:"
+            find vast_out -type f | head -20
             echo "Creating an empty placeholder file."
             echo "# WARNING: No INCLUSION_LEVELS_FULL file was generated" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
             echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
