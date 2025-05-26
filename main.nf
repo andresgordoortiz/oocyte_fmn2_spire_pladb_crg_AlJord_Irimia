@@ -628,23 +628,50 @@ process combine_results {
     cd vast_combine_work
 
     # Find and copy all valid VAST-tools output files, avoiding duplicates
-    echo "Collecting VAST-tools output files..."
+    echo "Collecting VAST-tools output files from to_combine directories..."
 
-    # Use a different approach: directly collect files without creating nested to_combine
+    # Debug: List what directories we have
+    echo "Available vast_* directories:"
+    ls -la ../vast_* || true
+
+    # Look specifically in the to_combine subdirectories
     for dir in ../vast_*; do
         echo "Processing directory: \$dir"
         if [ -d "\$dir" ]; then
-            # Look for files in all subdirectories, not just to_combine
-            find "\$dir" -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
-                filename=\$(basename "\$file")
-                # Only copy if the file doesn't already exist in our to_combine directory
-                if [ ! -f "to_combine/\$filename" ]; then
-                    echo "Copying: \$file -> to_combine/\$filename"
-                    cp "\$file" "to_combine/\$filename" || echo "Failed to copy \$file"
-                else
-                    echo "Skipping duplicate: \$filename"
-                fi
-            done
+            # Check if to_combine subdirectory exists
+            if [ -d "\$dir/to_combine" ]; then
+                echo "Found to_combine subdirectory in \$dir"
+                ls -la "\$dir/to_combine/" || true
+
+                # Copy files from the to_combine subdirectory
+                find "\$dir/to_combine" -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
+                    filename=\$(basename "\$file")
+                    # Only copy if the file doesn't already exist in our to_combine directory
+                    if [ ! -f "to_combine/\$filename" ]; then
+                        echo "Copying: \$file -> to_combine/\$filename"
+                        cp "\$file" "to_combine/\$filename" || echo "Failed to copy \$file"
+                    else
+                        echo "Skipping duplicate: \$filename"
+                    fi
+                done
+            else
+                echo "WARNING: No to_combine subdirectory found in \$dir"
+                echo "Contents of \$dir:"
+                ls -la "\$dir" || true
+
+                # Fallback: look for files directly in the vast_out directory
+                find "\$dir" -maxdepth 1 -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
+                    filename=\$(basename "\$file")
+                    if [ ! -f "to_combine/\$filename" ]; then
+                        echo "Copying from root: \$file -> to_combine/\$filename"
+                        cp "\$file" "to_combine/\$filename" || echo "Failed to copy \$file"
+                    else
+                        echo "Skipping duplicate: \$filename"
+                    fi
+                done
+            fi
+        else
+            echo "WARNING: \$dir is not a directory or doesn't exist"
         fi
     done
 
@@ -728,8 +755,17 @@ process combine_results {
         echo "ERROR: No valid VAST-tools files found to combine"
         cd ..
         echo "# ERROR: No valid VAST-tools output files found" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-        echo "# Searched in directories:" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-        ls -la vast_* | head -10 | sed 's/^/# /' >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        echo "# Searched in directories and their to_combine subdirectories:" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        for dir in vast_*; do
+            echo "# Directory: \$dir" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            if [ -d "\$dir/to_combine" ]; then
+                echo "#   to_combine/ exists with \$(find \$dir/to_combine -type f | wc -l) files" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                find "\$dir/to_combine" -type f | head -5 | sed 's/^/#     /' >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            else
+                echo "#   to_combine/ subdirectory not found" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "#   Contents: \$(ls \$dir 2>/dev/null | wc -l) items" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            fi
+        done
         echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
     fi
     """
