@@ -607,7 +607,7 @@ process combine_results {
 
     // Resource requirements
     cpus 8
-    memory { 90.GB }  // Use fixed memory allocation
+    memory { 150.GB }  // Use fixed memory allocation
     time { 1.hour }
 
     input:
