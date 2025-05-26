@@ -633,8 +633,8 @@ process combine_results {
         if [ -d "\$dir/to_combine" ]; then
             echo "Found to_combine directory in \$dir, copying contents..."
             cp -r \$dir/to_combine/* vast_out/to_combine/ 2>/dev/null || {
-                echo "Contents of \$dir/to/combine:"
-                ls -la "\$dir/to/combine/" || true
+                echo "Contents of \$dir/to_combine:"
+                ls -la "\$dir/to_combine/" || true
             }
         else
             echo "WARNING: to_combine directory not found in \$dir"
