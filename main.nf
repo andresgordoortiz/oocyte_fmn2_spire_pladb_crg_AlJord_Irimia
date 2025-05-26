@@ -431,7 +431,7 @@ process align_reads {
     container 'andresgordoortiz/vast-tools:latest'
 
     // Retry configuration - retry once if the process fails
-    maxRetries 1
+    maxRetries 2
     errorStrategy { task.attempt <= maxRetries ? 'retry' : 'terminate' }
 
     // Resource requirements
