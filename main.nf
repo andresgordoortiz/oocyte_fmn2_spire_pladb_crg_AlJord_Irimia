@@ -601,10 +601,14 @@ process combine_results {
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest'
 
-    // Resource requirements
+    // Retry configuration for segmentation faults
+    maxRetries 2
+    errorStrategy { task.exitStatus == 140 ? 'retry' : 'terminate' }
+
+    // Increased resource requirements to handle segmentation faults
     cpus 4
-    memory { 10.GB }
-    time { 30.min }
+    memory { 20.GB * task.attempt }  // Increase memory on retry
+    time { 1.hour }
 
     input:
     path vast_out_dirs, stageAs: "vast_*"
@@ -616,6 +620,7 @@ process combine_results {
 
     script:
     """
+    echo "VAST-tools combine attempt ${task.attempt} with ${task.memory} memory"
     echo "Using VASTDB path: ${vastdb_path}"
 
     # Debug info
@@ -629,22 +634,24 @@ process combine_results {
     echo "Looking for to_combine directories in staged vast_* directories..."
     ls -la .
 
+    # First, collect all valid VAST-tools output files (excluding .resume files)
     for dir in vast_*; do
         if [ -d "\$dir/to_combine" ]; then
             echo "Found to_combine directory in \$dir, copying contents..."
-            cp -r \$dir/to_combine/* vast_out/to_combine/ 2>/dev/null || {
-                echo "Contents of \$dir/to_combine:"
-                ls -la "\$dir/to_combine/" || true
-            }
+            # Copy files but exclude .resume files and other non-essential files
+            find "\$dir/to_combine" -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
+                echo "Copying valid file: \$file"
+                cp "\$file" vast_out/to_combine/ || echo "Failed to copy \$file"
+            done
         else
             echo "WARNING: to_combine directory not found in \$dir"
             echo "Contents of \$dir:"
             ls -la "\$dir" || true
 
-            # Try to find .tab files in the main directory and copy them
-            echo "Looking for .tab files in \$dir..."
-            find "\$dir" -name "*.tab" -type f | while read file; do
-                echo "Found tab file: \$file"
+            # Try to find valid VAST-tools files in the main directory and copy them
+            echo "Looking for valid VAST-tools files in \$dir..."
+            find "\$dir" -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
+                echo "Found valid file: \$file"
                 cp "\$file" vast_out/to_combine/ 2>/dev/null || true
             done
         fi
@@ -658,37 +665,49 @@ process combine_results {
     if [ \$file_count -gt 0 ]; then
         echo "Files to be combined:"
         find vast_out/to_combine -type f -exec basename {} \\; | sort
+        echo "Total file sizes:"
+        du -sh vast_out/to_combine/
     fi
 
     # Proceed only if there are files to combine
     if [ \$file_count -gt 0 ]; then
         echo "Combining VAST-tools results..."
 
-        # Ensure VASTDB is correctly set, with multiple fallback options
+        # Set memory limits to prevent segmentation faults
+        ulimit -v \$((${task.memory.toMega()} * 1024))
+
+        # Ensure VASTDB is correctly set
         export VASTDB=/usr/local/vast-tools/VASTDB
         echo "VASTDB set to \$VASTDB"
 
-        # Use the correct VAST-tools combine command structure:
-        # vast-tools combine vast_out/to_combine/ -sp species -o vast_out
+        # Use the correct VAST-tools combine command with verbose output
+        echo "Running: vast-tools combine vast_out/to_combine/ -sp ${params.species} -o vast_out --verbose"
         if vast-tools combine vast_out/to_combine/ -sp ${params.species} -o vast_out --verbose; then
             echo "VAST-tools combine completed successfully"
         else
-            echo "First combine attempt failed, trying with explicit VASTDB path..."
+            combine_exit_code=\$?
+            echo "First combine attempt failed with exit code \$combine_exit_code"
+            echo "Trying with explicit VASTDB path..."
             export VASTDB=${vastdb_path}
             echo "VASTDB now set to \$VASTDB"
 
             if vast-tools combine vast_out/to_combine/ -sp ${params.species} -o vast_out --verbose; then
                 echo "VAST-tools combine completed successfully with explicit path"
             else
-                echo "Both combine attempts failed - debugging information:"
+                second_exit_code=\$?
+                echo "Both combine attempts failed"
+                echo "First exit code: \$combine_exit_code, Second exit code: \$second_exit_code"
+                echo "Debugging information:"
                 echo "Container filesystem:"
                 ls -la /usr/local/vast-tools/ || true
                 echo "VASTDB location:"
                 ls -la \$VASTDB || true
                 echo "Input files for combine:"
                 ls -la vast_out/to_combine/
+                echo "Available memory:"
+                free -h || true
                 vast-tools --version || true
-                exit 1
+                exit \$second_exit_code
             fi
         fi
 
