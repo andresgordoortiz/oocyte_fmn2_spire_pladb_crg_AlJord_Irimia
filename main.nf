@@ -606,8 +606,8 @@ process combine_results {
     errorStrategy { task.exitStatus == 140 ? 'ignore' : 'terminate' }  // Continue pipeline even if combine fails
 
     // Resource requirements
-    cpus 2
-    memory { 16.GB }  // Use fixed memory allocation
+    cpus 8
+    memory { 24.GB }  // Use fixed memory allocation
     time { 1.hour }
 
     input:
