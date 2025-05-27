@@ -603,10 +603,10 @@ process combine_results {
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest'
     containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=16g --privileged'
-    // Increased memory allocation
+
     cpus 2
-    memory { 32.GB }  // Doubled from 16GB
-    time { 2.hour }  // Increased time allowance
+    memory { 32.GB }
+    time { 2.hour }
 
     input:
     path vast_out_dirs, stageAs: "vast_*"
@@ -632,31 +632,32 @@ process combine_results {
     echo "Available vast_* directories:"
     ls -la ../vast_* || true
 
-    # Process files in batches by sample to avoid memory issues
+    # Point 8: Improved file copying with better handling
     for dir in ../vast_*; do
         if [ -d "\$dir/to_combine" ]; then
             echo "Processing directory: \$dir"
-            mkdir -p "to_combine"
 
-            # Copy files in smaller batches
-            find "\$dir/to_combine" -type f -name "*.eej2" | while read file; do
-                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            # Copy files with explicit error handling for each type
+            for pattern in "*.eej*" "*.exskX" "*.info" "*.IR*" "*.mic*" "*.MULTI*" "*.tab"; do
+                echo "Copying \$pattern files from \$dir/to_combine/"
+                find "\$dir/to_combine" -type f -name "\$pattern" | while read file; do
+                    echo "Copying file: \$file"
+                    cp "\$file" to_combine/ || echo "Failed to copy \$file - continuing"
+                done
             done
 
-            find "\$dir/to_combine" -type f -name "*.exskX" | while read file; do
-                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            # Look for files in parent directories that might have been missed
+            echo "Looking for files in parent directory..."
+            find "\$dir" -maxdepth 1 -type f | grep -E '\\.(eej|exskX|info|IR|mic|MULTI|tab)' | while read file; do
+                echo "Found file in parent dir: \$file"
+                cp "\$file" to_combine/ || echo "Failed to copy \$file - continuing"
             done
-
-            find "\$dir/to_combine" -type f -name "*.info" | while read file; do
-                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
-            done
-
-            find "\$dir/to_combine" -type f -name "*.IR*" | while read file; do
-                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
-            done
-
-            find "\$dir/to_combine" -type f -name "*.micX" -o -name "*.MULTI3X" | while read file; do
-                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+        else
+            echo "No to_combine directory in \$dir, looking for files elsewhere"
+            # Search the entire directory tree for relevant files
+            find "\$dir" -type f | grep -E '\\.(eej|exskX|info|IR|mic|MULTI|tab)' | while read file; do
+                echo "Found file: \$file"
+                cp "\$file" to_combine/ || echo "Failed to copy \$file - continuing"
             done
         fi
     done
@@ -664,23 +665,31 @@ process combine_results {
     # Count files and check
     file_count=\$(find to_combine -type f | wc -l)
     echo "Found \$file_count files to combine"
+    echo "Sample of files:"
+    ls -la to_combine | head -20
 
     if [ \$file_count -gt 0 ]; then
-        echo "Setting ulimits for stack and memory"
+        # Point 7: Remove virtual memory limits
+        echo "Setting ulimits for memory and stack"
         ulimit -s unlimited
+        ulimit -v unlimited 2>/dev/null || echo "Could not set unlimited virtual memory"
+        ulimit -a  # Print all limits for debugging
 
-        # Export large environment variable size
+        # Point 6: Add Perl debugging options to catch potential hangs
         export PERL_HASH_SEED=0
         export PERL_DESTRUCT_LEVEL=2
+        export PERL5OPT="-D29"  # Enable Perl debugging to catch hangs
+        export PERL_DEBUG_MSTATS=1  # Track memory allocation
 
         # Set VASTDB path
         export VASTDB=${vastdb_path}
         echo "VASTDB set to \$VASTDB"
 
-        # Run with explicit timeout and memory management
         echo "Running VAST-tools combine with increased limits..."
+        timeout -k 100m 90m bash -c "vast-tools combine to_combine/ -sp ${params.species} -o . --verbose" 2> combine_error.log
 
-        if timeout -k 100m 90m bash -c "ulimit -s unlimited && vast-tools combine to_combine/ -sp ${params.species} -o . --verbose"; then
+        combine_exit_code=\$?
+        if [ \$combine_exit_code -eq 0 ]; then
             echo "VAST-tools combine completed successfully"
 
             # Look for output file
@@ -695,11 +704,15 @@ process combine_results {
                 echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
             fi
         else
-            combine_exit_code=\$?
-            echo "Combine failed with exit code \$combine_exit_code, creating placeholder file"
+            echo "Combine failed with exit code \$combine_exit_code, checking error log"
+            cat combine_error.log || true
+
+            echo "Creating placeholder file with error information"
             echo "# VAST-tools combine failed with exit code \$combine_exit_code" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Files were present but combine process crashed" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Files were present but combine process crashed or timed out" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
             echo "# Input files: \$file_count" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Error log:" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            cat combine_error.log >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" 2>/dev/null || true
             echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         fi
     else
