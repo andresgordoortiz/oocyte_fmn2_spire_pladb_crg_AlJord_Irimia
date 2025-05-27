@@ -26,6 +26,7 @@ params.rmd_file = "$projectDir/scripts/R/notebooks/Oocyte_fmndko_spireko_complet
 params.prot_impact_url = "https://vastdb.crg.eu/downloads/mm10/PROT_IMPACT-mm10-v3.tab.gz"
 params.species = "mm10"  // Default species for VAST-tools alignment
 params.multiqc_config = null  // Path to multiqc config file (optional)
+params.project_name = "oocyte_splicing_analysis"  // Custom project name for output files
 
 // Change from default value to null to make it mandatory
 params.data_dir = null  // Now mandatory - directory containing input FASTQ files
@@ -59,6 +60,7 @@ def helpMessage() {
     Optional Arguments:
       --outdir              Output directory (default: ${params.outdir})
       --species             Species for VAST-tools alignment (default: ${params.species})
+      --project_name        Custom project name for output files (default: ${params.project_name})
       --skip_fastqc         Skip FastQC quality control (default: ${params.skip_fastqc})
       --skip_trimming       Skip trimming of reads (default: ${params.skip_trimming})
       --skip_fastqc_in_trimming  Skip FastQC within trim_galore (default: ${params.skip_fastqc_in_trimming})
@@ -810,6 +812,10 @@ process run_rmarkdown_report {
     RMD_DIR="\$(dirname ${rmd_file})"
     echo "RMarkdown directory: \$RMD_DIR"
 
+    # Store the original working directory before changing to RMarkdown directory
+    ORIGINAL_WD="\$PWD"
+    echo "Original working directory: \$ORIGINAL_WD"
+
     # Copy the inclusion table to the RMarkdown directory to make it accessible
     cp ${inclusion_table} "\$RMD_DIR/"
 
@@ -826,10 +832,13 @@ process run_rmarkdown_report {
     # Check if rendering was successful
     if [ -f "${html_basename}" ]; then
         echo "✓ R Markdown report generated successfully in original directory"
-        # Copy the HTML report to the working directory for publishing
-        cp "${html_basename}" "\$PWD/.."
+        # Copy the HTML report back to the original working directory for publishing
+        cp "${html_basename}" "\$ORIGINAL_WD/"
+        echo "HTML report copied to working directory for publishing"
     else
         echo "ERROR: R Markdown rendering failed. Check for errors in the RMarkdown file."
+        echo "Current directory contents:"
+        ls -la
         exit 1
     fi
     """
@@ -1011,8 +1020,8 @@ workflow {
     // Use the named output channels directly
     vast_out_dirs = align_results.vast_out_dir.collect()
 
-    // Get a unique name for the output based on the project name or custom parameter
-    output_name = "splicing_analysis"
+    // Get a unique name for the output based on the project name parameter
+    output_name = params.project_name
 
     // Combine all alignment results
     inclusion_table = combine_results(vast_out_dirs, vastdb_path, output_name)
