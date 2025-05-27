@@ -777,9 +777,9 @@ process run_rmarkdown_report {
     tag "Generate R analysis report"
     label 'process_high'
     publishDir "${params.outdir}/report", mode: 'copy', pattern: '*.html'
-    container 'andresgordoortiz/splicing_analysis_r_crg:v1.5' // Using biocontainer for R with rmarkdown
+    container 'andresgordoortiz/splicing_analysis_r_crg:v1.5'
 
-    // Resource requirements - as per your specifications
+    // Resource requirements
     cpus 2
     memory { 30.GB }
     time { 72.hours } // 3 days
@@ -796,33 +796,42 @@ process run_rmarkdown_report {
 
     script:
     def rmd_basename = file(rmd_file).name
+    def rmd_dir = file(rmd_file).parent
     def html_basename = rmd_basename.replace('.Rmd', '.html')
 
     """
-    # Create notebooks directory
-    mkdir -p notebooks
-
-    # Copy inclusion table to notebooks directory
-    cp ${inclusion_table} notebooks/
-
     # Verify the RMarkdown file exists
-    RMD_FILE="${rmd_file}"
-    if [ ! -f "\$RMD_FILE" ]; then
-        echo "ERROR: RMarkdown file \$RMD_FILE not found. Cannot generate the report."
+    if [ ! -f "${rmd_file}" ]; then
+        echo "ERROR: RMarkdown file ${rmd_file} not found. Cannot generate the report."
         exit 1
     fi
 
-    # Copy the Rmd file to the notebooks directory
-    cp "\$RMD_FILE" notebooks/
+    # Get absolute path to the RMarkdown file directory
+    RMD_DIR="\$(dirname ${rmd_file})"
+    echo "RMarkdown directory: \$RMD_DIR"
 
-    # Run the RMarkdown report
-    cd notebooks
-    Rscript -e "rmarkdown::render('${rmd_basename}')"
+    # Copy the inclusion table to the RMarkdown directory to make it accessible
+    cp ${inclusion_table} "\$RMD_DIR/"
 
-    # Move the HTML report from notebooks to current directory
-    cp "${html_basename}" ../
+    # List files in the RMarkdown directory for debugging
+    echo "Files in RMarkdown directory before rendering:"
+    ls -la "\$RMD_DIR"
 
-    echo "✓ R Markdown report generated: ${html_basename}"
+    # Navigate to the RMarkdown directory to render the file in its original context
+    cd "\$RMD_DIR"
+
+    # Render the RMarkdown file in its original location
+    Rscript -e "rmarkdown::render('${rmd_basename}', output_dir=getwd())"
+
+    # Check if rendering was successful
+    if [ -f "${html_basename}" ]; then
+        echo "✓ R Markdown report generated successfully in original directory"
+        # Copy the HTML report to the working directory for publishing
+        cp "${html_basename}" "\$PWD/.."
+    else
+        echo "ERROR: R Markdown rendering failed. Check for errors in the RMarkdown file."
+        exit 1
+    fi
     """
 }
 
