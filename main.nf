@@ -600,14 +600,16 @@ process combine_results {
     label 'process_medium'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest'
+    containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=1g'
+
 
     // Retry configuration for segmentation faults
     maxRetries 1  // Reduce retries since it's consistently failing
-    errorStrategy { task.exitStatus == 140 ? 'ignore' : 'terminate' }  // Continue pipeline even if combine fails
+    errorStrategy { task.exitStatus in [140, 143] ? 'ignore' : 'terminate' }
 
     // Resource requirements
-    cpus 8
-    memory { 150.GB }  // Use fixed memory allocation
+    cpus 2
+    memory { 16.GB }  // Use fixed memory allocation
     time { 1.hour }
 
     input:
@@ -692,7 +694,7 @@ process combine_results {
         echo "Attempting VAST-tools combine..."
 
         # First attempt: Standard combine
-        if timeout 30m vast-tools combine to_combine/ -sp ${params.species} -o . --verbose; then
+        if vast-tools combine to_combine/ -sp ${params.species} -o . --verbose; then
             echo "VAST-tools combine completed successfully"
         else
             combine_exit_code=\$?
