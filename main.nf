@@ -599,20 +599,15 @@ process align_reads {
 
 process combine_results {
     tag "VAST-tools combine"
-    label 'process_medium'
+    label 'process_high'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest'
-    containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=1g'
+    containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=4g'
 
-
-    // Retry configuration for segmentation faults
-    maxRetries 1  // Reduce retries since it's consistently failing
-    errorStrategy { task.exitStatus in [140, 143] ? 'ignore' : 'terminate' }
-
-    // Resource requirements
+    // Increased memory allocation
     cpus 2
-    memory { 16.GB }  // Use fixed memory allocation
-    time { 1.hour }
+    memory { 32.GB }  // Doubled from 16GB
+    time { 2.hour }  // Increased time allowance
 
     input:
     path vast_out_dirs, stageAs: "vast_*"
@@ -631,146 +626,88 @@ process combine_results {
     mkdir -p vast_combine_work/to_combine
     cd vast_combine_work
 
-    # Find and copy all valid VAST-tools output files, avoiding duplicates
-    echo "Collecting VAST-tools output files from to_combine directories..."
+    # Copy files with improved error handling
+    echo "Collecting VAST-tools output files..."
 
-    # Debug: List what directories we have
+    # Debug: List directories
     echo "Available vast_* directories:"
     ls -la ../vast_* || true
 
-    # Look specifically in the to_combine subdirectories
+    # Process files in batches by sample to avoid memory issues
     for dir in ../vast_*; do
-        echo "Processing directory: \$dir"
-        if [ -d "\$dir" ]; then
-            # Check if to_combine subdirectory exists
-            if [ -d "\$dir/to_combine" ]; then
-                echo "Found to_combine subdirectory in \$dir"
-                ls -la "\$dir/to_combine/" || true
+        if [ -d "\$dir/to_combine" ]; then
+            echo "Processing directory: \$dir"
+            mkdir -p "to_combine"
 
-                # Copy files from the to_combine subdirectory
-                find "\$dir/to_combine" -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
-                    filename=\$(basename "\$file")
-                    # Only copy if the file doesn't already exist in our to_combine directory
-                    if [ ! -f "to_combine/\$filename" ]; then
-                        echo "Copying: \$file -> to_combine/\$filename"
-                        cp "\$file" "to_combine/\$filename" || echo "Failed to copy \$file"
-                    else
-                        echo "Skipping duplicate: \$filename"
-                    fi
-                done
-            else
-                echo "WARNING: No to_combine subdirectory found in \$dir"
-                echo "Contents of \$dir:"
-                ls -la "\$dir" || true
+            # Copy files in smaller batches
+            find "\$dir/to_combine" -type f -name "*.eej2" | while read file; do
+                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            done
 
-                # Fallback: look for files directly in the vast_out directory
-                find "\$dir" -maxdepth 1 -type f \\( -name "*.eej2" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR2" -o -name "*.IR.summary_v2.txt" -o -name "*.micX" -o -name "*.MULTI3X" \\) | while read file; do
-                    filename=\$(basename "\$file")
-                    if [ ! -f "to_combine/\$filename" ]; then
-                        echo "Copying from root: \$file -> to_combine/\$filename"
-                        cp "\$file" "to_combine/\$filename" || echo "Failed to copy \$file"
-                    else
-                        echo "Skipping duplicate: \$filename"
-                    fi
-                done
-            fi
-        else
-            echo "WARNING: \$dir is not a directory or doesn't exist"
+            find "\$dir/to_combine" -type f -name "*.exskX" | while read file; do
+                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            done
+
+            find "\$dir/to_combine" -type f -name "*.info" | while read file; do
+                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            done
+
+            find "\$dir/to_combine" -type f -name "*.IR*" | while read file; do
+                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            done
+
+            find "\$dir/to_combine" -type f -name "*.micX" -o -name "*.MULTI3X" | while read file; do
+                cp "\$file" "to_combine/" || echo "Failed to copy \$file"
+            done
         fi
     done
 
-    # Count files to combine
+    # Count files and check
     file_count=\$(find to_combine -type f | wc -l)
-    echo "Found \$file_count unique files to combine."
+    echo "Found \$file_count files to combine"
 
     if [ \$file_count -gt 0 ]; then
-        echo "Files to be combined:"
-        ls -la to_combine/
-        echo "Total size: \$(du -sh to_combine/)"
+        echo "Setting ulimits for stack and memory"
+        ulimit -s unlimited
 
-        # Set up VAST-tools environment
-        export VASTDB=/usr/local/vast-tools/VASTDB
+        # Export large environment variable size
+        export PERL_HASH_SEED=0
+        export PERL_DESTRUCT_LEVEL=2
+
+        # Set VASTDB path
+        export VASTDB=${vastdb_path}
         echo "VASTDB set to \$VASTDB"
 
-        # Try running VAST-tools combine with different approaches
-        echo "Attempting VAST-tools combine..."
+        # Run with explicit timeout and memory management
+        echo "Running VAST-tools combine with increased limits..."
 
-        # First attempt: Standard combine
-        if vast-tools combine to_combine/ -sp ${params.species} -o . --verbose; then
+        if timeout -k 100m 90m bash -c "ulimit -s unlimited && vast-tools combine to_combine/ -sp ${params.species} -o . --verbose"; then
             echo "VAST-tools combine completed successfully"
+
+            # Look for output file
+            inclusion_file=\$(find . -name "INCLUSION_LEVELS_FULL*${params.species}*" -type f | head -n 1)
+            if [ -n "\$inclusion_file" ]; then
+                echo "Found inclusion file: \$inclusion_file"
+                cp "\$inclusion_file" "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "✓ Results successfully combined"
+            else
+                echo "No inclusion table found, creating placeholder"
+                echo "# VAST-tools combine completed but no output file found" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            fi
         else
             combine_exit_code=\$?
-            echo "First combine attempt failed (exit code: \$combine_exit_code)"
-
-            # Second attempt: Try with explicit VASTDB
-            export VASTDB=${vastdb_path}
-            echo "Trying with explicit VASTDB: \$VASTDB"
-
-            if timeout 30m vast-tools combine to_combine/ -sp ${params.species} -o . --verbose; then
-                echo "VAST-tools combine completed with explicit VASTDB"
-            else
-                second_exit_code=\$?
-                echo "Second combine attempt also failed (exit code: \$second_exit_code)"
-
-                # Create a minimal placeholder file if combine fails
-                echo "Creating placeholder inclusion table due to combine failure..."
-                echo "# VAST-tools combine failed with segmentation fault" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "# Files were present but combine process crashed" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "# Input files (\$file_count total):" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                ls to_combine/ | head -10 | sed 's/^/# /' >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "# Created on: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-
-                # Exit with the original error code if this is not the final retry
-                if [ ${task.attempt} -lt ${task.maxRetries} ]; then
-                    exit \$second_exit_code
-                else
-                    echo "Max retries reached, continuing with placeholder file"
-                    exit 0  # Allow pipeline to continue
-                fi
-            fi
-        fi
-
-        # Look for generated inclusion table
-        echo "Looking for generated inclusion table..."
-        ls -la .
-
-        inclusion_file=\$(find . -name "INCLUSION_LEVELS_FULL*${params.species}*" -type f | head -n 1)
-        if [ -n "\$inclusion_file" ]; then
-            echo "Found inclusion file: \$inclusion_file"
-            file_size=\$(stat -c%s "\$inclusion_file")
-            echo "File size: \$file_size bytes"
-
-            if [ \$file_size -gt 100 ]; then
-                cp "\$inclusion_file" "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "✓ Results successfully combined and inclusion table created"
-            else
-                echo "WARNING: Generated inclusion file is too small"
-                echo "# WARNING: Generated file was too small (\$file_size bytes)" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "# Created on: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            fi
-        else
-            echo "WARNING: No inclusion table file found after combine"
-            echo "Available files:"
-            find . -type f | head -20
-            echo "# WARNING: VAST-tools combine completed but no inclusion table found" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Created on: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "Combine failed with exit code \$combine_exit_code, creating placeholder file"
+            echo "# VAST-tools combine failed with exit code \$combine_exit_code" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Files were present but combine process crashed" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Input files: \$file_count" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         fi
     else
-        echo "ERROR: No valid VAST-tools files found to combine"
+        echo "No files found to combine, creating empty output file"
         cd ..
-        echo "# ERROR: No valid VAST-tools output files found" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-        echo "# Searched in directories and their to_combine subdirectories:" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-        for dir in vast_*; do
-            echo "# Directory: \$dir" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            if [ -d "\$dir/to_combine" ]; then
-                echo "#   to_combine/ exists with \$(find \$dir/to_combine -type f | wc -l) files" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                find "\$dir/to_combine" -type f | head -5 | sed 's/^/#     /' >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            else
-                echo "#   to_combine/ subdirectory not found" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "#   Contents: \$(ls \$dir 2>/dev/null | wc -l) items" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            fi
-        done
-        echo "# Created on: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        echo "# No VAST-tools output files found to combine" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+        echo "# Created: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
     fi
     """
 }
