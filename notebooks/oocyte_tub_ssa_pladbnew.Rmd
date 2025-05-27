@@ -217,7 +217,7 @@ DT::datatable(metadata_ssa_tub, options = list(pageLength = nrow(metadata_ssa_tu
 
 # Total Splicing Events
 
-This plot shows the total number of splicing events found during the **mapping**, alongside the proportions of each type of event. It is important to know that *vast-tools* does not find new events, but it identifies those manually curated in the database. The total number is the same for both datasets, as it is the total number of events registered and curated in ***VASTDB***, hence the *Complete Version.* 
+This plot shows the total number of splicing events found during the **mapping** having at least **10** supporting reads across samples, alongside the proportions of each type of event. It is important to know that *vast-tools* does not find new events, but it identifies those manually curated in the database. The total number is the same for all datasets, as it is the total number of events registered and curated in ***VASTDB***. 
 
 
 ```{r splicing events barplot stacked, fig.width=10, fig.height=6}
@@ -301,7 +301,7 @@ colnames(exons_per_gene)<-c("gene","exons")
 
 # Inclusion or Exclusion Plots { .tabset}
 
-These plots show the distribution of the splicing change (dPSI) comparing the KO mutant vs the control. If there is a tendency towards inclusion or exclusion, the bell-shaped curve will be shifted to the right or left, respectively. First, I calculated the mean of each event per condition and then I calculated the difference between means for each event. The subtitle shows the Wilcoxon test assessing this possible asymmetry. The area under the curve for both sides (>0 and <0) is shown numerically. Only events with a dPSI greater or lower than 0 are shown for clarity.
+These plots show the distribution of the splicing change (dPSI) comparing each drug vs the control. If there is a tendency towards inclusion or exclusion, the bell-shaped curve will be shifted to the right or left, respectively. First, I calculated the mean of each event per condition and then I calculated the difference between means for each event. The subtitle shows the Wilcoxon test assessing this possible asymmetry. The area under the curve for both sides (>0 and <0) is shown numerically. Only events with a dPSI greater or lower than 0 are shown for clarity.
 
 ## Exons 
 
@@ -399,6 +399,8 @@ print(plot_psi_distribution)
 
 
 ```
+
+This next plot shows if there is any tendency towards exclusion or inclusion as the number of exons of that gene increases. The results is that none of the drigs causes a selective inclusion patterns depending on the gene complexity (number of exons).
 
 ```{r skewness tub}
 
@@ -3477,6 +3479,8 @@ volcano_plot
 
 # Basic Stats on Found Events
 
+Only significant events
+
 ## Events-level stats
 
 ```{r basic stats}
@@ -3547,82 +3551,340 @@ p_exons
 p_introns
 p_alt
 ```
-```{r gc introns}
+## GC Content and Length { .tabset}
+
+### Spliceostatin A
+
+```{r gc introns,out.width="100%"}
 library(dplyr)
 library(ggplot2)
-library(ggpubr)  # For stat_compare_means
+library(ggpubr)
+library(gridExtra)
+library(showtext)    # font_add_google(), showtext_auto()
 
-# Load event info
+# 1) Read event info
 event_info <- read.delim("EVENT_INFO-mm10.tab")
 
-# GC content function
+# 2) GC function
 gc_content <- function(seqs) {
   sapply(seqs, function(seq) {
     seq <- toupper(seq)
-    gc <- sum(strsplit(seq, "")[[1]] %in% c("G", "C"))
-    total <- nchar(seq)
-    if (total == 0) return(NA)
-    return(100 * gc / total)
+    gc  <- sum(strsplit(seq, "")[[1]] %in% c("G","C"))
+    n   <- nchar(seq)
+    if(n==0) return(NA)
+    100 * gc / n
   })
 }
 
-# Compute GC content and join
+# 3) Prepare DE introns
 introns_gc <- differential_ssa_introns %>%
-  left_join(select(event_info, EVENT, Seq_A, LE_o), by = "EVENT") %>%
+  left_join(select(event_info, EVENT, Seq_A, LE_o), by="EVENT") %>%
   mutate(
-    gc = gc_content(Seq_A),
-    skipped = factor(deltapsi < 0, levels = c(TRUE, FALSE), labels = c("Skipped", "Included"))
+    gc        = gc_content(Seq_A),
+    splicing  = if_else(deltapsi < 0, "Skipped", "Included")
   )
 
-# Plot
-ggplot(introns_gc, aes(x = skipped, y = gc, fill = skipped)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.8) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
-  stat_compare_means(method = "wilcox.test", label.y = max(introns_gc$gc, na.rm = TRUE) + 2) +
-  labs(
-    x = "Splicing Outcome",
-    y = "GC Content (%)",
-    title = "GC Content of Introns by Splicing Outcome"
-  ) +
-  scale_fill_manual(values = c("#D55E00", "#0072B2")) +
-  theme_minimal(base_size = 14) +
+set.seed(123)
+# 4) Prepare unchanged introns (you say you already have it in a DF)
+unchanged_gc <- na.omit(introns_ssa_tub$PSI) %>%
+  filter(!EVENT %in% differential_ssa_introns$EVENT) %>%
+  left_join(select(event_info, EVENT, Seq_A, LE_o), by="EVENT") %>%
+  filter(!is.na(Seq_A)) %>% 
+  sample_n(size = min(1000, n())) %>%
+  mutate(
+    gc       = gc_content(Seq_A),
+    splicing = "Unchanged"
+  )
+
+# 5) Bind them & make factor
+all_introns <- bind_rows(introns_gc, unchanged_gc) %>%
+  mutate(
+    splicing = factor(splicing,
+                      levels = c("Included","Skipped","Unchanged"))
+  )
+
+# 6) Define pairwise comparisons
+comparisons <- list(
+  c("Included", "Skipped"),
+  c("Included", "Unchanged"),
+  c("Skipped",  "Unchanged")
+)
+
+# 7) Load Courier Prime
+font_add_google("Courier Prime","courierprime")
+showtext_auto()
+
+# 8) Theme
+pub_theme <- theme_minimal(base_family="courierprime", base_size=16) +
   theme(
     legend.position = "none",
-    plot.title = element_text(hjust = 0.5)
+    plot.title      = element_text(hjust=0.5, size=rel(1.2), face="bold"),
+    axis.title      = element_text(size=rel(1.1)),
+    axis.text       = element_text(size=rel(1.0)),
+    panel.grid.major= element_line(size=0.2, color="grey80"),
+    panel.grid.minor= element_blank()
   )
 
-
-# Define a threshold for outliers, e.g., 95th percentile
-threshold <- quantile(introns_gc$LE_o, 0.95, na.rm = TRUE)
-
-# Separate the main data and outliers
-main_data <- introns_gc %>% filter(LE_o <= threshold)
-outliers <- introns_gc %>% filter(LE_o > threshold)
-
-# Plot
-ggplot(main_data, aes(x = skipped, y = LE_o, fill = skipped)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.8) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
-  geom_point(data = outliers, aes(x = skipped, y = threshold + 1), 
-             position = position_jitter(width = 0.2), 
-             shape = 21, size = 2, fill = "black", alpha = 0.5) +
-  stat_compare_means(method = "wilcox.test", 
-                     label.y = threshold + 5) +
-  labs(
-    x = "Splicing Outcome",
-    y = "Length",
-    title = "Length of Introns by Splicing Outcome"
+# 9) GC-content plot
+p1 <- ggplot(all_introns, aes(x=splicing, y=gc, fill=splicing)) +
+  geom_boxplot(outlier.shape=NA, alpha=0.8, width=0.6) +
+  geom_jitter(width=0.15, alpha=0.4, size=1.5) +
+  stat_compare_means(
+    method      = "wilcox.test",
+    comparisons = comparisons,
+    label       = "p.signif",
+    family      = "courierprime",
+    label.size  = 5
   ) +
-  scale_fill_manual(values = c("#D55E00", "#0072B2")) +
-  coord_cartesian(ylim = c(min(main_data$LE_o, na.rm = TRUE), threshold + 5)) +
-  theme_minimal(base_size = 14) +
-  theme(
-    legend.position = "none",
-    plot.title = element_text(hjust = 0.5)
-  )
+  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73")) +
+  labs(
+    x     = "Splicing Outcome",
+    y     = "GC Content (%)",
+    title = "Spliceostatin A: Introns"
+  ) +
+  pub_theme
+
+# 10) Length plot (with 95th percentile threshold)
+threshold <- quantile(all_introns$LE_o, .95, na.rm=TRUE)
+main_data <- all_introns %>% filter(LE_o <= threshold)
+outliers  <- all_introns %>% filter(LE_o > threshold)
+
+p2 <- ggplot(main_data, aes(x=splicing, y=LE_o, fill=splicing)) +
+  geom_boxplot(outlier.shape=NA, alpha=0.8, width=0.6) +
+  geom_jitter(width=0.15, alpha=0.4, size=1.5) +
+  geom_point(
+    data     = outliers,
+    aes(x=splicing, y=threshold + 2),
+    position = position_jitter(width=0.15),
+    shape    = 21, size=3, fill="black", alpha=0.6
+  ) +
+  stat_compare_means(
+    method      = "wilcox.test",
+    comparisons = comparisons,
+    label       = "p.signif",
+    family      = "courierprime",
+    label.size  = 5
+  ) +
+  coord_cartesian(ylim=c(min(main_data$LE_o, na.rm=TRUE), threshold+8)) +
+  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73")) +
+  labs(
+    x     = "Splicing Outcome",
+    y     = "Intron Length (nt)") +
+  pub_theme
+
+# 11) Arrange side-by-side
+grid.arrange(p1, p2, ncol=2)
+
+
+
 ```
 
+### Pladienolide B
 
+```{r gc introns pladb, out.width="100%"}
+# 3) Prepare DE introns
+introns_gc <- differential_pladb_introns %>%
+  left_join(select(event_info, EVENT, Seq_A, LE_o), by="EVENT") %>%
+  mutate(
+    gc        = gc_content(Seq_A),
+    splicing  = if_else(deltapsi < 0, "Skipped", "Included")
+  )
+
+set.seed(123)
+# 4) Prepare unchanged introns (you say you already have it in a DF)
+unchanged_gc <- na.omit(introns_pladb$PSI) %>%
+  filter(!EVENT %in% differential_pladb_introns$EVENT) %>%
+  left_join(select(event_info, EVENT, Seq_A, LE_o), by="EVENT") %>%
+  filter(!is.na(Seq_A)) %>% 
+  sample_n(size = min(1000, n())) %>%
+  mutate(
+    gc       = gc_content(Seq_A),
+    splicing = "Unchanged"
+  )
+
+# 5) Bind them & make factor
+all_introns <- bind_rows(introns_gc, unchanged_gc) %>%
+  mutate(
+    splicing = factor(splicing,
+                      levels = c("Included","Skipped","Unchanged"))
+  )
+
+# 6) Define pairwise comparisons
+comparisons <- list(
+  c("Included", "Skipped"),
+  c("Included", "Unchanged"),
+  c("Skipped",  "Unchanged")
+)
+
+# 7) Load Courier Prime
+font_add_google("Courier Prime","courierprime")
+showtext_auto()
+
+# 8) Theme
+pub_theme <- theme_minimal(base_family="courierprime", base_size=16) +
+  theme(
+    legend.position = "none",
+    plot.title      = element_text(hjust=0.5, size=rel(1.2), face="bold"),
+    axis.title      = element_text(size=rel(1.1)),
+    axis.text       = element_text(size=rel(1.0)),
+    panel.grid.major= element_line(size=0.2, color="grey80"),
+    panel.grid.minor= element_blank()
+  )
+
+# 9) GC-content plot
+p1 <- ggplot(all_introns, aes(x=splicing, y=gc, fill=splicing)) +
+  geom_boxplot(outlier.shape=NA, alpha=0.8, width=0.6) +
+  geom_jitter(width=0.15, alpha=0.4, size=1.5) +
+  stat_compare_means(
+    method      = "wilcox.test",
+    comparisons = comparisons,
+    label       = "p.signif",
+    family      = "courierprime",
+    label.size  = 5
+  ) +
+  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73")) +
+  labs(
+    x     = "Splicing Outcome",
+    y     = "GC Content (%)",
+    title = "Pladienolide B: Introns"
+  ) +
+  pub_theme
+
+# 10) Length plot (with 95th percentile threshold)
+threshold <- quantile(all_introns$LE_o, .95, na.rm=TRUE)
+main_data <- all_introns %>% filter(LE_o <= threshold)
+outliers  <- all_introns %>% filter(LE_o > threshold)
+
+p2 <- ggplot(main_data, aes(x=splicing, y=LE_o, fill=splicing)) +
+  geom_boxplot(outlier.shape=NA, alpha=0.8, width=0.6) +
+  geom_jitter(width=0.15, alpha=0.4, size=1.5) +
+  geom_point(
+    data     = outliers,
+    aes(x=splicing, y=threshold + 2),
+    position = position_jitter(width=0.15),
+    shape    = 21, size=3, fill="black", alpha=0.6
+  ) +
+  stat_compare_means(
+    method      = "wilcox.test",
+    comparisons = comparisons,
+    label       = "p.signif",
+    family      = "courierprime",
+    label.size  = 5
+  ) +
+  coord_cartesian(ylim=c(min(main_data$LE_o, na.rm=TRUE), threshold+8)) +
+  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73")) +
+  labs(
+    x     = "Splicing Outcome",
+    y     = "Intron Length (nt)") +
+  pub_theme
+
+# 11) Arrange side-by-side
+grid.arrange(p1, p2, ncol=2)
+```
+
+### Tuberdicin
+
+```{r gc introns tub, out.width="100%"}
+
+# 3) Prepare DE introns
+introns_gc <- differential_tub_introns %>%
+  left_join(select(event_info, EVENT, Seq_A, LE_o), by="EVENT") %>%
+  mutate(
+    gc        = gc_content(Seq_A),
+    splicing  = if_else(deltapsi < 0, "Skipped", "Included")
+  )
+
+set.seed(123)
+# 4) Prepare unchanged introns (you say you already have it in a DF)
+unchanged_gc <- na.omit(introns_ssa_tub$PSI) %>%
+  filter(!EVENT %in% differential_tub_introns$EVENT) %>%
+  left_join(select(event_info, EVENT, Seq_A, LE_o), by="EVENT") %>%
+  filter(!is.na(Seq_A)) %>% 
+  sample_n(size = min(1000, n())) %>%
+  mutate(
+    gc       = gc_content(Seq_A),
+    splicing = "Unchanged"
+  )
+
+# 5) Bind them & make factor
+all_introns <- bind_rows(introns_gc, unchanged_gc) %>%
+  mutate(
+    splicing = factor(splicing,
+                      levels = c("Included","Skipped","Unchanged"))
+  )
+
+# 6) Define pairwise comparisons
+comparisons <- list(
+  c("Included", "Skipped"),
+  c("Included", "Unchanged"),
+  c("Skipped",  "Unchanged")
+)
+
+# 7) Load Courier Prime
+font_add_google("Courier Prime","courierprime")
+showtext_auto()
+
+# 8) Theme
+pub_theme <- theme_minimal(base_family="courierprime", base_size=16) +
+  theme(
+    legend.position = "none",
+    plot.title      = element_text(hjust=0.5, size=rel(1.2), face="bold"),
+    axis.title      = element_text(size=rel(1.1)),
+    axis.text       = element_text(size=rel(1.0)),
+    panel.grid.major= element_line(size=0.2, color="grey80"),
+    panel.grid.minor= element_blank()
+  )
+
+# 9) GC-content plot
+p1 <- ggplot(all_introns, aes(x=splicing, y=gc, fill=splicing)) +
+  geom_boxplot(outlier.shape=NA, alpha=0.8, width=0.6) +
+  geom_jitter(width=0.15, alpha=0.4, size=1.5) +
+  stat_compare_means(
+    method      = "wilcox.test",
+    comparisons = comparisons,
+    label       = "p.signif",
+    family      = "courierprime",
+    label.size  = 5
+  ) +
+  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73")) +
+  labs(
+    x     = "Splicing Outcome",
+    y     = "GC Content (%)",
+    title = "Tubercidin: Introns"
+  ) +
+  pub_theme
+
+# 10) Length plot (with 95th percentile threshold)
+threshold <- quantile(all_introns$LE_o, .95, na.rm=TRUE)
+main_data <- all_introns %>% filter(LE_o <= threshold)
+outliers  <- all_introns %>% filter(LE_o > threshold)
+
+p2 <- ggplot(main_data, aes(x=splicing, y=LE_o, fill=splicing)) +
+  geom_boxplot(outlier.shape=NA, alpha=0.8, width=0.6) +
+  geom_jitter(width=0.15, alpha=0.4, size=1.5) +
+  geom_point(
+    data     = outliers,
+    aes(x=splicing, y=threshold + 2),
+    position = position_jitter(width=0.15),
+    shape    = 21, size=3, fill="black", alpha=0.6
+  ) +
+  stat_compare_means(
+    method      = "wilcox.test",
+    comparisons = comparisons,
+    label       = "p.signif",
+    family      = "courierprime",
+    label.size  = 5
+  ) +
+  coord_cartesian(ylim=c(min(main_data$LE_o, na.rm=TRUE), threshold+8)) +
+  scale_fill_manual(values=c("#0072B2","#D55E00","#009E73")) +
+  labs(
+    x     = "Splicing Outcome",
+    y     = "Intron Length (nt)") +
+  pub_theme
+
+# 11) Arrange side-by-side
+grid.arrange(p1, p2, ncol=2)
+```
 
 ## Gene-level stats
 
@@ -4234,7 +4496,7 @@ right_annotation <- rowAnnotation(
 
 ### Heatmap showcasing the PSI of every candidate EX and IN
 
-**Note**: Gene ontology of *Cellular Component* and *Molecular Function* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left.
+**Note**: Gene ontology of *Cellular Component* and *Molecular Function* for each of the clustered blocks (splicing events that the *pearson* algorithm has found they behave similarly) appears on the right. The predicted impact on the protein appears on the left. The PSI is shown as a Z-score.
 
 ```{r heatmap_plot, fig.width=30, fig.height=30, echo=TRUE, out.width="100%"}
 set.seed(44)
@@ -4316,54 +4578,6 @@ datatable(
 
 ```
 
-### Gene Set Enrichment Analysis of ORF
-
-```{r gsea tub, error = TRUE}
-library(dplyr)
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(fgsea)
-library(msigdbr)
-
-# Merge the data.frames and filter
-merged_df <- merge(differential_tub, heatmap_dataframe_tub, by = "EVENT") %>%
-  filter(grepl("ORF disruption upon sequence", protein_impact))
-
-# Adjust deltapsi sign
-adjust_sign <- function(dpsi, impact) {
-  if (grepl("ORF disruption upon sequence inclusion", impact)) {
-    return(-dpsi)
-  } else {
-    return(dpsi)
-  }
-}
-merged_df$adj_deltapsi <- mapply(adjust_sign, merged_df$deltapsi, merged_df$protein_impact)
-
-# Check for duplicated GENE columns
-# Let's assume we want to keep GENE.x
-merged_df <- merged_df %>% rename(GENE = GENE.x)
-
-# Prepare the ranked list
-gene_list <- merged_df %>%
-  select(GENE, adj_deltapsi) %>%
-  group_by(GENE) %>%
-  summarise(score = mean(adj_deltapsi)) %>% # Handle duplicates if any
-  arrange(desc(score)) %>%
-  deframe()  # Creates named vector
-
-# Retrieve MSigDB hallmark gene sets (change species if needed)
-m_t2g <- msigdbr(species = "Mus musculus") %>%   
-  dplyr::select(gs_name, gene_symbol)
-
-# Run GSEA
-gsea_cp <- GSEA(gene_list,
-                TERM2GENE = m_t2g,
-                pvalueCutoff = 0.05,
-                minGSSize = 5)
-
-# Plot
-dotplot(gsea_cp)
-```
 
 
 
@@ -4371,7 +4585,7 @@ dotplot(gsea_cp)
 
 I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
 
-```{r protein impact psi tub, out.width="100%"}
+```{r protein impact psi tub}
 # Load required libraries
 library(dplyr)
 library(tidyr)
@@ -4379,11 +4593,26 @@ library(ggplot2)
 library(rstatix)
 library(ggpubr)
 library(matrixStats)
+library(sysfonts)
+library(showtext)
 
+# Font settings
+font_add_google(name = "Courier Prime", family = "Courier Prime")
+showtext_auto()
 
+tub_unique <- tub_exons_df %>% distinct(EVENT, .keep_all = TRUE)
+rownames(tub_unique) <- tub_unique$EVENT
+# Filter rows based on differential events (|dPSI| >= 0.1)
+filtered_events <- unique(c(
+  differential_tub_exons$EVENT[abs(differential_tub_exons$deltapsi)>=0.1],
+  differential_tub_introns$EVENT[abs(differential_tub_introns$deltapsi)>=0.1]
+))
+tub_unique <- tub_unique[rownames(tub_unique) %in% filtered_events, ] %>%
+  select(7:12) %>%
+  as.matrix()
 
+# Data prep
 tub_mat <- tub_unique
-
 original_cols <- colnames(tub_mat)
 
 tub_df <- as.data.frame(tub_mat) %>%
@@ -4397,17 +4626,20 @@ tub_df <- as.data.frame(tub_mat) %>%
     group_idx = match(sample, original_cols),
     protein_impact = final_impact_string$ONTO[match(EVENT, final_impact_string$EventID)],
     protein_impact = case_when(
-      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
-      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disrupted upon inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disrupted upon exclusion",
       grepl("Alternative", protein_impact) ~ "Alternative",
       grepl("In the CDS", protein_impact) ~ "CDS impacted",
       grepl("UTR", protein_impact) ~ "UTR",
-      TRUE ~ "Unknown"
+      TRUE ~ NA_character_
     ),
-    group = ceiling(group_idx/3),
-    condition = factor(if_else(str_detect(sample, "tub"), "Tubercidin", "Control"),
+    group = ceiling(group_idx / 3),
+    condition = factor(if_else(stringr::str_detect(sample, "tub"), "Tubercidin", "Control"),
                        levels = c("Control", "Tubercidin"))
   ) %>%
+  filter(!is.na(protein_impact)) %>%
+  mutate(protein_impact = factor(protein_impact,
+                                 levels = c("Alternative", "CDS impacted", "UTR", "ORF disrupted upon exclusion", "ORF disrupted upon inclusion"))) %>%
   select(-group_idx)
 
 # Bootstrap confidence intervals
@@ -4416,7 +4648,6 @@ bootstrap_ci <- function(x, nboot = 1000, conf = 0.95) {
   quantile(boots, c((1 - conf) / 2, 1 - (1 - conf) / 2), na.rm = TRUE)
 }
 
-# Summaries per group with direct CI extraction
 summary_df <- tub_df %>%
   group_by(protein_impact, condition) %>%
   summarise(
@@ -4427,66 +4658,51 @@ summary_df <- tub_df %>%
     .groups    = "drop"
   )
 
-
-
-# 1) recompute tests with a little extra spacing
+# Statistical testing
 tests <- tub_df %>%
   group_by(protein_impact) %>%
-  t_test(value ~ condition) %>%
+  wilcox_test(value ~ condition, paired = TRUE) %>%
   adjust_pvalue(method = "BH") %>%
   add_significance() %>%
-  add_xy_position(x = "condition", step.increase = 0.1)
+  add_xy_position(x = "condition", step.increase = 5)
 
-# 2) build the plot
-impact_psi_plot <- ggplot() +
-  geom_jitter(
-    data = tub_df,
-    aes(condition, value),
-    width = 0.25, size = 1.5, alpha = 0.4, color = "grey50",
-    show.legend = FALSE
-  ) +
-  geom_line(
-    data = summary_df,
-    aes(condition, mean_val, group = protein_impact, color = protein_impact),
-    size = 1
-  ) +
-  geom_point(
-    data = summary_df,
-    aes(condition, mean_val, color = protein_impact),
-    size = 3
-  ) +
-  geom_ribbon(
-    data = summary_df,
-    aes(x = as.numeric(condition),
-        ymin = ci_lower, ymax = ci_upper,
-        group = protein_impact, fill = protein_impact),
-    alpha = 0.2, color = NA
-  ) +
-  stat_pvalue_manual(tests, label = "p.adj.signif",
-                     tip.length = 0.02, bracket.size = 0.4) +
-  facet_wrap(~ protein_impact, scales = "free_y", ncol = 3,
-             labeller = label_wrap_gen(width = 15)) +
-  scale_color_brewer(palette = "Set2") +
-  scale_fill_brewer(palette = "Set2") +
-  theme_minimal(base_size = 14) +
+
+# Plot
+impact_psi_plot <- ggplot(summary_df, aes(x = condition, y = mean_val, color = protein_impact, fill = protein_impact)) +
+  geom_jitter(data = tub_df, aes(x = condition, y = value), width = 0.2, size = 1.5, alpha = 0.4, color = "grey70", show.legend = FALSE) +
+  geom_line(aes(group = protein_impact), size = 1.8) +
+  geom_point(size = 3.2) +
+  geom_ribbon(aes(x = as.numeric(condition), ymin = ci_lower, ymax = ci_upper, group = protein_impact), alpha = 0.25, color = NA) +
+  stat_pvalue_manual(tests, label = "p.adj.signif", tip.length = 0.02, size = 1, bracket.size = 0.6, inherit.aes = FALSE) +
+  facet_wrap(~ protein_impact, ncol = 3) +
+  scale_y_continuous(
+  breaks = seq(0, 100, by = 20),
+  expand = expansion(mult = c(0, 0.1))) + # Add ~10% top padding
+  coord_cartesian(ylim = c(0, 100)) + # Data range stays at 0–100
+  scale_color_brewer(type = "qual", palette = "Set2") +
+  scale_fill_brewer(type = "qual", palette = "Set2") +
+  theme_minimal(base_family = "Courier Prime", base_size = 8) +
   theme(
-    panel.grid.major = element_line(color = "grey90"),
-    strip.text        = element_text(face = "bold", size = 12),
-    axis.title        = element_text(face = "bold"),
-    legend.position   = "bottom"
+    panel.grid.major = element_line(color = "grey80", size = 0.4),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 3, family = "Courier Prime"),
+    axis.title = element_text(face = "bold", size = 5),
+    axis.text = element_text(size = 5),
+    axis.text.x = element_text(angle = 45, hjust = 1),  # <-- Fix overlap
+    legend.position = "none",
   ) +
   labs(
-    x     = "Condition",
-    y     = "Mean PSI",
+    x = "Condition",
+    y = "PSI",
     color = "Protein Impact",
-    fill  = "Protein Impact"
+    fill = "Protein Impact"
   )
 
-
 # Save
-ggsave("final_plots/protein_impact_plot_tub_improved.svg", impact_psi_plot, width = 12, height = 8)
+ggsave("final_plots/protein_impact_plot_tub_improved.png", impact_psi_plot, width = 16, height = 4, units = "in", dpi = 300)
 
 impact_psi_plot
+
 
 
 ```
@@ -4733,59 +4949,12 @@ datatable(
 ```
 
 
-### Gene Set Enrichment Analysis of ORF
-
-```{r gsea tub, error = TRUE}
-library(dplyr)
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(fgsea)
-library(msigdbr)
-
-# Merge the data.frames and filter
-merged_df <- merge(differential_tub, heatmap_dataframe_ssa, by = "EVENT") %>%
-  filter(grepl("ORF disruption upon sequence", protein_impact))
-
-# Adjust deltapsi sign
-adjust_sign <- function(dpsi, impact) {
-  if (grepl("ORF disruption upon sequence inclusion", impact)) {
-    return(-dpsi)
-  } else {
-    return(dpsi)
-  }
-}
-merged_df$adj_deltapsi <- mapply(adjust_sign, merged_df$deltapsi, merged_df$protein_impact)
-
-# Check for duplicated GENE columns
-# Let's assume we want to keep GENE.x
-merged_df <- merged_df %>% rename(GENE = GENE.x)
-
-# Prepare the ranked list
-gene_list <- merged_df %>%
-  select(GENE, adj_deltapsi) %>%
-  group_by(GENE) %>%
-  summarise(score = mean(adj_deltapsi)) %>% # Handle duplicates if any
-  arrange(desc(score)) %>%
-  deframe()  # Creates named vector
-
-
-
-# Run GSEA
-gsea_cp <- GSEA(gene_list,
-                TERM2GENE = m_t2g,
-                pvalueCutoff = 0.05,
-                minGSSize = 5)
-
-# Plot
-dotplot(gsea_cp)
-```
-
 
 ### Protein Impact on Splicing Events
 
 I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
 
-```{r protein impact psi ssa, out.width="100%"}
+```{r protein impact psi ssa}
 # Load required libraries
 library(dplyr)
 library(tidyr)
@@ -4793,11 +4962,26 @@ library(ggplot2)
 library(rstatix)
 library(ggpubr)
 library(matrixStats)
+library(sysfonts)
+library(showtext)
 
+# Font settings
+font_add_google(name = "Courier Prime", family = "Courier Prime")
+showtext_auto()
 
+ssa_unique <- ssa_exons_df %>% distinct(EVENT, .keep_all = TRUE)
+rownames(ssa_unique) <- ssa_unique$EVENT
+# Filter rows based on differential events (|dPSI| >= 0.1)
+filtered_events <- unique(c(
+  differential_ssa_exons$EVENT[abs(differential_ssa_exons$deltapsi)>=0.1],
+  differential_ssa_introns$EVENT[abs(differential_ssa_introns$deltapsi)>=0.1]
+))
+ssa_unique <- ssa_unique[rownames(ssa_unique) %in% filtered_events, ] %>%
+  select(c(7:9,13:15)) %>%
+  as.matrix()
 
+# Data prep
 ssa_mat <- ssa_unique
-
 original_cols <- colnames(ssa_mat)
 
 ssa_df <- as.data.frame(ssa_mat) %>%
@@ -4811,17 +4995,20 @@ ssa_df <- as.data.frame(ssa_mat) %>%
     group_idx = match(sample, original_cols),
     protein_impact = final_impact_string$ONTO[match(EVENT, final_impact_string$EventID)],
     protein_impact = case_when(
-      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
-      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disrupted upon inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disrupted upon exclusion",
       grepl("Alternative", protein_impact) ~ "Alternative",
       grepl("In the CDS", protein_impact) ~ "CDS impacted",
       grepl("UTR", protein_impact) ~ "UTR",
-      TRUE ~ "Unknown"
+      TRUE ~ NA_character_
     ),
-    group = ceiling(group_idx/3),
-    condition = factor(if_else(str_detect(sample, "ssa"), "Spliceostatin", "Control"),
-                       levels = c("Control", "Spliceostatin"))
+    group = ceiling(group_idx / 3),
+    condition = factor(if_else(stringr::str_detect(sample, "ssa"), "Spliceostatin A", "Control"),
+                       levels = c("Control", "Spliceostatin A"))
   ) %>%
+  filter(!is.na(protein_impact)) %>%
+  mutate(protein_impact = factor(protein_impact,
+                                 levels = c("Alternative", "CDS impacted", "UTR", "ORF disrupted upon exclusion", "ORF disrupted upon inclusion"))) %>%
   select(-group_idx)
 
 # Bootstrap confidence intervals
@@ -4830,7 +5017,6 @@ bootstrap_ci <- function(x, nboot = 1000, conf = 0.95) {
   quantile(boots, c((1 - conf) / 2, 1 - (1 - conf) / 2), na.rm = TRUE)
 }
 
-# Summaries per group with direct CI extraction
 summary_df <- ssa_df %>%
   group_by(protein_impact, condition) %>%
   summarise(
@@ -4841,64 +5027,48 @@ summary_df <- ssa_df %>%
     .groups    = "drop"
   )
 
-
-
-# 1) recompute tests with a little extra spacing
+# Statistical testing
 tests <- ssa_df %>%
   group_by(protein_impact) %>%
-  t_test(value ~ condition) %>%
+  wilcox_test(value ~ condition, paired = TRUE) %>%
   adjust_pvalue(method = "BH") %>%
   add_significance() %>%
-  add_xy_position(x = "condition", step.increase = 0.1)
+  add_xy_position(x = "condition", step.increase = 5)
 
-# 2) build the plot
-impact_psi_plot <- ggplot() +
-  geom_jitter(
-    data = ssa_df,
-    aes(condition, value),
-    width = 0.25, size = 1.5, alpha = 0.4, color = "grey50",
-    show.legend = FALSE
-  ) +
-  geom_line(
-    data = summary_df,
-    aes(condition, mean_val, group = protein_impact, color = protein_impact),
-    size = 1
-  ) +
-  geom_point(
-    data = summary_df,
-    aes(condition, mean_val, color = protein_impact),
-    size = 3
-  ) +
-  geom_ribbon(
-    data = summary_df,
-    aes(x = as.numeric(condition),
-        ymin = ci_lower, ymax = ci_upper,
-        group = protein_impact, fill = protein_impact),
-    alpha = 0.2, color = NA
-  ) +
-  stat_pvalue_manual(tests, label = "p.adj.signif",
-                     tip.length = 0.02, bracket.size = 0.4) +
-  facet_wrap(~ protein_impact, scales = "free_y", ncol = 3,
-             labeller = label_wrap_gen(width = 15)) +
-  scale_color_brewer(palette = "Set2") +
-  scale_fill_brewer(palette = "Set2") +
-  theme_minimal(base_size = 14) +
+
+# Plot
+impact_psi_plot <- ggplot(summary_df, aes(x = condition, y = mean_val, color = protein_impact, fill = protein_impact)) +
+  geom_jitter(data = ssa_df, aes(x = condition, y = value), width = 0.2, size = 1.5, alpha = 0.4, color = "grey70", show.legend = FALSE) +
+  geom_line(aes(group = protein_impact), size = 1.8) +
+  geom_point(size = 3.2) +
+  geom_ribbon(aes(x = as.numeric(condition), ymin = ci_lower, ymax = ci_upper, group = protein_impact), alpha = 0.25, color = NA) +
+  stat_pvalue_manual(tests, label = "p.adj.signif", tip.length = 0.02, size = 1, bracket.size = 0.6, inherit.aes = FALSE) +
+  facet_wrap(~ protein_impact, ncol = 3) +
+  scale_y_continuous(
+  breaks = seq(0, 100, by = 20),
+  expand = expansion(mult = c(0, 0.1))) + # Add ~10% top padding
+  coord_cartesian(ylim = c(0, 100)) + # Data range stays at 0–100
+  scale_color_brewer(type = "qual", palette = "Set2") +
+  scale_fill_brewer(type = "qual", palette = "Set2") +
+  theme_minimal(base_family = "Courier Prime", base_size = 8) +
   theme(
-    panel.grid.major = element_line(color = "grey90"),
-    strip.text        = element_text(face = "bold", size = 12),
-    axis.title        = element_text(face = "bold"),
-    legend.position   = "bottom"
+    panel.grid.major = element_line(color = "grey80", size = 0.4),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 3, family = "Courier Prime"),
+    axis.title = element_text(face = "bold", size = 5),
+    axis.text = element_text(size = 5),
+    axis.text.x = element_text(angle = 45, hjust = 1),  # <-- Fix overlap
+    legend.position = "none",
   ) +
   labs(
-    x     = "Condition",
-    y     = "Mean PSI",
+    x = "Condition",
+    y = "PSI",
     color = "Protein Impact",
-    fill  = "Protein Impact"
+    fill = "Protein Impact"
   )
 
-
 # Save
-ggsave("final_plots/protein_impact_plot_ssa_improved.svg", impact_psi_plot, width = 12, height = 8)
+ggsave("final_plots/protein_impact_plot_ssa_improved.png", impact_psi_plot, width = 16, height = 4, units = "in", dpi = 300)
 
 impact_psi_plot
 
@@ -5147,59 +5317,13 @@ datatable(
 ```
 
 
-### Gene Set Enrichment Analysis of ORF
-
-```{r gsea tub, error = TRUE}
-library(dplyr)
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(fgsea)
-library(msigdbr)
-
-# Merge the data.frames and filter
-merged_df <- merge(differential_tub, heatmap_dataframe_pladb, by = "EVENT") %>%
-  filter(grepl("ORF disruption upon sequence", protein_impact))
-
-# Adjust deltapsi sign
-adjust_sign <- function(dpsi, impact) {
-  if (grepl("ORF disruption upon sequence inclusion", impact)) {
-    return(-dpsi)
-  } else {
-    return(dpsi)
-  }
-}
-merged_df$adj_deltapsi <- mapply(adjust_sign, merged_df$deltapsi, merged_df$protein_impact)
-
-# Check for duplicated GENE columns
-# Let's assume we want to keep GENE.x
-merged_df <- merged_df %>% rename(GENE = GENE.x)
-
-# Prepare the ranked list
-gene_list <- merged_df %>%
-  select(GENE, adj_deltapsi) %>%
-  group_by(GENE) %>%
-  summarise(score = mean(adj_deltapsi)) %>% # Handle duplicates if any
-  arrange(desc(score)) %>%
-  deframe()  # Creates named vector
-
-
-
-# Run GSEA
-gsea_cp <- GSEA(gene_list,
-                TERM2GENE = m_t2g,
-                pvalueCutoff = 0.05,
-                minGSSize = 5)
-
-# Plot
-dotplot(gsea_cp)
-```
 
 
 ### Protein Impact on Splicing Events
 
 I extracted the different subsets of significant splicing events and grouped them by the protein impact. The plot depicts that the protein impact does not alter the splicing tendency: some events (grey dots in the plot) will be included or excluded, but the population means of the WT and KO remain equal.
 
-```{r protein impact psi pladb, out.width="100%"}
+```{r protein impact psi pladb}
 # Load required libraries
 library(dplyr)
 library(tidyr)
@@ -5207,11 +5331,26 @@ library(ggplot2)
 library(rstatix)
 library(ggpubr)
 library(matrixStats)
+library(sysfonts)
+library(showtext)
 
+# Font settings
+font_add_google(name = "Courier Prime", family = "Courier Prime")
+showtext_auto()
 
+pladb_unique <- pladb_exons_df %>% distinct(EVENT, .keep_all = TRUE)
+rownames(pladb_unique) <- pladb_unique$EVENT
+# Filter rows based on differential events (|dPSI| >= 0.1)
+filtered_events <- unique(c(
+  differential_pladb_exons$EVENT[abs(differential_pladb_exons$deltapsi)>=0.1],
+  differential_pladb_introns$EVENT[abs(differential_pladb_introns$deltapsi)>=0.1]
+))
+pladb_unique <- pladb_unique[rownames(pladb_unique) %in% filtered_events, ] %>%
+  select(7:12) %>%
+  as.matrix()
 
+# Data prep
 pladb_mat <- pladb_unique
-
 original_cols <- colnames(pladb_mat)
 
 pladb_df <- as.data.frame(pladb_mat) %>%
@@ -5225,17 +5364,20 @@ pladb_df <- as.data.frame(pladb_mat) %>%
     group_idx = match(sample, original_cols),
     protein_impact = final_impact_string$ONTO[match(EVENT, final_impact_string$EventID)],
     protein_impact = case_when(
-      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disruption upon inclusion",
-      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disruption upon exclusion",
+      grepl("ORF disruption upon sequence inclusion", protein_impact) ~ "ORF disrupted upon inclusion",
+      grepl("ORF disruption upon sequence exclusion", protein_impact) ~ "ORF disrupted upon exclusion",
       grepl("Alternative", protein_impact) ~ "Alternative",
       grepl("In the CDS", protein_impact) ~ "CDS impacted",
       grepl("UTR", protein_impact) ~ "UTR",
-      TRUE ~ "Unknown"
+      TRUE ~ NA_character_
     ),
-    group = ceiling(group_idx/3),
-    condition = factor(if_else(str_detect(sample, "pladb"), "Pladienolide", "Control"),
-                       levels = c("Control", "Pladienolide"))
+    group = ceiling(group_idx / 3),
+    condition = factor(if_else(stringr::str_detect(sample, "pladb"), "Pladienolide B", "Control"),
+                       levels = c("Control", "Pladienolide B"))
   ) %>%
+  filter(!is.na(protein_impact)) %>%
+  mutate(protein_impact = factor(protein_impact,
+                                 levels = c("Alternative", "CDS impacted", "UTR", "ORF disrupted upon exclusion", "ORF disrupted upon inclusion"))) %>%
   select(-group_idx)
 
 # Bootstrap confidence intervals
@@ -5244,7 +5386,6 @@ bootstrap_ci <- function(x, nboot = 1000, conf = 0.95) {
   quantile(boots, c((1 - conf) / 2, 1 - (1 - conf) / 2), na.rm = TRUE)
 }
 
-# Summaries per group with direct CI extraction
 summary_df <- pladb_df %>%
   group_by(protein_impact, condition) %>%
   summarise(
@@ -5255,67 +5396,50 @@ summary_df <- pladb_df %>%
     .groups    = "drop"
   )
 
-
-
-# 1) recompute tests with a little extra spacing
+# Statistical testing
 tests <- pladb_df %>%
   group_by(protein_impact) %>%
-  t_test(value ~ condition) %>%
+  wilcox_test(value ~ condition, paired = TRUE) %>%
   adjust_pvalue(method = "BH") %>%
   add_significance() %>%
-  add_xy_position(x = "condition", step.increase = 0.1)
+  add_xy_position(x = "condition", step.increase = 5)
 
-# 2) build the plot
-impact_psi_plot <- ggplot() +
-  geom_jitter(
-    data = pladb_df,
-    aes(condition, value),
-    width = 0.25, size = 1.5, alpha = 0.4, color = "grey50",
-    show.legend = FALSE
-  ) +
-  geom_line(
-    data = summary_df,
-    aes(condition, mean_val, group = protein_impact, color = protein_impact),
-    size = 1
-  ) +
-  geom_point(
-    data = summary_df,
-    aes(condition, mean_val, color = protein_impact),
-    size = 3
-  ) +
-  geom_ribbon(
-    data = summary_df,
-    aes(x = as.numeric(condition),
-        ymin = ci_lower, ymax = ci_upper,
-        group = protein_impact, fill = protein_impact),
-    alpha = 0.2, color = NA
-  ) +
-  stat_pvalue_manual(tests, label = "p.adj.signif",
-                     tip.length = 0.02, bracket.size = 0.4) +
-  facet_wrap(~ protein_impact, scales = "free_y", ncol = 3,
-             labeller = label_wrap_gen(width = 15)) +
-  scale_color_brewer(palette = "Set2") +
-  scale_fill_brewer(palette = "Set2") +
-  theme_minimal(base_size = 14) +
+
+# Plot
+impact_psi_plot <- ggplot(summary_df, aes(x = condition, y = mean_val, color = protein_impact, fill = protein_impact)) +
+  geom_jitter(data = pladb_df, aes(x = condition, y = value), width = 0.2, size = 1.5, alpha = 0.4, color = "grey70", show.legend = FALSE) +
+  geom_line(aes(group = protein_impact), size = 1.8) +
+  geom_point(size = 3.2) +
+  geom_ribbon(aes(x = as.numeric(condition), ymin = ci_lower, ymax = ci_upper, group = protein_impact), alpha = 0.25, color = NA) +
+  stat_pvalue_manual(tests, label = "p.adj.signif", tip.length = 0.02, size = 1, bracket.size = 0.6, inherit.aes = FALSE) +
+  facet_wrap(~ protein_impact, ncol = 3) +
+  scale_y_continuous(
+  breaks = seq(0, 100, by = 20),
+  expand = expansion(mult = c(0, 0.1))) + # Add ~10% top padding
+  coord_cartesian(ylim = c(0, 100)) + # Data range stays at 0–100
+  scale_color_brewer(type = "qual", palette = "Set2") +
+  scale_fill_brewer(type = "qual", palette = "Set2") +
+  theme_minimal(base_family = "Courier Prime", base_size = 8) +
   theme(
-    panel.grid.major = element_line(color = "grey90"),
-    strip.text        = element_text(face = "bold", size = 12),
-    axis.title        = element_text(face = "bold"),
-    legend.position   = "bottom"
+    panel.grid.major = element_line(color = "grey80", size = 0.4),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 3, family = "Courier Prime"),
+    axis.title = element_text(face = "bold", size = 5),
+    axis.text = element_text(size = 5),
+    axis.text.x = element_text(angle = 45, hjust = 1),  # <-- Fix overlap
+    legend.position = "none",
   ) +
   labs(
-    x     = "Condition",
-    y     = "Mean PSI",
+    x = "Condition",
+    y = "PSI",
     color = "Protein Impact",
-    fill  = "Protein Impact"
+    fill = "Protein Impact"
   )
 
-
 # Save
-ggsave("final_plots/protein_impact_plot_pladb_improved.svg", impact_psi_plot, width = 12, height = 8)
+ggsave("final_plots/protein_impact_plot_pladb_improved.png", impact_psi_plot, width = 16, height = 4, units = "in", dpi = 300)
 
 impact_psi_plot
-
 
 
 
