@@ -602,8 +602,7 @@ process combine_results {
     label 'process_high'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest'
-    containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=4g'
-
+    containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=16g --privileged'
     // Increased memory allocation
     cpus 2
     memory { 32.GB }  // Doubled from 16GB
