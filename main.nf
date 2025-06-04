@@ -602,11 +602,20 @@ process combine_results {
     label 'process_high'
     publishDir "${params.outdir}/inclusion_tables", mode: 'copy', pattern: '*INCLUSION_LEVELS_FULL*.tab'
     container 'andresgordoortiz/vast-tools:latest'
-    containerOptions '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=16g --privileged'
 
-    cpus 2
-    memory { 32.GB }
-    time { 2.hour }
+    // HPC-optimized container options
+    containerOptions {
+        def baseOptions = '--writable-tmpfs --no-home --cleanenv'
+        if (workflow.containerEngine == 'singularity') {
+            return "${baseOptions} --bind /tmp:/tmp --bind \$PWD:\$PWD"
+        } else {
+            return '--ulimit stack=unlimited --ulimit memlock=unlimited --shm-size=16g'
+        }
+    }
+
+    cpus 4
+    memory { 64.GB }
+    time { 4.hour }
 
     input:
     path vast_out_dirs, stageAs: "vast_*"
@@ -669,26 +678,52 @@ process combine_results {
     ls -la to_combine | head -20
 
     if [ \$file_count -gt 0 ]; then
-        # Point 7: Remove virtual memory limits
-        echo "Setting ulimits for memory and stack"
-        ulimit -s unlimited
-        ulimit -v unlimited 2>/dev/null || echo "Could not set unlimited virtual memory"
-        ulimit -a  # Print all limits for debugging
+        # HPC-specific optimizations for Singularity
+        echo "Setting environment for HPC Singularity execution..."
+        export TMPDIR=\${PWD}/tmp
+        mkdir -p \$TMPDIR
 
-        # Point 6: Add Perl debugging options to catch potential hangs
-        export PERL_HASH_SEED=0
-        export PERL_DESTRUCT_LEVEL=2
-        export PERL5OPT="-D29"  # Enable Perl debugging to catch hangs
-        export PERL_DEBUG_MSTATS=1  # Track memory allocation
+        # Set resource limits more conservatively for HPC
+        ulimit -s 8192  # 8MB stack instead of unlimited
+        ulimit -n 4096  # Increase file descriptors
+
+        # Clean environment for Singularity
+        unset LD_LIBRARY_PATH
+        unset PERL5LIB
 
         # Set VASTDB path
         export VASTDB=${vastdb_path}
         echo "VASTDB set to \$VASTDB"
+        echo "TMPDIR set to \$TMPDIR"
 
-        echo "Running VAST-tools combine with increased limits..."
-        timeout -k 100m 90m bash -c "vast-tools combine to_combine/ -sp ${params.species} -o . --verbose" 2> combine_error.log
+        # Check if running in Singularity vs Docker
+        if [ -n "\${SINGULARITY_CONTAINER:-}" ]; then
+            echo "Running in Singularity container: \$SINGULARITY_CONTAINER"
 
-        combine_exit_code=\$?
+            # Singularity-specific environment
+            export PERL5OPT=""  # Clear potentially problematic Perl options
+            export PERL_HASH_SEED=0
+
+            # Run with explicit timeout and process monitoring
+            echo "Starting vast-tools combine (Singularity mode)..."
+            timeout 3600 strace -e trace=file,process -o combine.strace vast-tools combine to_combine/ -sp ${params.species} -o . --verbose > combine.log 2>&1 &
+            combine_pid=\$!
+
+            # Monitor the process
+            while kill -0 \$combine_pid 2>/dev/null; do
+                echo "vast-tools combine still running (PID: \$combine_pid)..."
+                ps -p \$combine_pid -o pid,ppid,pcpu,pmem,time,cmd || true
+                sleep 30
+            done
+
+            wait \$combine_pid
+            combine_exit_code=\$?
+        else
+            echo "Running in Docker container"
+            # Docker execution (original approach)
+            timeout -k 100m 90m bash -c "vast-tools combine to_combine/ -sp ${params.species} -o . --verbose" 2> combine_error.log
+            combine_exit_code=\$?
+        fi
         if [ \$combine_exit_code -eq 0 ]; then
             echo "VAST-tools combine completed successfully"
 
@@ -701,19 +736,48 @@ process combine_results {
             else
                 echo "No inclusion table found, creating placeholder"
                 echo "# VAST-tools combine completed but no output file found" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# Files processed: \$file_count" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
                 echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
             fi
         else
-            echo "Combine failed with exit code \$combine_exit_code, checking error log"
-            cat combine_error.log || true
+            echo "Combine failed with exit code \$combine_exit_code"
 
-            echo "Creating placeholder file with error information"
+            # Comprehensive debug output
+            echo "=== DEBUG INFORMATION ==="
+            echo "Container environment: \${SINGULARITY_CONTAINER:-docker}"
+            echo "Working directory: \$(pwd)"
+            echo "Files in to_combine: \$(ls -la to_combine/ | wc -l)"
+            echo "Available memory: \$(cat /proc/meminfo | grep MemAvailable || echo 'N/A')"
+            echo "Process tree:"
+            ps axjf || true
+
+            # Check logs
+            if [ -f "combine.log" ]; then
+                echo "=== COMBINE LOG ==="
+                tail -50 combine.log
+            fi
+
+            if [ -f "combine.strace" ]; then
+                echo "=== SYSTEM CALLS (last 20 lines) ==="
+                tail -20 combine.strace
+            fi
+
+            if [ -f "combine_error.log" ]; then
+                echo "=== ERROR LOG ==="
+                cat combine_error.log
+            fi
+
+            echo "Creating error report file"
             echo "# VAST-tools combine failed with exit code \$combine_exit_code" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Files were present but combine process crashed or timed out" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Container: \${SINGULARITY_CONTAINER:-docker}" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
             echo "# Input files: \$file_count" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Error log:" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            cat combine_error.log >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" 2>/dev/null || true
-            echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Error occurred at: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+
+            # Include log content if available
+            if [ -f "combine.log" ]; then
+                echo "# Log content:" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                tail -20 combine.log >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" 2>/dev/null || true
+            fi
         fi
     else
         echo "No files found to combine, creating empty output file"
