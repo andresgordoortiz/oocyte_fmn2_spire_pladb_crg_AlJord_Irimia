@@ -651,7 +651,7 @@ process combine_results {
                 # Copy files with explicit error handling for each type
                 for pattern in "*.eej*" "*.exskX" "*.info" "*.IR*" "*.mic*" "*.MULTI*" "*.tab"; do
                     echo "Copying \$pattern files from \$dir/to_combine/"
-                    find "\$dir/to/combine" -type f -name "\$pattern" -exec cp {} to_combine/ \\; 2>/dev/null || true
+                    find "\$dir/to_combine" -type f -name "\$pattern" -exec cp {} to_combine/ \\; 2>/dev/null || true
                 done
             else
                 echo "No to_combine directory in \$dir, searching for files directly"
@@ -753,7 +753,7 @@ process combine_results {
                 tail -20 combine.log >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" 2>/dev/null || true
             fi
         fi
-    } else {
+    else
         echo "No files found to combine, creating empty output file"
         echo "# No VAST-tools output files found to combine" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         echo "# Created: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
