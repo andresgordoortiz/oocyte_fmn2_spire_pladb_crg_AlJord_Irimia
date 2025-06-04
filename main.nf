@@ -630,44 +630,34 @@ process combine_results {
     echo "VAST-tools combine attempt ${task.attempt} with ${task.memory} memory"
     echo "Using VASTDB path: ${vastdb_path}"
 
-    # Create a clean working directory
-    mkdir -p vast_combine_work/to_combine
-    cd vast_combine_work
+    # Create a clean working directory for combining
+    mkdir -p to_combine
 
     # Copy files with improved error handling
     echo "Collecting VAST-tools output files..."
 
     # Debug: List directories
     echo "Available vast_* directories:"
-    ls -la ../vast_* || true
+    ls -la vast_* || true
 
-    # Point 8: Improved file copying with better handling
-    for dir in ../vast_*; do
-        if [ -d "\$dir/to_combine" ]; then
+    # Improved file copying - avoid copying files to themselves
+    for dir in vast_*; do
+        if [ -d "\$dir" ]; then
             echo "Processing directory: \$dir"
 
-            # Copy files with explicit error handling for each type
-            for pattern in "*.eej*" "*.exskX" "*.info" "*.IR*" "*.mic*" "*.MULTI*" "*.tab"; do
-                echo "Copying \$pattern files from \$dir/to_combine/"
-                find "\$dir/to_combine" -type f -name "\$pattern" | while read file; do
-                    echo "Copying file: \$file"
-                    cp "\$file" to_combine/ || echo "Failed to copy \$file - continuing"
+            # Look for to_combine subdirectory first
+            if [ -d "\$dir/to_combine" ]; then
+                echo "Found to_combine directory in \$dir"
+                # Copy files with explicit error handling for each type
+                for pattern in "*.eej*" "*.exskX" "*.info" "*.IR*" "*.mic*" "*.MULTI*" "*.tab"; do
+                    echo "Copying \$pattern files from \$dir/to_combine/"
+                    find "\$dir/to/combine" -type f -name "\$pattern" -exec cp {} to_combine/ \\; 2>/dev/null || true
                 done
-            done
-
-            # Look for files in parent directories that might have been missed
-            echo "Looking for files in parent directory..."
-            find "\$dir" -maxdepth 1 -type f | grep -E '\\.(eej|exskX|info|IR|mic|MULTI|tab)' | while read file; do
-                echo "Found file in parent dir: \$file"
-                cp "\$file" to_combine/ || echo "Failed to copy \$file - continuing"
-            done
-        else
-            echo "No to_combine directory in \$dir, looking for files elsewhere"
-            # Search the entire directory tree for relevant files
-            find "\$dir" -type f | grep -E '\\.(eej|exskX|info|IR|mic|MULTI|tab)' | while read file; do
-                echo "Found file: \$file"
-                cp "\$file" to_combine/ || echo "Failed to copy \$file - continuing"
-            done
+            else
+                echo "No to_combine directory in \$dir, searching for files directly"
+                # Search the entire directory tree for relevant files
+                find "\$dir" -type f \\( -name "*.eej*" -o -name "*.exskX" -o -name "*.info" -o -name "*.IR*" -o -name "*.mic*" -o -name "*.MULTI*" -o -name "*.tab" \\) -exec cp {} to_combine/ \\; 2>/dev/null || true
+            fi
         fi
     done
 
@@ -706,17 +696,7 @@ process combine_results {
 
             # Run with explicit timeout and process monitoring
             echo "Starting vast-tools combine (Singularity mode)..."
-            timeout 3600 strace -e trace=file,process -o combine.strace vast-tools combine to_combine/ -sp ${params.species} -o . --verbose > combine.log 2>&1 &
-            combine_pid=\$!
-
-            # Monitor the process
-            while kill -0 \$combine_pid 2>/dev/null; do
-                echo "vast-tools combine still running (PID: \$combine_pid)..."
-                ps -p \$combine_pid -o pid,ppid,pcpu,pmem,time,cmd || true
-                sleep 30
-            done
-
-            wait \$combine_pid
+            timeout 3600 vast-tools combine to_combine/ -sp ${params.species} -o . --verbose > combine.log 2>&1
             combine_exit_code=\$?
         else
             echo "Running in Docker container"
@@ -724,6 +704,7 @@ process combine_results {
             timeout -k 100m 90m bash -c "vast-tools combine to_combine/ -sp ${params.species} -o . --verbose" 2> combine_error.log
             combine_exit_code=\$?
         fi
+
         if [ \$combine_exit_code -eq 0 ]; then
             echo "VAST-tools combine completed successfully"
 
@@ -731,13 +712,13 @@ process combine_results {
             inclusion_file=\$(find . -name "INCLUSION_LEVELS_FULL*${params.species}*" -type f | head -n 1)
             if [ -n "\$inclusion_file" ]; then
                 echo "Found inclusion file: \$inclusion_file"
-                cp "\$inclusion_file" "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                cp "\$inclusion_file" "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
                 echo "✓ Results successfully combined"
             else
                 echo "No inclusion table found, creating placeholder"
-                echo "# VAST-tools combine completed but no output file found" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "# Files processed: \$file_count" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                echo "# Created: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# VAST-tools combine completed but no output file found" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# Files processed: \$file_count" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                echo "# Created: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
             fi
         else
             echo "Combine failed with exit code \$combine_exit_code"
@@ -748,18 +729,11 @@ process combine_results {
             echo "Working directory: \$(pwd)"
             echo "Files in to_combine: \$(ls -la to_combine/ | wc -l)"
             echo "Available memory: \$(cat /proc/meminfo | grep MemAvailable || echo 'N/A')"
-            echo "Process tree:"
-            ps axjf || true
 
             # Check logs
             if [ -f "combine.log" ]; then
                 echo "=== COMBINE LOG ==="
                 tail -50 combine.log
-            fi
-
-            if [ -f "combine.strace" ]; then
-                echo "=== SYSTEM CALLS (last 20 lines) ==="
-                tail -20 combine.strace
             fi
 
             if [ -f "combine_error.log" ]; then
@@ -768,20 +742,19 @@ process combine_results {
             fi
 
             echo "Creating error report file"
-            echo "# VAST-tools combine failed with exit code \$combine_exit_code" > "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Container: \${SINGULARITY_CONTAINER:-docker}" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Input files: \$file_count" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-            echo "# Error occurred at: \$(date)" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# VAST-tools combine failed with exit code \$combine_exit_code" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Container: \${SINGULARITY_CONTAINER:-docker}" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Input files: \$file_count" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+            echo "# Error occurred at: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
 
             # Include log content if available
             if [ -f "combine.log" ]; then
-                echo "# Log content:" >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
-                tail -20 combine.log >> "../${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" 2>/dev/null || true
+                echo "# Log content:" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
+                tail -20 combine.log >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab" 2>/dev/null || true
             fi
         fi
-    else
+    } else {
         echo "No files found to combine, creating empty output file"
-        cd ..
         echo "# No VAST-tools output files found to combine" > "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
         echo "# Created: \$(date)" >> "${output_name}_INCLUSION_LEVELS_FULL-${params.species}.tab"
     fi
