@@ -12,7 +12,7 @@ CHROM=$1
 START=$2
 END=$3
 
-INPUT_GTF="gencode.vM10.annotation.gtf"
+INPUT_GTF="Mus_musculus.NCBIM37.60.gtf"
 OUTPUT_TSV="features_chr${CHROM}_${START}_${END}.exons_introns.lengths.tsv"
 
 awk -F $'\t' \
