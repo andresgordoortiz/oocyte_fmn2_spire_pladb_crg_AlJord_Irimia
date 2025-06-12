@@ -127,6 +127,7 @@ library("enrichR")
 library("colorRamp2")
 library("dendextend")
 library("UpSetR")
+library("svglite")
 
 # Register Google fonts
 showtext_auto()
