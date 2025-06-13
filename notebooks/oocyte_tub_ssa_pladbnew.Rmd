@@ -5450,7 +5450,7 @@ impact_psi_plot
 
 The following ontology analysis uses all significant events regardless of type. No background gene list was used for the following enrichment analysis. For a background-aware ontology analysis, check the *Metascape* analysis.
 
-## Tuberdicin { .tabset}
+## Tubercidin { .tabset}
 
 ```{r tub enrichr}
 enrichdata<-enrichr(unique(c(differential_tub$GENE)), databases = c("GO_Biological_Process_2023","GO_Cellular_Component_2023","GO_Molecular_Function_2023"))
