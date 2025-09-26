@@ -59,9 +59,8 @@ library(forcats)
 library(showtext)
 library(scales)
 
-preferred_font <- "Arial"
-
-font_add_google("Inter", family = preferred_font)
+preferred_font<-"Roboto"
+font_add_google(preferred_font)
 showtext::showtext_opts(dpi=600)
 showtext_auto()   # ensures text is rendered via showtext (good for PDFs via cairo)
 
@@ -140,6 +139,7 @@ p <- ggplot(long_df, aes(x = Event, fill = Condition)) +
             vjust = -0.45,
             family = base_family,
             size = 2) +            # label size (in pts)
+  geom_line(aes(x=Event, y=Inclusion)) +
   scale_fill_manual(values = pal) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.06))) +
   labs(x = "Event type", y = "Significant Splicing Events") +
