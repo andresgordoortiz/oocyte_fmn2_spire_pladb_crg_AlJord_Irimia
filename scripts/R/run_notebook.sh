@@ -16,7 +16,7 @@
 #SBATCH --qos=vlong
 
 # memory (MB)
-#SBATCH --mem=50G
+#SBATCH --mem=36G
 #SBATCH --cpus-per-task=2
 
 # job name
@@ -54,7 +54,7 @@ fi
 # Set the working directory inside the container to /workspace
 singularity run --bind "$(pwd)/notebooks:/shared" \
   docker://andresgordoortiz/splicing_analysis_r_crg:v1.5 \
-  bash -c "cd /; Rscript -e \"rmarkdown::render('/shared/erwing_sarcoma.Rmd')\""
+  bash -c "cd /; Rscript -e \"rmarkdown::render('/shared/oocyte_tub_ssa_pladbnew.Rmd')\""
 
 
 # end message #

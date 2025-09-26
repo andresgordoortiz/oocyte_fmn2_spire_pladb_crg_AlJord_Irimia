@@ -68,3 +68,11 @@ __pycache__/
 .env
 node_modules/
 .Rproj.user
+*log*
+*png
+*.svg
+*.csv
+*.html
+*.xlsx
+reference_genome
+.sif
