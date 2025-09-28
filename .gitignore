@@ -12,6 +12,8 @@
 *.vcf
 *.sam
 *.h5
+*.csv
+*.pdf
 *.gz*
 *.tab
 data/processed/*
@@ -68,10 +70,10 @@ __pycache__/
 .env
 node_modules/
 .Rproj.user
-*log*
+*.log*
 *png
 *.svg
-*.csv
+notebooks/*.csv
 *.html
 *.xlsx
 reference_genome
