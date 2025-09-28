@@ -100,6 +100,55 @@ showtext::showtext_opts(dpi=600)
 showtext_auto()   # ensures text is rendered via showtext (good for PDFs via cairo)
 
 base_family <- preferred_font
+
+# ------------------------
+# 2) Palette anchored on Cell blue
+# ------------------------
+cell_blue <- "#00A1D7"
+make_cell_palette <- function(n, main = cell_blue) {
+  anchors <- c(
+    main,        # anchor blue
+    "#0073A8",   # darker blue
+    "#9EE8FB",   # very light tint
+    "#4D4D4D",   # neutral dark (for outlines/contrasts)
+    "#E69F00"    # warm accent (sparingly)
+  )
+  if (n <= length(anchors)) {
+    anchors[1:n]
+  } else {
+    colorRampPalette(anchors)(n)
+  }
+}
+
+# ------------------------
+# 3) Publication theme (cell-inspired)
+# ------------------------
+theme_cellpub <- function(base_size = 18, base_family = base_family) {
+  theme_classic(base_size = base_size, base_family = base_family) %+replace%
+    theme(
+      axis.line = element_line(linewidth = 0.9, colour = "#222222"),
+      axis.ticks = element_line(linewidth = 0.9, colour = "#222222"),
+      axis.ticks.length = unit(3, "pt"),
+      axis.title = element_text(face = "plain", size = rel(1.0)),
+      axis.text = element_text(size = rel(0.95), colour = "#111111"),
+      legend.position = "top",
+      legend.direction = "horizontal",
+      legend.key.size = unit(10, "pt"),
+      legend.background = element_blank(),
+      legend.title = element_blank(),
+      legend.text = element_text(size = rel(0.95)),
+      panel.grid.major.y = element_line(color = alpha("#666666", 0.10), linetype = "dashed", linewidth = 0.4),
+      panel.grid.major.x = element_blank(),
+      strip.background = element_blank(),
+      strip.text = element_text(face = "bold", size = rel(1.0)),
+      plot.title = element_text(face = "bold", size = rel(1.05), hjust = 0),
+      plot.subtitle = element_text(size = rel(0.95), hjust = 0),
+      plot.caption = element_text(size = rel(0.85), colour = "#666666"),
+      plot.margin = margin(6, 6, 6, 6)
+    )
+}
+
+base_family <- preferred_font
 # 6) Volcano-style plot
 p_volcano <- ggplot(differential_all, aes(x = deltapsi, y = stability)) +
   geom_point(aes(size = point_size, color = point_color), alpha = 0.7, na.rm = TRUE) +
